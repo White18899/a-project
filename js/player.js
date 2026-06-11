@@ -274,48 +274,70 @@ class PlayerController {
             this.navigate(elem.targetSlideId, true);
             
         } else if (elem.type === 'btn-option') {
-            // Check correctness
-            const graphics = container.children[0];
-            const isRpg = elem.rpgStyle || this.activeRuntimeSlide.rpgTheme;
-            
-            graphics.clear();
             if (elem.useMarkupColor && elem.markupActive) {
+                const graphics = container.children[0];
+                const isRpg = elem.rpgStyle || this.activeRuntimeSlide.rpgTheme;
+                graphics.clear();
                 this.canvas.drawStyledBox(graphics, elem, isRpg);
+                
+                // Broadcast interaction so the other screen highlights it
+                this.syncChannel.postMessage({
+                    type: 'trigger-element',
+                    elementId: elem.id,
+                    actionData: { 
+                        type: 'option-click', 
+                        isCorrect: elem.isCorrect,
+                        useMarkupColor: elem.useMarkupColor,
+                        markupActive: elem.markupActive
+                    }
+                });
             } else {
-                if (elem.isCorrect) {
-                    // Glow green
-                    graphics.beginFill(0x10b981);
-                    if (isRpg) {
-                        graphics.lineStyle(4, 0xffffff, 1);
-                        graphics.drawRect(2, 2, elem.width - 4, elem.height - 4);
+                // Highlight all option buttons in the same question group
+                const groupName = elem.group || 'Q1';
+                const groupOptions = this.activeRuntimeSlide.elements.filter(
+                    e => e.type === 'btn-option' && (e.group || 'Q1') === groupName
+                );
+                
+                groupOptions.forEach(opt => {
+                    const optContainer = this.canvas.pixiElements.get(opt.id);
+                    if (!optContainer) return;
+                    const graphics = optContainer.children[0];
+                    const isRpg = opt.rpgStyle || this.activeRuntimeSlide.rpgTheme;
+                    
+                    graphics.clear();
+                    if (opt.isCorrect) {
+                        // Glow green
+                        graphics.beginFill(0x10b981);
+                        if (isRpg) {
+                            graphics.lineStyle(4, 0xffffff, 1);
+                            graphics.drawRect(2, 2, opt.width - 4, opt.height - 4);
+                        } else {
+                            graphics.drawRoundedRect(0, 0, opt.width, opt.height, opt.borderRadius || 8);
+                        }
+                        graphics.endFill();
                     } else {
-                        graphics.drawRoundedRect(0, 0, elem.width, elem.height, elem.borderRadius || 8);
+                        // Glow red
+                        graphics.beginFill(0xef4444);
+                        if (isRpg) {
+                            graphics.lineStyle(4, 0xffffff, 1);
+                            graphics.drawRect(2, 2, opt.width - 4, opt.height - 4);
+                        } else {
+                            graphics.drawRoundedRect(0, 0, opt.width, opt.height, opt.borderRadius || 8);
+                        }
+                        graphics.endFill();
                     }
-                    graphics.endFill();
-                } else {
-                    // Glow red
-                    graphics.beginFill(0xef4444);
-                    if (isRpg) {
-                        graphics.lineStyle(4, 0xffffff, 1);
-                        graphics.drawRect(2, 2, elem.width - 4, elem.height - 4);
-                    } else {
-                        graphics.drawRoundedRect(0, 0, elem.width, elem.height, elem.borderRadius || 8);
+                });
+                
+                // Broadcast interaction so the other screen highlights the group
+                this.syncChannel.postMessage({
+                    type: 'trigger-element',
+                    elementId: elem.id,
+                    actionData: { 
+                        type: 'group-option-reveal', 
+                        groupName: groupName
                     }
-                    graphics.endFill();
-                }
+                });
             }
-            
-            // Broadcast interaction so the other screen highlights it
-            this.syncChannel.postMessage({
-                type: 'trigger-element',
-                elementId: elem.id,
-                actionData: { 
-                    type: 'option-click', 
-                    isCorrect: elem.isCorrect,
-                    useMarkupColor: elem.useMarkupColor,
-                    markupActive: elem.markupActive
-                }
-            });
             
         } else if (elem.type === 'btn-show-ans') {
             // Reveal secret element
@@ -329,28 +351,40 @@ class PlayerController {
             });
             
         } else if (elem.type === 'btn-toggle') {
-            // Toggle visibility of target element
-            const targetId = elem.targetElementId;
-            const targetContainer = this.canvas.pixiElements.get(targetId);
+            const actions = elem.actions || [];
             
-            if (targetContainer) {
-                let show = true;
-                if (elem.action === 'toggle') {
-                    show = !targetContainer.visible;
-                } else if (elem.action === 'appear') {
-                    show = true;
-                } else if (elem.action === 'disappear') {
-                    show = false;
-                }
-                
-                this.animateElementVisibility(targetId, show);
-                
-                this.syncChannel.postMessage({
-                    type: 'trigger-element',
-                    elementId: elem.id,
-                    actionData: { type: 'toggle', targetId: targetId, show: show }
+            // Legacy fallback
+            if (actions.length === 0 && elem.action) {
+                actions.push({
+                    type: elem.action,
+                    targetId: elem.targetElementId || ''
                 });
             }
+
+            actions.forEach(act => {
+                const targetId = act.targetId;
+                if (!targetId) return;
+                const targetContainer = this.canvas.pixiElements.get(targetId);
+                
+                if (targetContainer) {
+                    let show = true;
+                    if (act.type === 'toggle') {
+                        show = !targetContainer.visible;
+                    } else if (act.type === 'appear') {
+                        show = true;
+                    } else if (act.type === 'disappear') {
+                        show = false;
+                    }
+                    
+                    this.animateElementVisibility(targetId, show);
+                    
+                    this.syncChannel.postMessage({
+                        type: 'trigger-element',
+                        elementId: elem.id,
+                        actionData: { type: 'toggle-action', targetId: targetId, show: show }
+                    });
+                }
+            });
         }
     }
 
@@ -407,7 +441,44 @@ class PlayerController {
         } else if (actionData.type === 'show-ans') {
             this.animateElementVisibility(actionData.targetId, true);
             
-        } else if (actionData.type === 'toggle') {
+        } else if (actionData.type === 'toggle' || actionData.type === 'toggle-action') {
+            this.animateElementVisibility(actionData.targetId, actionData.show);
+            
+        } else if (actionData.type === 'group-option-reveal') {
+            const groupName = actionData.groupName || 'Q1';
+            const groupOptions = this.activeRuntimeSlide.elements.filter(
+                e => e.type === 'btn-option' && (e.group || 'Q1') === groupName
+            );
+            
+            groupOptions.forEach(opt => {
+                const optContainer = this.canvas.pixiElements.get(opt.id);
+                if (!optContainer) return;
+                const graphics = optContainer.children[0];
+                const isRpg = opt.rpgStyle || this.activeRuntimeSlide.rpgTheme;
+                
+                graphics.clear();
+                if (opt.isCorrect) {
+                    graphics.beginFill(0x10b981);
+                    if (isRpg) {
+                        graphics.lineStyle(4, 0xffffff, 1);
+                        graphics.drawRect(2, 2, opt.width - 4, opt.height - 4);
+                    } else {
+                        graphics.drawRoundedRect(0, 0, opt.width, opt.height, opt.borderRadius || 8);
+                    }
+                    graphics.endFill();
+                } else {
+                    graphics.beginFill(0xef4444);
+                    if (isRpg) {
+                        graphics.lineStyle(4, 0xffffff, 1);
+                        graphics.drawRect(2, 2, opt.width - 4, opt.height - 4);
+                    } else {
+                        graphics.drawRoundedRect(0, 0, opt.width, opt.height, opt.borderRadius || 8);
+                    }
+                    graphics.endFill();
+                }
+            });
+            
+        } else if (actionData.type === 'timer-timeout-target') {
             this.animateElementVisibility(actionData.targetId, actionData.show);
         }
     }
@@ -493,25 +564,60 @@ class PlayerController {
     }
 
     handleTimerTimeout(timerElem) {
-        if (timerElem.action === 'show-answer') {
-            // Find Show Answer button or reveal all correct answers
-            const optButtons = this.activeRuntimeSlide.elements.filter(e => e.type === 'btn-option');
-            optButtons.forEach(opt => {
-                const optContainer = this.canvas.pixiElements.get(opt.id);
-                if (optContainer) {
-                    this.handleElementInteraction(opt, optContainer);
-                }
+        const actions = timerElem.actions || [];
+        
+        // Fallback for non-migrated old timers
+        if (actions.length === 0 && timerElem.action && timerElem.action !== 'none') {
+            actions.push({
+                type: timerElem.action,
+                targetId: timerElem.targetElementId || ''
             });
-            
-            // Also search for any general Show Answer target elements
-            const showAnsBtn = this.activeRuntimeSlide.elements.find(e => e.type === 'btn-show-ans');
-            if (showAnsBtn) {
-                this.animateElementVisibility(showAnsBtn.targetElementId, true);
-            }
-            
-        } else if (timerElem.action === 'next-slide') {
-            this.nextSlide();
         }
+
+        actions.forEach(act => {
+            if (act.type === 'show-answer') {
+                // Find Show Answer button or reveal all correct answers
+                const optButtons = this.activeRuntimeSlide.elements.filter(e => e.type === 'btn-option');
+                optButtons.forEach(opt => {
+                    const optContainer = this.canvas.pixiElements.get(opt.id);
+                    if (optContainer) {
+                        this.handleElementInteraction(opt, optContainer);
+                    }
+                });
+                
+                // Also search for any general Show Answer target elements
+                const showAnsBtn = this.activeRuntimeSlide.elements.find(e => e.type === 'btn-show-ans');
+                if (showAnsBtn) {
+                    this.animateElementVisibility(showAnsBtn.targetElementId, true);
+                }
+                
+            } else if (act.type === 'next-slide') {
+                this.nextSlide();
+            } else if (['appear', 'disappear', 'toggle'].includes(act.type)) {
+                const targetId = act.targetId;
+                if (targetId) {
+                    const targetContainer = this.canvas.pixiElements.get(targetId);
+                    if (targetContainer) {
+                        let show = true;
+                        if (act.type === 'toggle') {
+                            show = !targetContainer.visible;
+                        } else if (act.type === 'appear') {
+                            show = true;
+                        } else if (act.type === 'disappear') {
+                            show = false;
+                        }
+                        this.animateElementVisibility(targetId, show);
+                        
+                        // Broadcast visibility sync to projector screen
+                        this.syncChannel.postMessage({
+                            type: 'trigger-element',
+                            elementId: timerElem.id,
+                            actionData: { type: 'timer-timeout-target', targetId: targetId, show: show }
+                        });
+                    }
+                }
+            }
+        });
     }
 }
 

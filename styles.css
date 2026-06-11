@@ -854,7 +854,7 @@ aside {
     color: #ec4899;
 }
 
-/* 7. Appear/Disappear - Amethyst */
+/* 7. Action Button - Amethyst */
 .btn-element-add[data-type="btn-toggle"]:hover {
     border-color: #a855f7;
     background-color: rgba(168, 85, 247, 0.08);

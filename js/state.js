@@ -22,6 +22,30 @@ function migrateProject(project) {
                     elem.markupColor = '#3b82f6';
                 }
             }
+            if (elem.type === 'timer') {
+                if (!elem.actions) {
+                    elem.actions = [];
+                    if (elem.action && elem.action !== 'none') {
+                        elem.actions.push({
+                            id: 'act-' + Math.random().toString(36).substring(2, 11),
+                            type: elem.action,
+                            targetId: elem.targetElementId || ''
+                        });
+                    }
+                }
+            }
+            if (elem.type === 'btn-toggle') {
+                if (!elem.actions) {
+                    elem.actions = [];
+                    if (elem.action) {
+                        elem.actions.push({
+                            id: 'act-' + Math.random().toString(36).substring(2, 11),
+                            type: elem.action,
+                            targetId: elem.targetElementId || ''
+                        });
+                    }
+                }
+            }
         });
     });
 }
@@ -69,7 +93,7 @@ const ElementTemplates = {
         width: 100,
         height: 80,
         duration: 30,
-        action: 'show-answer', // 'none', 'show-answer', 'next-slide'
+        actions: [], // Dynamic timeout actions: { id, type, targetId }
         fontFamily: 'Outfit',
         fontSize: 36,
         align: 'center',
@@ -155,9 +179,8 @@ const ElementTemplates = {
     'btn-toggle': (slideId) => ({
         id: generateUUID(),
         type: 'btn-toggle',
-        text: 'Toggle Element Box',
-        targetElementId: '', // Element to show/hide
-        action: 'toggle', // 'toggle', 'appear', 'disappear'
+        text: 'Action Button',
+        actions: [], // Dynamic click actions: { id, type, targetId }
         x: 100,
         y: 400,
         width: 220,

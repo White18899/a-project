@@ -234,14 +234,13 @@ function initEditorUI() {
 
             // Toggle / Visibility properties
             if (element.type === 'btn-toggle') {
-                document.getElementById('elem-toggle-target').value = element.targetElementId || '';
-                document.getElementById('elem-toggle-action').value = element.action || 'toggle';
+                renderToggleActions(element);
             }
 
             // Timer parameters
             if (element.type === 'timer') {
                 document.getElementById('elem-timer-duration').value = element.duration || 30;
-                document.getElementById('elem-timer-action').value = element.action || 'show-answer';
+                renderTimerActions(element);
             }
 
             // Button markup properties binding
@@ -792,9 +791,21 @@ function initEditorUI() {
         updateActiveElem({ duration: parseInt(e.target.value) || 30, text: e.target.value });
     });
     document.getElementById('elem-timer-duration').addEventListener('change', () => state.saveToLocalStorage());
-    document.getElementById('elem-timer-action').addEventListener('change', (e) => {
-        updateActiveElemAndSave({ action: e.target.value });
-    });
+
+    document.getElementById('btn-add-timer-action').onclick = () => {
+        const activeElem = state.getActiveElement();
+        if (activeElem && activeElem.type === 'timer') {
+            if (!activeElem.actions) activeElem.actions = [];
+            activeElem.actions.push({
+                id: 'act-' + Math.random().toString(36).substring(2, 11),
+                type: 'show-answer',
+                targetId: ''
+            });
+            state.updateElement(activeElem.id, { actions: activeElem.actions });
+            renderTimerActions(activeElem);
+            state.saveToLocalStorage();
+        }
+    };
 
     // Buttons target parameters dropdown linkers
     document.getElementById('elem-nav-target').addEventListener('change', (e) => {
@@ -803,12 +814,20 @@ function initEditorUI() {
     document.getElementById('elem-show-ans-target').addEventListener('change', (e) => {
         updateActiveElemAndSave({ targetElementId: e.target.value });
     });
-    document.getElementById('elem-toggle-target').addEventListener('change', (e) => {
-        updateActiveElemAndSave({ targetElementId: e.target.value });
-    });
-    document.getElementById('elem-toggle-action').addEventListener('change', (e) => {
-        updateActiveElemAndSave({ action: e.target.value });
-    });
+    document.getElementById('btn-add-toggle-action').onclick = () => {
+        const activeElem = state.getActiveElement();
+        if (activeElem && activeElem.type === 'btn-toggle') {
+            if (!activeElem.actions) activeElem.actions = [];
+            activeElem.actions.push({
+                id: 'act-' + Math.random().toString(36).substring(2, 11),
+                type: 'toggle',
+                targetId: ''
+            });
+            state.updateElement(activeElem.id, { actions: activeElem.actions });
+            renderToggleActions(activeElem);
+            state.saveToLocalStorage();
+        }
+    };
     // Button markup settings change handlers
     document.getElementById('elem-use-markup').addEventListener('change', (e) => {
         const checked = e.target.checked;
@@ -1102,40 +1121,267 @@ function initEditorUI() {
         }
     }
 
+    function renderTimerActions(element) {
+        const container = document.getElementById('timer-actions-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const actions = element.actions || [];
+        if (actions.length === 0) {
+            container.innerHTML = '<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px; border: 1px dashed rgba(255,255,255,0.05); border-radius: 6px;">No actions configured. Click "Add Action" above.</div>';
+            return;
+        }
+
+        const activeSlide = state.getActiveSlide();
+        if (!activeSlide) return;
+
+        actions.forEach((act, index) => {
+            const card = document.createElement('div');
+            card.className = 'timer-action-card';
+            card.setAttribute('data-index', index);
+            card.style.cssText = 'background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 8px; position: relative;';
+
+            // Card Header (Title & Delete)
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
+            header.innerHTML = `<span style="font-size: 0.725rem; font-weight: 600; color: var(--color-primary-hover);">Action #${index + 1}</span>`;
+
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'btn-icon text-danger';
+            delBtn.style.cssText = 'width: 20px; height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer;';
+            delBtn.innerHTML = '<i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>';
+            delBtn.onclick = () => {
+                state.pushHistory();
+                element.actions.splice(index, 1);
+                state.updateElement(element.id, { actions: element.actions });
+                renderTimerActions(element);
+                state.saveToLocalStorage();
+            };
+            header.appendChild(delBtn);
+            card.appendChild(header);
+
+            // Action Type Select
+            const typeGroup = document.createElement('div');
+            typeGroup.className = 'form-group';
+            typeGroup.style.margin = '0';
+            
+            const typeLabel = document.createElement('label');
+            typeLabel.textContent = 'Trigger Action';
+            typeLabel.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; display: block;';
+            typeGroup.appendChild(typeLabel);
+
+            const typeSelect = document.createElement('select');
+            typeSelect.style.cssText = 'font-size: 0.75rem; padding: 4px 8px;';
+            typeSelect.innerHTML = `
+                <option value="show-answer">Auto Show Answer</option>
+                <option value="next-slide">Go to Next Slide</option>
+                <option value="appear">Make target appear</option>
+                <option value="disappear">Make target disappear</option>
+                <option value="toggle">Toggle target visibility</option>
+            `;
+            typeSelect.value = act.type || 'show-answer';
+            typeGroup.appendChild(typeSelect);
+            card.appendChild(typeGroup);
+
+            // Target Element Select Group
+            const targetGroup = document.createElement('div');
+            targetGroup.className = 'form-group';
+            targetGroup.style.cssText = `margin: 0; ${['appear', 'disappear', 'toggle'].includes(act.type) ? '' : 'display: none;'}`;
+            
+            const targetLabel = document.createElement('label');
+            targetLabel.textContent = 'Target Element';
+            targetLabel.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; display: block;';
+            targetGroup.appendChild(targetLabel);
+
+            const targetSelect = document.createElement('select');
+            targetSelect.style.cssText = 'font-size: 0.75rem; padding: 4px 8px;';
+            targetSelect.innerHTML = '<option value="">-- Select target --</option>';
+
+            activeSlide.elements.forEach(elem => {
+                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
+                if (isTargetable && elem.id !== element.id) {
+                    const opt = document.createElement('option');
+                    opt.value = elem.id;
+                    opt.textContent = `${elem.type.toUpperCase()} (${elem.text ? elem.text.substring(0, 15) + '...' : elem.id.substring(3, 8)})`;
+                    targetSelect.appendChild(opt);
+                }
+            });
+            targetSelect.value = act.targetId || '';
+            targetGroup.appendChild(targetSelect);
+            card.appendChild(targetGroup);
+
+            // Change listener for Type
+            typeSelect.onchange = (e) => {
+                state.pushHistory();
+                act.type = e.target.value;
+                if (['appear', 'disappear', 'toggle'].includes(act.type)) {
+                    targetGroup.style.display = 'block';
+                } else {
+                    targetGroup.style.display = 'none';
+                    act.targetId = '';
+                }
+                state.updateElement(element.id, { actions: element.actions });
+                state.saveToLocalStorage();
+            };
+
+            // Change listener for Target
+            targetSelect.onchange = (e) => {
+                state.pushHistory();
+                act.targetId = e.target.value;
+                state.updateElement(element.id, { actions: element.actions });
+                state.saveToLocalStorage();
+            };
+
+            container.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function renderToggleActions(element) {
+        const container = document.getElementById('toggle-actions-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const actions = element.actions || [];
+        if (actions.length === 0) {
+            container.innerHTML = '<div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px; border: 1px dashed rgba(255,255,255,0.05); border-radius: 6px;">No actions configured. Click "Add Action" above.</div>';
+            return;
+        }
+
+        const activeSlide = state.getActiveSlide();
+        if (!activeSlide) return;
+
+        actions.forEach((act, index) => {
+            const card = document.createElement('div');
+            card.className = 'toggle-action-card';
+            card.setAttribute('data-index', index);
+            card.style.cssText = 'background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 8px; position: relative;';
+
+            // Card Header (Title & Delete)
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
+            header.innerHTML = `<span style="font-size: 0.725rem; font-weight: 600; color: var(--color-primary-hover);">Action #${index + 1}</span>`;
+
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'btn-icon text-danger';
+            delBtn.style.cssText = 'width: 20px; height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer;';
+            delBtn.innerHTML = '<i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>';
+            delBtn.onclick = () => {
+                state.pushHistory();
+                element.actions.splice(index, 1);
+                state.updateElement(element.id, { actions: element.actions });
+                renderToggleActions(element);
+                state.saveToLocalStorage();
+            };
+            header.appendChild(delBtn);
+            card.appendChild(header);
+
+            // Action Type Select
+            const typeGroup = document.createElement('div');
+            typeGroup.className = 'form-group';
+            typeGroup.style.margin = '0';
+            
+            const typeLabel = document.createElement('label');
+            typeLabel.textContent = 'Action on Click';
+            typeLabel.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; display: block;';
+            typeGroup.appendChild(typeLabel);
+
+            const typeSelect = document.createElement('select');
+            typeSelect.style.cssText = 'font-size: 0.75rem; padding: 4px 8px;';
+            typeSelect.innerHTML = `
+                <option value="toggle">Toggle Visibility</option>
+                <option value="appear">Make Appear</option>
+                <option value="disappear">Make Disappear</option>
+            `;
+            typeSelect.value = act.type || 'toggle';
+            typeGroup.appendChild(typeSelect);
+            card.appendChild(typeGroup);
+
+            // Target Element Select Group
+            const targetGroup = document.createElement('div');
+            targetGroup.className = 'form-group';
+            targetGroup.style.margin = '0';
+            
+            const targetLabel = document.createElement('label');
+            targetLabel.textContent = 'Target Element';
+            targetLabel.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; display: block;';
+            targetGroup.appendChild(targetLabel);
+
+            const targetSelect = document.createElement('select');
+            targetSelect.style.cssText = 'font-size: 0.75rem; padding: 4px 8px;';
+            targetSelect.innerHTML = '<option value="">-- Select target --</option>';
+
+            activeSlide.elements.forEach(elem => {
+                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
+                if (isTargetable && elem.id !== element.id) {
+                    const opt = document.createElement('option');
+                    opt.value = elem.id;
+                    opt.textContent = `${elem.type.toUpperCase()} (${elem.text ? elem.text.substring(0, 15) + '...' : elem.id.substring(3, 8)})`;
+                    targetSelect.appendChild(opt);
+                }
+            });
+            targetSelect.value = act.targetId || '';
+            targetGroup.appendChild(targetSelect);
+            card.appendChild(targetGroup);
+
+            // Change listener for Type
+            typeSelect.onchange = (e) => {
+                state.pushHistory();
+                act.type = e.target.value;
+                state.updateElement(element.id, { actions: element.actions });
+                state.saveToLocalStorage();
+            };
+
+            // Change listener for Target
+            targetSelect.onchange = (e) => {
+                state.pushHistory();
+                act.targetId = e.target.value;
+                state.updateElement(element.id, { actions: element.actions });
+                state.saveToLocalStorage();
+            };
+
+            container.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
     function rebuildElementInspectorSelectors() {
         const activeSlide = state.getActiveSlide();
         if (!activeSlide) return;
 
         const showSelect = document.getElementById('elem-show-ans-target');
-        const toggleSelect = document.getElementById('elem-toggle-target');
+        if (showSelect) {
+            showSelect.innerHTML = '<option value="">-- Select target --</option>';
+        }
 
-        showSelect.innerHTML = '<option value="">-- Select target --</option>';
-        toggleSelect.innerHTML = '<option value="">-- Select target --</option>';
+        const activeElem = state.getActiveElement();
 
         activeSlide.elements.forEach(elem => {
             // Exclude buttons themselves from target pools to keep references simple
             const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
             
             if (isTargetable) {
-                const optShow = document.createElement('option');
-                optShow.value = elem.id;
-                optShow.textContent = `${elem.type.toUpperCase()} (${elem.text ? elem.text.substring(0, 15) + '...' : elem.id.substring(3, 8)})`;
-                showSelect.appendChild(optShow);
-
-                const optToggle = document.createElement('option');
-                optToggle.value = elem.id;
-                optToggle.textContent = `${elem.type.toUpperCase()} (${elem.text ? elem.text.substring(0, 15) + '...' : elem.id.substring(3, 8)})`;
-                toggleSelect.appendChild(optToggle);
+                if (showSelect) {
+                    const optShow = document.createElement('option');
+                    optShow.value = elem.id;
+                    optShow.textContent = `${elem.type.toUpperCase()} (${elem.text ? String(elem.text).substring(0, 15) + '...' : elem.id.substring(3, 8)})`;
+                    showSelect.appendChild(optShow);
+                }
             }
         });
 
         // Restore values
-        const activeElem = state.getActiveElement();
         if (activeElem) {
-            if (activeElem.type === 'btn-show-ans') {
+            if (activeElem.type === 'btn-show-ans' && showSelect) {
                 showSelect.value = activeElem.targetElementId || '';
             } else if (activeElem.type === 'btn-toggle') {
-                toggleSelect.value = activeElem.targetElementId || '';
+                renderToggleActions(activeElem);
+            } else if (activeElem.type === 'timer') {
+                renderTimerActions(activeElem);
             }
         }
     }

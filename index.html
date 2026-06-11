@@ -119,9 +119,9 @@
                                     <i data-lucide="eye"></i>
                                     <span>Show Ans Btn</span>
                                 </button>
-                                <button class="btn-element-add" data-type="btn-toggle" title="Appear/Disappear Element Button">
+                                <button class="btn-element-add" data-type="btn-toggle" title="Action Button">
                                     <i data-lucide="sparkles"></i>
-                                    <span>Appear/Disappear</span>
+                                    <span>Action Button</span>
                                 </button>
                             </div>
                         </div>
@@ -431,13 +431,16 @@
                                         <label for="elem-timer-duration">Duration (Seconds)</label>
                                         <input type="number" id="elem-timer-duration" value="30" min="1" max="999">
                                     </div>
-                                    <div class="form-group">
-                                        <label for="elem-timer-action">Timeout Action</label>
-                                        <select id="elem-timer-action">
-                                            <option value="none">Do nothing</option>
-                                            <option value="show-answer">Auto Show Answer</option>
-                                            <option value="next-slide">Go to Next Slide</option>
-                                        </select>
+                                    <div class="timer-actions-section" style="margin-top: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Timeout Actions</label>
+                                            <button type="button" id="btn-add-timer-action" class="btn btn-accent" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
+                                                <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Action
+                                            </button>
+                                        </div>
+                                        <div id="timer-actions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                            <!-- Dynamic timer action entries loaded here -->
+                                        </div>
                                     </div>
                                 </div>
 
@@ -475,21 +478,18 @@
                                     </div>
                                 </div>
 
-                                <!-- APPEAR/DISAPPEAR FIELD (conditional) -->
+                                <!-- ACTION BUTTON FIELD (conditional) -->
                                 <div class="inspector-field hidden" id="group-toggle-settings">
-                                    <div class="form-group">
-                                        <label for="elem-toggle-target">Target Element</label>
-                                        <select id="elem-toggle-target">
-                                            <!-- Dynamically populated with all elements in slide -->
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="elem-toggle-action">Action on Click</label>
-                                        <select id="elem-toggle-action">
-                                            <option value="toggle">Toggle Visibility</option>
-                                            <option value="appear">Make Appear</option>
-                                            <option value="disappear">Make Disappear</option>
-                                        </select>
+                                    <div class="toggle-actions-section" style="margin-top: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Click Actions</label>
+                                            <button type="button" id="btn-add-toggle-action" class="btn btn-accent" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
+                                                <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Action
+                                            </button>
+                                        </div>
+                                        <div id="toggle-actions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                            <!-- Dynamic click action entries loaded here -->
+                                        </div>
                                     </div>
                                 </div>
                             </div>
