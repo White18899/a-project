@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projector Output - SlideEngine</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Cardo:ital,wght@0,400;0,700;1,400&family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400..900&family=Comfortaa:wght@300..700&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Courgette&family=Dancing+Script:wght@400..700&family=Fira+Code:wght@300..700&family=Inter:wght@300;400;500;600;700&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Kaushan+Script&family=Lobster&family=Montserrat:wght@100..900&family=Outfit:wght@300;400;500;600;700;800&family=Oswald:wght@200..700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Press+Start+2P&family=Quicksand:wght@300..700&family=Rajdhani:wght@300..700&family=Righteous&family=Russo+One&family=Satisfy&family=Shadows+Into+Light&family=Silkscreen&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@200..900&family=VT323&display=swap" rel="stylesheet">
+    <!-- PixiJS WebGL Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050507; /* Premium obsidian black for projectors */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+            cursor: none; /* Hide cursor for premium projector view */
+        }
+        /* Show cursor when moved, then hide */
+        body.show-cursor {
+            cursor: default;
+        }
+        #player-canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+    </style>
+</head>
+<body>
+    <div id="player-canvas-container">
+        <!-- PixiJS Canvas will render here -->
+    </div>
+
+    <!-- Load scripts in order -->
+    <script src="js/state.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/player.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Boot the presentation player in projector mode
+            window.PlayerController.startProjectorMode();
+            
+            // Cursor display trigger on mouse movement
+            let mouseTimer = null;
+            document.addEventListener('mousemove', () => {
+                document.body.classList.add('show-cursor');
+                clearTimeout(mouseTimer);
+                mouseTimer = setTimeout(() => {
+                    document.body.classList.remove('show-cursor');
+                }, 2000);
+            });
+
+            // Redraw when custom Google Fonts load to ensure correct rendering layout
+            if (document.fonts) {
+                document.fonts.ready.then(() => {
+                    if (window.PlayerController && window.PlayerController.canvas && window.PlayerController.activeRuntimeSlide) {
+                        window.PlayerController.canvas.renderSlide(window.PlayerController.activeRuntimeSlide);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

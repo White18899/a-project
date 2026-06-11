@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlideEngine - Interactive WebGL Presentation Workspace</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Cardo:ital,wght@0,400;0,700;1,400&family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400..900&family=Comfortaa:wght@300..700&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Courgette&family=Dancing+Script:wght@400..700&family=Fira+Code:wght@300..700&family=Inter:wght@300;400;500;600;700&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Kaushan+Script&family=Lobster&family=Montserrat:wght@100..900&family=Outfit:wght@300;400;500;600;700;800&family=Oswald:wght@200..700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Press+Start+2P&family=Quicksand:wght@300..700&family=Rajdhani:wght@300..700&family=Righteous&family=Russo+One&family=Satisfy&family=Shadows+Into+Light&family=Silkscreen&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@200..900&family=VT323&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PixiJS WebGL Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- HEADER / TOOLBAR -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i data-lucide="presentation" class="logo-icon"></i>
+                <span class="logo-text">Slide<span>Engine</span></span>
+            </div>
+            <div class="project-info">
+                <input type="text" id="project-name-input" value="My Presentation Project" title="Project Name">
+                <span class="save-status" id="save-status"><i data-lucide="cloud-check"></i> Saved</span>
+            </div>
+            <div class="header-actions">
+                <button id="btn-save" class="btn btn-secondary" title="Save to Browser"><i data-lucide="save"></i> Save</button>
+                <button id="btn-export" class="btn btn-secondary" title="Export as JSON file"><i data-lucide="download"></i> Export</button>
+                <button id="btn-import-trigger" class="btn btn-secondary" title="Import JSON file"><i data-lucide="upload"></i> Import</button>
+                <button id="btn-clear" class="btn btn-danger-outline" title="Clear all"><i data-lucide="trash-2"></i> Clear</button>
+                <div class="divider"></div>
+                <button id="btn-undo" class="btn btn-secondary btn-icon-only" title="Undo (Ctrl+Z)" disabled><i data-lucide="undo"></i></button>
+                <button id="btn-redo" class="btn btn-secondary btn-icon-only" title="Redo (Ctrl+Y)" disabled><i data-lucide="redo"></i></button>
+                <div class="divider"></div>
+                <button id="btn-output" class="btn btn-primary" title="Open Fullscreen Output"><i data-lucide="monitor-play"></i> Present (F11)</button>
+                <button id="btn-popup-output" class="btn btn-accent" title="Open Presentation in New Window"><i data-lucide="external-link"></i> Projector Window</button>
+            </div>
+        </header>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="workspace-layout">
+            <!-- LEFT SIDEBAR: Slides Panel -->
+            <aside class="sidebar-left">
+                <div class="panel-header">
+                    <h3>Slides</h3>
+                    <div style="display: flex; gap: 8px; width: 100%; align-items: center;">
+                        <button id="btn-add-slide" class="btn btn-icon-text btn-accent" style="flex: 1;"><i data-lucide="plus"></i> Add Slide</button>
+                        <button id="btn-copy-elements" class="btn btn-secondary btn-icon-only" title="Copy Element(s) (Ctrl+C)"><i data-lucide="copy"></i></button>
+                        <button id="btn-paste-elements" class="btn btn-secondary btn-icon-only" title="Paste Element(s) (Ctrl+V)"><i data-lucide="clipboard"></i></button>
+                    </div>
+                </div>
+                <div class="slides-list" id="slides-list-container">
+                    <!-- Slides loaded dynamically -->
+                </div>
+            </aside>
+
+            <!-- CENTRAL STAGE: Slide Canvas -->
+            <main class="canvas-viewport">
+                <div class="canvas-toolbar">
+                    <div class="zoom-controls">
+                        <button id="btn-zoom-out" class="btn-icon" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
+                        <span id="zoom-percentage">100%</span>
+                        <button id="btn-zoom-in" class="btn-icon" title="Zoom In"><i data-lucide="zoom-in"></i></button>
+                        <button id="btn-zoom-fit" class="btn-icon" title="Fit to Screen"><i data-lucide="maximize-2"></i></button>
+                    </div>
+                    <div class="current-slide-info" id="current-slide-info">
+                        <span class="toolbar-slide-index" id="toolbar-slide-index">01</span>
+                        <span class="toolbar-slide-name" id="toolbar-slide-name">Welcome Slide</span>
+                    </div>
+                    <div class="grid-controls">
+                        <button id="btn-toggle-grid" class="btn-icon active" title="Toggle Snap-to-Grid"><i data-lucide="grid"></i></button>
+                    </div>
+                </div>
+                <div class="canvas-container-outer">
+                    <div id="canvas-container" class="canvas-container">
+                        <!-- PixiJS WebGL canvas will be injected here -->
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT SIDEBAR: Property Inspector -->
+            <aside class="sidebar-right">
+                <!-- Tab Headers -->
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="elements-tab"><i data-lucide="layout-grid"></i> Elements</button>
+                    <button class="tab-btn" data-tab="properties-tab"><i data-lucide="sliders"></i> Inspector</button>
+                </div>
+
+                <div class="tabs-content">
+                    <!-- ELEMENTS TAB -->
+                    <div id="elements-tab" class="tab-panel active">
+                        <div class="inspector-section">
+                            <h4>Add Elements</h4>
+                            <div class="element-grid">
+                                <button class="btn-element-add" data-type="text" title="Text Box">
+                                    <i data-lucide="type"></i>
+                                    <span>Text Field</span>
+                                </button>
+                                <button class="btn-element-add" data-type="image" title="Image Box">
+                                    <i data-lucide="image"></i>
+                                    <span>Img Field</span>
+                                </button>
+                                <button class="btn-element-add" data-type="timer" title="MCQ Timer">
+                                    <i data-lucide="timer"></i>
+                                    <span>Timer Field</span>
+                                </button>
+                                <button class="btn-element-add" data-type="btn-nav" title="Navigation Button">
+                                    <i data-lucide="navigation"></i>
+                                    <span>Nav Button</span>
+                                </button>
+                                <button class="btn-element-add" data-type="btn-option" title="MCQ Answer Option Button">
+                                    <i data-lucide="check-square"></i>
+                                    <span>4-Option Btn</span>
+                                </button>
+                                <button class="btn-element-add" data-type="btn-show-ans" title="Show Answer Button">
+                                    <i data-lucide="eye"></i>
+                                    <span>Show Ans Btn</span>
+                                </button>
+                                <button class="btn-element-add" data-type="btn-toggle" title="Appear/Disappear Element Button">
+                                    <i data-lucide="sparkles"></i>
+                                    <span>Appear/Disappear</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- SLIDE PROPERTIES (Always visible when nothing is selected) -->
+                        <div class="inspector-section" id="slide-properties-section">
+                            <h4>Slide Settings</h4>
+                            <div class="form-group">
+                                <label for="slide-name-input">Slide Name</label>
+                                <input type="text" id="slide-name-input" value="Slide 1">
+                            </div>
+                            <div class="form-group">
+                                <label for="slide-bg-type">Background Type</label>
+                                <select id="slide-bg-type">
+                                    <option value="color">Solid Color</option>
+                                    <option value="gradient">Gradient</option>
+                                    <option value="image">Image</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="slide-transition">Slide Transition</label>
+                                <div class="select-with-icon">
+                                    <span id="slide-transition-icon-container" class="select-icon-indicator">
+                                        <i data-lucide="ban"></i>
+                                    </span>
+                                    <select id="slide-transition">
+                                        <option value="none">None</option>
+                                        <option value="fade">Fade</option>
+                                        <option value="slide-left">Slide Left</option>
+                                        <option value="slide-right">Slide Right</option>
+                                        <option value="slide-up">Slide Up</option>
+                                        <option value="slide-down">Slide Down</option>
+                                        <option value="slide-bounce-left">Slide Bounce Left</option>
+                                        <option value="slide-bounce-right">Slide Bounce Right</option>
+                                        <option value="zoom">Zoom</option>
+                                        <option value="spin-zoom">Spin Zoom</option>
+                                        <option value="flip-horizontal">Card Flip (Horiz)</option>
+                                        <option value="flip-vertical">Card Flip (Vert)</option>
+                                        <option value="iris">Iris Circle</option>
+                                        <option value="slide-skew-left">Skew Slide Left</option>
+                                        <option value="wash-black">Fade to Black</option>
+                                        <option value="wash-white">Fade to White</option>
+                                        <option value="cross-scale">Cross Scale Zoom</option>
+                                        <option value="diagonal-slide">Diagonal Slide</option>
+                                        <option value="wipe-left">Wipe Left</option>
+                                        <option value="wipe-right">Wipe Right</option>
+                                        <option value="wipe-up">Wipe Up</option>
+                                        <option value="wipe-down">Wipe Down</option>
+                                        <option value="split-horizontal">Split Horizontal</option>
+                                        <option value="split-vertical">Split Vertical</option>
+                                        <option value="cube-left">3D Cube Left</option>
+                                        <option value="cube-right">3D Cube Right</option>
+                                        <option value="spiral">Vortex Spiral</option>
+                                        <option value="glitch">Glitch Signal</option>
+                                        <option value="bounce-zoom">Bounce Zoom</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Background options -->
+                            <div class="bg-option-fields" id="bg-color-fields">
+                                <div class="form-group">
+                                    <label for="slide-bg-color">Background Color</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="slide-bg-color" value="#1e293b">
+                                        <input type="text" id="slide-bg-color-hex" value="#1e293b">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-option-fields hidden" id="bg-gradient-fields">
+                                <div class="form-group">
+                                    <label for="slide-bg-grad-1">Gradient Start</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="slide-bg-grad-1" value="#0f172a">
+                                        <input type="text" id="slide-bg-grad-1-hex" value="#0f172a">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="slide-bg-grad-2">Gradient End</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="slide-bg-grad-2" value="#1e293b">
+                                        <input type="text" id="slide-bg-grad-2-hex" value="#1e293b">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="slide-bg-grad-angle">Gradient Angle (deg)</label>
+                                    <input type="number" id="slide-bg-grad-angle" value="135" min="0" max="360">
+                                </div>
+                            </div>
+                            <div class="bg-option-fields hidden" id="bg-image-fields">
+                                <div class="form-group">
+                                    <label for="slide-bg-image-url">Image URL</label>
+                                    <div class="input-with-button">
+                                        <input type="text" id="slide-bg-image-url" placeholder="https://...">
+                                        <button class="btn btn-secondary btn-icon-only" id="btn-upload-bg-url" title="Load Image"><i data-lucide="check"></i></button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Or Upload File</label>
+                                    <label class="file-upload-label">
+                                        <input type="file" id="slide-bg-image-file" accept="image/*">
+                                        <i data-lucide="upload-cloud"></i>
+                                        <span>Choose file...</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group mt-3">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="slide-rpg-theme">
+                                    <span>Apply RPG Retro Theme</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROPERTIES TAB -->
+                    <div id="properties-tab" class="tab-panel">
+                        <div id="no-element-selected" class="empty-state">
+                            <i data-lucide="mouse-pointer-click"></i>
+                            <p>Select an element on the canvas to inspect its properties</p>
+                        </div>
+                        <div id="element-inspector-form" class="hidden">
+                            <div class="inspector-section">
+                                <div class="section-title-with-actions">
+                                    <h4 id="inspector-element-title">Element Settings</h4>
+                                    <div class="element-action-buttons">
+                                        <button id="btn-elem-copy" class="btn-icon" title="Copy Element(s) (Ctrl+C)"><i data-lucide="copy"></i></button>
+                                        <button id="btn-elem-bring-front" class="btn-icon" title="Bring to Front"><i data-lucide="chevrons-up"></i></button>
+                                        <button id="btn-elem-send-back" class="btn-icon" title="Send to Back"><i data-lucide="chevrons-down"></i></button>
+                                        <button id="btn-elem-delete" class="btn-icon text-danger" title="Delete Element"><i data-lucide="trash-2"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="elem-id">Element ID</label>
+                                    <input type="text" id="elem-id" readonly title="System identifier">
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="elem-visible" checked>
+                                        <span>Visible on Slide Start</span>
+                                    </label>
+                                </div>
+
+                                <!-- Text content field (conditional) -->
+                                <div class="form-group inspector-field" id="field-elem-text">
+                                    <label for="elem-text">Text Content</label>
+                                    <textarea id="elem-text" rows="3"></textarea>
+                                </div>
+
+                                <!-- Position & Size -->
+                                <div class="row-fields">
+                                    <div class="form-group">
+                                        <label for="elem-x">Pos X</label>
+                                        <input type="number" id="elem-x">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-y">Pos Y</label>
+                                        <input type="number" id="elem-y">
+                                    </div>
+                                </div>
+                                <div class="row-fields">
+                                    <div class="form-group">
+                                        <label for="elem-w">Width</label>
+                                        <input type="number" id="elem-w">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-h">Height</label>
+                                        <input type="number" id="elem-h">
+                                    </div>
+                                </div>
+
+                                <!-- Font Style (conditional for text and button elements) -->
+                                <div class="inspector-field" id="group-text-styles">
+                                    <div class="form-group">
+                                        <label for="elem-font-family">Font Family</label>
+                                        <select id="elem-font-family">
+                                            <option value="Outfit" style="font-family: 'Outfit';">Outfit (Clean)</option>
+                                            <option value="Inter" style="font-family: 'Inter';">Inter (Sleek)</option>
+                                            <option value="Montserrat" style="font-family: 'Montserrat';">Montserrat (Modern Sans)</option>
+                                            <option value="Space Grotesk" style="font-family: 'Space Grotesk';">Space Grotesk (Tech Geometric)</option>
+                                            <option value="Unbounded" style="font-family: 'Unbounded';">Unbounded (Wide Futurist)</option>
+                                            <option value="Comfortaa" style="font-family: 'Comfortaa';">Comfortaa (Soft Rounded)</option>
+                                            <option value="Quicksand" style="font-family: 'Quicksand';">Quicksand (Friendly Rounded)</option>
+                                            <option value="Bebas Neue" style="font-family: 'Bebas Neue';">Bebas Neue (Impact Heading)</option>
+                                            <option value="Playfair Display" style="font-family: 'Playfair Display';">Playfair Display (Elegant Serif)</option>
+                                            <option value="Cinzel" style="font-family: 'Cinzel';">Cinzel (Roman Editorial)</option>
+                                            <option value="Cinzel Decorative" style="font-family: 'Cinzel Decorative';">Cinzel Decorative (Classic Ornate)</option>
+                                            <option value="Cormorant Garamond" style="font-family: 'Cormorant Garamond';">Cormorant Garamond (Graceful Garamond)</option>
+                                            <option value="Abril Fatface" style="font-family: 'Abril Fatface';">Abril Fatface (High Contrast Serif)</option>
+                                            <option value="Cardo" style="font-family: 'Cardo';">Cardo (Classic Academic)</option>
+                                            <option value="Oswald" style="font-family: 'Oswald';">Oswald (Condensed Sans)</option>
+                                            <option value="Josefin Sans" style="font-family: 'Josefin Sans';">Josefin Sans (Vintage Geometric)</option>
+                                            <option value="Rajdhani" style="font-family: 'Rajdhani';">Rajdhani (Squared Tech)</option>
+                                            <option value="Righteous" style="font-family: 'Righteous';">Righteous (Art Deco Retro)</option>
+                                            <option value="Russo One" style="font-family: 'Russo One';">Russo One (Heavy Tech)</option>
+                                            <option value="Lobster" style="font-family: 'Lobster';">Lobster (Retro Bold Script)</option>
+                                            <option value="Satisfy" style="font-family: 'Satisfy';">Satisfy (Script Cursive)</option>
+                                            <option value="Dancing Script" style="font-family: 'Dancing Script';">Dancing Script (Casual Script)</option>
+                                            <option value="Courgette" style="font-family: 'Courgette';">Courgette (Elegant Script)</option>
+                                            <option value="Pacifico" style="font-family: 'Pacifico';">Pacifico (Brush Cursive)</option>
+                                            <option value="Kaushan Script" style="font-family: 'Kaushan Script';">Kaushan Script (Brush Calligraphy)</option>
+                                            <option value="Permanent Marker" style="font-family: 'Permanent Marker';">Permanent Marker (Marker Brush)</option>
+                                            <option value="Shadows Into Light" style="font-family: 'Shadows Into Light';">Shadows Into Light (Casual Writing)</option>
+                                            <option value="Fira Code" style="font-family: 'Fira Code';">Fira Code (Code Mono)</option>
+                                            <option value="Space Mono" style="font-family: 'Space Mono';">Space Mono (Geometric Mono)</option>
+                                            <option value="Courier New" style="font-family: 'Courier New';">Monospace (System)</option>
+                                            <option value="Press Start 2P" style="font-family: 'Press Start 2P'; font-size: 10px;">Press Start 2P (8-bit Pixel)</option>
+                                            <option value="VT323" style="font-family: 'VT323'; font-size: 14px;">VT323 (8-bit Arcade)</option>
+                                            <option value="Silkscreen" style="font-family: 'Silkscreen';">Silkscreen (8-bit Classic)</option>
+                                            <option value="Arial" style="font-family: 'Arial';">Arial (Sans-Serif)</option>
+                                            <option value="Georgia" style="font-family: 'Georgia';">Georgia (Serif)</option>
+                                        </select>
+                                    </div>
+                                    <div class="row-fields">
+                                        <div class="form-group">
+                                            <label for="elem-font-size">Font Size</label>
+                                            <input type="number" id="elem-font-size" value="24" min="8" max="120">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="elem-align">Align</label>
+                                            <select id="elem-align">
+                                                <option value="left">Left</option>
+                                                <option value="center">Center</option>
+                                                <option value="right">Right</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-text-color">Text Color</label>
+                                        <div class="color-picker-wrapper">
+                                            <input type="color" id="elem-text-color" value="#ffffff">
+                                            <input type="text" id="elem-text-color-hex" value="#ffffff">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Background styling (conditional for text / buttons / boxes) -->
+                                <div class="inspector-field" id="group-bg-styles">
+                                    <div class="form-group">
+                                        <label for="elem-bg-color">Background Color</label>
+                                        <div class="color-picker-wrapper">
+                                            <input type="color" id="elem-bg-color" value="#334155">
+                                            <input type="text" id="elem-bg-color-hex" value="#334155">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-bg-alpha">Background Opacity</label>
+                                        <input type="range" id="elem-bg-alpha" min="0" max="1" step="0.1" value="1">
+                                    </div>
+                                    <div class="row-fields">
+                                        <div class="form-group">
+                                            <label for="elem-border-radius">Border Radius</label>
+                                            <input type="number" id="elem-border-radius" value="8" min="0" max="50">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="elem-padding">Padding</label>
+                                            <input type="number" id="elem-padding" value="12" min="0" max="100">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="elem-rpg-box">
+                                            <span>RPG Box Style</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Button markup styling (conditional for buttons) -->
+                                <div class="inspector-field hidden" id="group-button-markup">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="elem-use-markup">
+                                            <span>Change Color on Click (Markup)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group hidden" id="field-markup-color">
+                                        <label for="elem-markup-color">Clicked Markup Color</label>
+                                        <div class="color-picker-wrapper">
+                                            <input type="color" id="elem-markup-color" value="#3b82f6">
+                                            <input type="text" id="elem-markup-color-hex" value="#3b82f6">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Image properties (conditional) -->
+                                <div class="inspector-field hidden" id="group-image-styles">
+                                    <div class="form-group">
+                                        <label for="elem-image-url">Image URL</label>
+                                        <div class="input-with-button">
+                                            <input type="text" id="elem-image-url" placeholder="https://...">
+                                            <button class="btn btn-secondary btn-icon-only" id="btn-upload-elem-url" title="Load Image"><i data-lucide="check"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Or Upload File</label>
+                                        <label class="file-upload-label">
+                                            <input type="file" id="elem-image-file" accept="image/*">
+                                            <i data-lucide="upload-cloud"></i>
+                                            <span>Choose file...</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- MCQ TIMER FIELD (conditional) -->
+                                <div class="inspector-field hidden" id="group-timer-settings">
+                                    <div class="form-group">
+                                        <label for="elem-timer-duration">Duration (Seconds)</label>
+                                        <input type="number" id="elem-timer-duration" value="30" min="1" max="999">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-timer-action">Timeout Action</label>
+                                        <select id="elem-timer-action">
+                                            <option value="none">Do nothing</option>
+                                            <option value="show-answer">Auto Show Answer</option>
+                                            <option value="next-slide">Go to Next Slide</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- BUTTON NAVIGATION FIELD (conditional) -->
+                                <div class="inspector-field hidden" id="group-nav-settings">
+                                    <div class="form-group">
+                                        <label for="elem-nav-target">Navigate to Slide</label>
+                                        <select id="elem-nav-target">
+                                            <!-- Dynamically populated -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- MCQ OPTION FIELD (conditional) -->
+                                <div class="inspector-field hidden" id="group-option-settings">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="elem-option-correct">
+                                            <span>Is Correct Option?</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-option-group">Question Group (e.g. Q1)</label>
+                                        <input type="text" id="elem-option-group" value="Q1">
+                                    </div>
+                                </div>
+
+                                <!-- SHOW ANSWER FIELD (conditional) -->
+                                <div class="inspector-field hidden" id="group-show-ans-settings">
+                                    <div class="form-group">
+                                        <label for="elem-show-ans-target">Target Element to Reveal</label>
+                                        <select id="elem-show-ans-target">
+                                            <!-- Dynamically populated with text/image elements in slide -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- APPEAR/DISAPPEAR FIELD (conditional) -->
+                                <div class="inspector-field hidden" id="group-toggle-settings">
+                                    <div class="form-group">
+                                        <label for="elem-toggle-target">Target Element</label>
+                                        <select id="elem-toggle-target">
+                                            <!-- Dynamically populated with all elements in slide -->
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="elem-toggle-action">Action on Click</label>
+                                        <select id="elem-toggle-action">
+                                            <option value="toggle">Toggle Visibility</option>
+                                            <option value="appear">Make Appear</option>
+                                            <option value="disappear">Make Disappear</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- LAYERS PALETTE (Overlay bottom right of canvas viewport) -->
+        <div class="layers-overlay" id="layers-panel">
+            <div class="layers-header">
+                <span>Layers</span>
+                <button id="btn-toggle-layers" class="btn-icon" title="Toggle Layers Panel"><i data-lucide="chevron-up"></i></button>
+            </div>
+            <div class="layers-list" id="layers-list-container">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- FILE IMPORT MODAL -->
+        <div id="import-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>Import Project</h3>
+                    <button class="btn-icon" id="btn-import-close"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p>Paste your exported JSON project data below:</p>
+                    <textarea id="import-json-textarea" rows="12" placeholder='{"name": "My Slide Project", "slides": [...]}'></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="btn-import-cancel">Cancel</button>
+                    <button class="btn btn-primary" id="btn-import-submit">Import Project</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLAYBACK / OUTPUT PRESENTATION OVERLAY -->
+        <div id="presentation-overlay" class="presentation-overlay">
+            <div class="player-hud">
+                <div class="hud-left">
+                    <span id="player-project-title">Project Title</span>
+                    <span class="hud-slide-counter">Slide <span id="player-current-slide-num">1</span> of <span id="player-total-slides">1</span></span>
+                </div>
+                <div class="hud-center">
+                    <button class="btn-hud" id="btn-hud-prev" title="Previous Slide (Left Arrow)"><i data-lucide="arrow-left"></i></button>
+                    <button class="btn-hud" id="btn-hud-reset" title="Reset Slide State (R)"><i data-lucide="rotate-ccw"></i> Reset Slide</button>
+                    <button class="btn-hud" id="btn-hud-next" title="Next Slide (Right Arrow)"><i data-lucide="arrow-right"></i></button>
+                </div>
+                <div class="hud-right">
+                    <button class="btn-hud" id="btn-hud-fullscreen" title="Toggle Fullscreen (F)"><i data-lucide="maximize"></i></button>
+                    <button class="btn-hud btn-hud-close" id="btn-hud-exit" title="Exit Presentation (Esc)"><i data-lucide="log-out"></i> Exit</button>
+                </div>
+            </div>
+            <!-- Presentation WebGL Canvas container -->
+            <div id="player-canvas-container" class="player-canvas-container"></div>
+        </div>
+    </div>
+
+    <!-- Application scripts -->
+    <script src="js/state.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/editor.js"></script>
+    <script>
+        // Initialize Lucide icons on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
