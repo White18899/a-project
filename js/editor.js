@@ -93,7 +93,7 @@ function initEditorUI() {
     slideListContainer.addEventListener('drop', (e) => {
         if (e.target === slideListContainer) {
             const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-            if (!isNaN(fromIdx) && state.project.slides && fromIdx !== state.project.slides.length - 1) {
+            if (!isNaN(fromIdx) && state.project && state.project.slides && fromIdx !== state.project.slides.length - 1) {
                 state.moveSlide(fromIdx, state.project.slides.length - 1);
             }
         }

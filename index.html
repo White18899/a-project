@@ -15,13 +15,106 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="dark-theme">
-    <div id="app">
-        <!-- HEADER / TOOLBAR -->
-        <header class="app-header">
-            <div class="header-logo">
-                <i data-lucide="presentation" class="logo-icon"></i>
-                <span class="logo-text">Slide<span>Engine</span></span>
+    <div id="app" class="view-landing">
+        <!-- WebGL Constellation Background Canvas -->
+        <canvas id="landing-bg-canvas"></canvas>
+
+        <!-- LANDING / LAUNCHING VIEW -->
+        <section id="landing-view">
+            <header class="landing-header">
+                <div class="header-logo">
+                    <i data-lucide="presentation" class="logo-icon"></i>
+                    <span class="logo-text">Slide<span>Engine</span></span>
+                </div>
+                <div class="landing-nav-actions">
+                    <button id="btn-landing-login" class="btn btn-secondary"><i data-lucide="log-in"></i> Sign In</button>
+                    <button id="btn-landing-signup" class="btn btn-primary"><i data-lucide="user-plus"></i> Join Free</button>
+                </div>
+            </header>
+
+            <div class="landing-hero-container">
+                <div class="badge-glow">GPU-Accelerated WebGL Workspace</div>
+                <h1 class="landing-title">Next-Gen Interactive Presentation Creator</h1>
+                <p class="landing-subtitle">Build highly responsive WebGL slide layouts, branching choice quizzes, and dynamic RPG-style dialogue decks. All running with sub-pixel graphics hardware acceleration.</p>
+                <div class="landing-cta-group">
+                    <button id="btn-landing-cta" class="btn btn-accent btn-large"><i data-lucide="sparkles"></i> Launch Dashboard <i data-lucide="arrow-right" class="icon-right"></i></button>
+                </div>
             </div>
+
+            <div class="landing-features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper cyan"><i data-lucide="cpu"></i></div>
+                    <h3>WebGL Vector Precision</h3>
+                    <p>Powered by PixiJS vector drawing rendering. Real-time canvas scaling and smooth animations with zero degradation.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper amber"><i data-lucide="split"></i></div>
+                    <h3>Branching & MCQ Logic</h3>
+                    <p>Integrate question-options, click triggers, show-revealers, and countdown timers to build active learning games.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper rose"><i data-lucide="gamepad-2"></i></div>
+                    <h3>RPG Dialog Mode</h3>
+                    <p>Apply classic 8-bit text box decorations and pixel typefaces instantly, ideal for gamified branching storylines.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD / PROJECT LIST VIEW -->
+        <section id="dashboard-view">
+            <header class="dashboard-header">
+                <div class="header-logo">
+                    <i data-lucide="presentation" class="logo-icon"></i>
+                    <span class="logo-text">Slide<span>Engine</span></span>
+                    <span class="view-indicator">Dashboard</span>
+                </div>
+                <div class="dashboard-user-actions">
+                    <div class="user-badge" id="dashboard-user-badge">
+                        <i data-lucide="user" class="avatar-icon"></i>
+                        <span id="user-display-name">Guest</span>
+                    </div>
+                    <button id="btn-dashboard-logout" class="btn btn-danger-outline" title="Log Out"><i data-lucide="log-out"></i> Logout</button>
+                </div>
+            </header>
+
+            <main class="dashboard-content">
+                <div class="dashboard-action-bar">
+                    <div class="search-wrapper">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="project-search-input" placeholder="Search presentations...">
+                    </div>
+                    <div class="dashboard-buttons">
+                        <button id="btn-create-project" class="btn btn-accent"><i data-lucide="plus"></i> New Presentation</button>
+                        <button id="btn-dashboard-import" class="btn btn-secondary"><i data-lucide="upload"></i> Import JSON</button>
+                    </div>
+                </div>
+
+                <div class="projects-section">
+                    <h2>Your Presentations</h2>
+                    <div class="projects-grid" id="projects-grid-container">
+                        <!-- Projects loaded dynamically -->
+                    </div>
+                    <div class="projects-empty-state hidden" id="projects-empty-state">
+                        <i data-lucide="folder-open"></i>
+                        <h3>No presentations found</h3>
+                        <p>Create a new blank project or import an existing JSON slide deck to get started.</p>
+                        <button id="btn-empty-create" class="btn btn-accent"><i data-lucide="plus"></i> Create First Project</button>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- EDITOR VIEW (WRAPPER OF EXISTING WORKSPACE) -->
+        <div id="editor-view">
+            <!-- HEADER / TOOLBAR -->
+            <header class="app-header">
+                <div class="header-logo-group">
+                    <div class="header-logo">
+                        <i data-lucide="presentation" class="logo-icon"></i>
+                        <span class="logo-text">Slide<span>Engine</span></span>
+                    </div>
+                    <button id="btn-editor-back" class="btn btn-secondary" title="Back to Dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                </div>
             <div class="project-info">
                 <input type="text" id="project-name-input" value="My Presentation Project" title="Project Name">
                 <span class="save-status" id="save-status"><i data-lucide="cloud-check"></i> Saved</span>
@@ -509,57 +602,104 @@
                 <!-- Dynamically populated -->
             </div>
         </div>
+    </div> <!-- Close #editor-view wrapper -->
 
-        <!-- FILE IMPORT MODAL -->
-        <div id="import-modal" class="modal-overlay">
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3>Import Project</h3>
-                    <button class="btn-icon" id="btn-import-close"><i data-lucide="x"></i></button>
-                </div>
-                <div class="modal-body">
-                    <p>Paste your exported JSON project data below:</p>
-                    <textarea id="import-json-textarea" rows="12" placeholder='{"name": "My Slide Project", "slides": [...]}'></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="btn-import-cancel">Cancel</button>
-                    <button class="btn btn-primary" id="btn-import-submit">Import Project</button>
-                </div>
+    <!-- AUTHENTICATION OVERLAY / MODAL -->
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-card auth-card">
+            <div class="modal-header">
+                <h3 id="auth-modal-title">Sign In</h3>
+                <button class="btn-icon" id="btn-auth-close"><i data-lucide="x"></i></button>
             </div>
-        </div>
-
-        <!-- PLAYBACK / OUTPUT PRESENTATION OVERLAY -->
-        <div id="presentation-overlay" class="presentation-overlay">
-            <div class="player-hud">
-                <div class="hud-left">
-                    <span id="player-project-title">Project Title</span>
-                    <span class="hud-slide-counter">Slide <span id="player-current-slide-num">1</span> of <span id="player-total-slides">1</span></span>
-                </div>
-                <div class="hud-center">
-                    <button class="btn-hud" id="btn-hud-prev" title="Previous Slide (Left Arrow)"><i data-lucide="arrow-left"></i></button>
-                    <button class="btn-hud" id="btn-hud-reset" title="Reset Slide State (R)"><i data-lucide="rotate-ccw"></i> Reset Slide</button>
-                    <button class="btn-hud" id="btn-hud-next" title="Next Slide (Right Arrow)"><i data-lucide="arrow-right"></i></button>
-                </div>
-                <div class="hud-right">
-                    <button class="btn-hud" id="btn-hud-fullscreen" title="Toggle Fullscreen (F)"><i data-lucide="maximize"></i></button>
-                    <button class="btn-hud btn-hud-close" id="btn-hud-exit" title="Exit Presentation (Esc)"><i data-lucide="log-out"></i> Exit</button>
-                </div>
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tab-auth-login">Login</button>
+                <button class="auth-tab-btn" id="tab-auth-signup">Create Account</button>
             </div>
-            <!-- Presentation WebGL Canvas container -->
-            <div id="player-canvas-container" class="player-canvas-container"></div>
+            <div class="modal-body">
+                <div id="auth-error-banner" class="auth-error-banner hidden">
+                    <i data-lucide="alert-triangle"></i>
+                    <span id="auth-error-message">Error details go here</span>
+                </div>
+                <form id="auth-form" autocomplete="off">
+                    <div class="form-group">
+                        <label for="auth-username">Username</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="user"></i>
+                            <input type="text" id="auth-username" required placeholder="Enter username...">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-password">Password</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="lock"></i>
+                            <input type="password" id="auth-password" required placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="form-group hidden" id="signup-confirm-group">
+                        <label for="auth-password-confirm">Confirm Password</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="shield-check"></i>
+                            <input type="password" id="auth-password-confirm" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-accent btn-block" id="btn-auth-submit">Sign In</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Application scripts -->
-    <script src="js/state.js"></script>
-    <script src="js/canvas.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/editor.js"></script>
-    <script>
-        // Initialize Lucide icons on page load
-        document.addEventListener("DOMContentLoaded", () => {
-            if (window.lucide) lucide.createIcons();
-        });
-    </script>
+    <!-- FILE IMPORT MODAL -->
+    <div id="import-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Import Project</h3>
+                <button class="btn-icon" id="btn-import-close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Paste your exported JSON project data below:</p>
+                <textarea id="import-json-textarea" rows="12" placeholder='{"name": "My Slide Project", "slides": [...]}'></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-import-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-import-submit">Import Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLAYBACK / OUTPUT PRESENTATION OVERLAY -->
+    <div id="presentation-overlay" class="presentation-overlay">
+        <div class="player-hud">
+            <div class="hud-left">
+                <span id="player-project-title">Project Title</span>
+                <span class="hud-slide-counter">Slide <span id="player-current-slide-num">1</span> of <span id="player-total-slides">1</span></span>
+            </div>
+            <div class="hud-center">
+                <button class="btn-hud" id="btn-hud-prev" title="Previous Slide (Left Arrow)"><i data-lucide="arrow-left"></i></button>
+                <button class="btn-hud" id="btn-hud-reset" title="Reset Slide State (R)"><i data-lucide="rotate-ccw"></i> Reset Slide</button>
+                <button class="btn-hud" id="btn-hud-next" title="Next Slide (Right Arrow)"><i data-lucide="arrow-right"></i></button>
+            </div>
+            <div class="hud-right">
+                <button class="btn-hud" id="btn-hud-fullscreen" title="Toggle Fullscreen (F)"><i data-lucide="maximize"></i></button>
+                <button class="btn-hud btn-hud-close" id="btn-hud-exit" title="Exit Presentation (Esc)"><i data-lucide="log-out"></i> Exit</button>
+            </div>
+        </div>
+        <!-- Presentation WebGL Canvas container -->
+        <div id="player-canvas-container" class="player-canvas-container"></div>
+    </div>
+</div>
+
+<!-- Application scripts -->
+<script src="js/state.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/player.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/landing.js"></script>
+<script src="js/landing-webgl.js"></script>
+<script>
+    // Initialize Lucide icons on page load
+    document.addEventListener("DOMContentLoaded", () => {
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
 </body>
 </html>

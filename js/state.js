@@ -201,14 +201,10 @@ const ElementTemplates = {
     })
 };
 
-// Application State
+/// Application State
 window.EngineState = {
-    // Current Project Object
-    project: {
-        id: generateUUID(),
-        name: 'My Presentation Project',
-        slides: []
-    },
+    // Current Project Object (null if on landing/dashboard)
+    project: null,
     
     // Active Navigation
     selectedSlideId: null,
@@ -223,6 +219,12 @@ window.EngineState = {
     undoStack: [],
     redoStack: [],
     
+    // Auth & Navigation State
+    currentUser: null,
+    currentView: 'landing',
+    projectsList: [],
+    users: [],
+    
     // Event listeners
     listeners: {
         'slide-changed': [],
@@ -230,7 +232,10 @@ window.EngineState = {
         'selection-changed': [],
         'project-loaded': [],
         'element-updated': [],
-        'clipboard-changed': []
+        'clipboard-changed': [],
+        'view-changed': [],
+        'projects-list-changed': [],
+        'auth-changed': []
     },
 
     // Subscribe to state changes
@@ -248,6 +253,7 @@ window.EngineState = {
     },
 
     pushHistory() {
+        if (!this.project) return;
         this.undoStack.push(JSON.stringify(this.project));
         this.redoStack = []; // Clear redo stack on new action
         if (this.undoStack.length > 50) {
@@ -257,7 +263,7 @@ window.EngineState = {
     },
 
     undo() {
-        if (this.undoStack.length === 0) return;
+        if (!this.project || this.undoStack.length === 0) return;
         
         // Push current state to redo
         this.redoStack.push(JSON.stringify(this.project));
@@ -291,7 +297,7 @@ window.EngineState = {
     },
 
     redo() {
-        if (this.redoStack.length === 0) return;
+        if (!this.project || this.redoStack.length === 0) return;
 
         // Push current state to undo
         this.undoStack.push(JSON.stringify(this.project));
@@ -334,44 +340,159 @@ window.EngineState = {
         }
     },
 
-    // Initialize state
-    init() {
-        // Try to load from localStorage
-        const saved = localStorage.getItem('slide_engine_project');
-        if (saved) {
-            try {
-                this.project = JSON.parse(saved);
-                migrateProject(this.project);
-                if (this.project.slides && this.project.slides.length > 0) {
-                    this.selectedSlideId = this.project.slides[0].id;
-                } else {
-                    this.createDefaultProject();
-                }
-            } catch (e) {
-                console.error("Failed to load saved project, building default", e);
-                this.createDefaultProject();
-            }
-        } else {
-            this.createDefaultProject();
+    // Session & User management
+    loadUsers() {
+        const saved = localStorage.getItem('slide_engine_users');
+        this.users = saved ? JSON.parse(saved) : [];
+    },
+
+    saveUsers() {
+        localStorage.setItem('slide_engine_users', JSON.stringify(this.users));
+    },
+
+    loadActiveSession() {
+        this.currentUser = localStorage.getItem('slide_engine_active_user') || null;
+    },
+
+    loadProjectsList() {
+        const saved = localStorage.getItem('slide_engine_projects_list');
+        this.projectsList = saved ? JSON.parse(saved) : [];
+    },
+
+    saveProjectsList() {
+        localStorage.setItem('slide_engine_projects_list', JSON.stringify(this.projectsList));
+        this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+    },
+
+    getProjectsForCurrentUser() {
+        const user = this.currentUser || 'guest';
+        return this.projectsList.filter(p => p.userId === user);
+    },
+
+    setView(view) {
+        this.currentView = view;
+        this.emit('view-changed', view);
+    },
+
+    signup(username, password) {
+        username = username.trim();
+        password = password.trim();
+        if (!username || !password) {
+            return { success: false, message: "Username and password are required." };
         }
+        if (username.length < 3) {
+            return { success: false, message: "Username must be at least 3 characters." };
+        }
+        if (password.length < 6) {
+            return { success: false, message: "Password must be at least 6 characters." };
+        }
+        this.loadUsers();
+        if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+            return { success: false, message: "Username already exists." };
+        }
+        this.users.push({ username, password });
+        this.saveUsers();
+        
+        return this.login(username, password);
+    },
+
+    login(username, password) {
+        username = username.trim();
+        password = password.trim();
+        this.loadUsers();
+        const user = this.users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+        
+        if (!user && !(username.toLowerCase() === 'guest' && password === 'guest')) {
+            return { success: false, message: "Invalid username or password." };
+        }
+
+        this.currentUser = username;
+        localStorage.setItem('slide_engine_active_user', username);
+        this.emit('auth-changed', username);
+        
+        this.project = null;
+        this.selectedSlideId = null;
         this.selectedElementId = null;
         this.selectedElementIds = [];
-        this.emit('project-loaded', this.project);
-        this.emit('slide-list-changed', this.project.slides);
-        this.emit('slide-changed', this.getActiveSlide());
-        
         this.undoStack = [];
         this.redoStack = [];
         this.updateUndoRedoUI();
-        this.hasUnsavedChanges = false;
+
+        this.setView('dashboard');
+        this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+        return { success: true };
     },
 
-    createDefaultProject() {
+    logout() {
+        this.currentUser = null;
+        localStorage.removeItem('slide_engine_active_user');
+        this.emit('auth-changed', null);
+        
+        this.project = null;
+        this.selectedSlideId = null;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
+        this.undoStack = [];
+        this.redoStack = [];
+        this.updateUndoRedoUI();
+
+        this.setView('landing');
+    },
+
+    // Initialize state
+    init() {
+        this.loadUsers();
+        this.loadActiveSession();
+        this.loadProjectsList();
+        
+        // Legacy single-project migration check:
+        const legacyProject = localStorage.getItem('slide_engine_project');
+        if (legacyProject) {
+            try {
+                const parsed = JSON.parse(legacyProject);
+                migrateProject(parsed);
+                const owner = this.currentUser || 'guest';
+                const meta = {
+                    id: parsed.id || generateUUID(),
+                    name: parsed.name || 'Migrated Presentation',
+                    slideCount: parsed.slides ? parsed.slides.length : 0,
+                    userId: owner,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                parsed.id = meta.id;
+                
+                // Save migrated format
+                localStorage.setItem(`slide_engine_project_${meta.id}`, JSON.stringify(parsed));
+                
+                this.projectsList.push(meta);
+                this.saveProjectsList();
+                
+                // Clean up single legacy item
+                localStorage.removeItem('slide_engine_project');
+            } catch (e) {
+                console.error("Failed to migrate legacy project", e);
+            }
+        }
+
+        // Initialize display view
+        if (this.currentUser) {
+            this.setView('dashboard');
+            this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+            this.emit('auth-changed', this.currentUser);
+        } else {
+            this.setView('landing');
+        }
+    },
+
+    // Project Operations
+    createProject(name = 'New Presentation') {
         this.project = {
             id: generateUUID(),
-            name: 'Interactive WebGL Presentation',
+            name: name,
             slides: []
         };
+        
         // Add a default welcome slide
         const firstSlide = this.addSlide('Welcome Slide');
         
@@ -396,69 +517,154 @@ window.EngineState = {
         subtitleText.textColor = '#9ca3af';
 
         const startBtn = this.addElement('btn-nav');
-        startBtn.text = "Get Started";
+        startBtn.text = "Start Presentation";
         startBtn.x = 960 / 2 - 100;
         startBtn.y = 400;
         
-        // Add a second quiz slide
-        const quizSlide = this.addSlide('Quiz Slide MCQ');
-        
-        const qText = this.addElement('text');
-        qText.text = "Question 1: What is the main rendering technology used in SlideEngine?";
-        qText.x = 80;
-        qText.y = 100;
-        qText.width = 800;
-        qText.height = 100;
-        qText.fontSize = 28;
-        
-        // Options (one correct, others incorrect)
-        const opt1 = this.addElement('btn-option');
-        opt1.text = "A) Standard HTML/CSS DOM";
-        opt1.x = 80;
-        opt1.y = 240;
-        opt1.width = 380;
-        
-        const opt2 = this.addElement('btn-option');
-        opt2.text = "B) WebGL Rendering Engine";
-        opt2.x = 500;
-        opt2.y = 240;
-        opt2.width = 380;
-        opt2.isCorrect = true; // correct answer
-
-        const opt3 = this.addElement('btn-option');
-        opt3.text = "C) Canvas 2D Software Rendering";
-        opt3.x = 80;
-        opt3.y = 330;
-        opt3.width = 380;
-
-        const opt4 = this.addElement('btn-option');
-        opt4.text = "D) SVG Animations";
-        opt4.x = 500;
-        opt4.y = 330;
-        opt4.width = 380;
-
-        const timer = this.addElement('timer');
-        timer.x = 800;
-        timer.y = 20;
-        timer.duration = 15;
-
-        // Nav back to home
-        startBtn.targetSlideId = quizSlide.id;
-        
-        const backBtn = this.addElement('btn-nav');
-        backBtn.text = "Back to Home";
-        backBtn.x = 80;
-        backBtn.y = 460;
-        backBtn.targetSlideId = firstSlide.id;
-
-        // Select first slide
         this.selectedSlideId = firstSlide.id;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
+        this.undoStack = [];
+        this.redoStack = [];
+        this.updateUndoRedoUI();
+
+        // Save immediately
+        this.saveToLocalStorage();
+        
+        this.emit('project-loaded', this.project);
+        this.emit('slide-list-changed', this.project.slides);
+        this.emit('slide-changed', this.getActiveSlide());
+        
+        this.setView('editor');
+        return this.project;
+    },
+
+    loadProject(id) {
+        const saved = localStorage.getItem(`slide_engine_project_${id}`);
+        if (!saved) {
+            alert("Error: Project not found.");
+            return false;
+        }
+        try {
+            this.project = JSON.parse(saved);
+            migrateProject(this.project);
+            
+            if (this.project.slides && this.project.slides.length > 0) {
+                this.selectedSlideId = this.project.slides[0].id;
+            } else {
+                this.addSlide('Welcome Slide');
+            }
+            
+            this.selectedElementId = null;
+            this.selectedElementIds = [];
+            this.undoStack = [];
+            this.redoStack = [];
+            this.updateUndoRedoUI();
+            this.hasUnsavedChanges = false;
+            
+            this.emit('project-loaded', this.project);
+            this.emit('slide-list-changed', this.project.slides);
+            this.emit('slide-changed', this.getActiveSlide());
+            
+            this.setView('editor');
+            return true;
+        } catch (e) {
+            console.error("Failed to load project", e);
+            alert("Error loading project: " + e.message);
+            return false;
+        }
+    },
+
+    deleteProject(id) {
+        localStorage.removeItem(`slide_engine_project_${id}`);
+        
+        this.loadProjectsList();
+        this.projectsList = this.projectsList.filter(p => p.id !== id);
+        this.saveProjectsList();
+        
+        if (this.project && this.project.id === id) {
+            this.project = null;
+            this.setView('dashboard');
+        }
+    },
+
+    duplicateProject(id) {
+        const saved = localStorage.getItem(`slide_engine_project_${id}`);
+        if (!saved) return;
+        try {
+            const parsed = JSON.parse(saved);
+            
+            const newProj = JSON.parse(JSON.stringify(parsed));
+            newProj.id = generateUUID();
+            newProj.name = `${parsed.name} (Copy)`;
+            
+            // Reassign IDs to prevent duplication conflicts
+            newProj.slides.forEach(slide => {
+                const oldSlideId = slide.id;
+                slide.id = generateUUID();
+                
+                const elemMapping = {};
+                slide.elements.forEach(elem => {
+                    const oldElemId = elem.id;
+                    elem.id = generateUUID();
+                    elemMapping[oldElemId] = elem.id;
+                });
+                
+                slide.elements.forEach(elem => {
+                    if (elem.targetElementId && elemMapping[elem.targetElementId]) {
+                        elem.targetElementId = elemMapping[elem.targetElementId];
+                    }
+                });
+            });
+            
+            localStorage.setItem(`slide_engine_project_${newProj.id}`, JSON.stringify(newProj));
+            
+            const user = this.currentUser || 'guest';
+            const meta = {
+                id: newProj.id,
+                name: newProj.name,
+                slideCount: newProj.slides.length,
+                userId: user,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            this.loadProjectsList();
+            this.projectsList.push(meta);
+            this.saveProjectsList();
+        } catch (e) {
+            console.error("Failed to duplicate project", e);
+        }
     },
 
     // Persistence
     saveToLocalStorage() {
-        localStorage.setItem('slide_engine_project', JSON.stringify(this.project));
+        if (!this.project) return;
+        
+        localStorage.setItem(`slide_engine_project_${this.project.id}`, JSON.stringify(this.project));
+        
+        const user = this.currentUser || 'guest';
+        this.loadProjectsList();
+        
+        let meta = this.projectsList.find(p => p.id === this.project.id);
+        if (!meta) {
+            meta = {
+                id: this.project.id,
+                name: this.project.name,
+                slideCount: this.project.slides.length,
+                userId: user,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            this.projectsList.push(meta);
+        } else {
+            meta.name = this.project.name;
+            meta.slideCount = this.project.slides.length;
+            meta.updatedAt = new Date().toISOString();
+        }
+        
+        this.saveProjectsList();
         this.hasUnsavedChanges = false;
+        
         const statusEl = document.getElementById('save-status');
         if (statusEl) {
             statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
@@ -468,6 +674,7 @@ window.EngineState = {
     },
 
     markUnsaved() {
+        if (!this.project) return;
         this.hasUnsavedChanges = true;
         const statusEl = document.getElementById('save-status');
         if (statusEl) {
@@ -478,6 +685,7 @@ window.EngineState = {
     },
 
     exportToJSON() {
+        if (!this.project) return;
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.project, null, 2));
         const downloadAnchor = document.createElement('a');
         downloadAnchor.setAttribute("href", dataStr);
@@ -493,15 +701,26 @@ window.EngineState = {
             if (!parsed.slides || !Array.isArray(parsed.slides)) {
                 throw new Error("Invalid project JSON: 'slides' array is missing.");
             }
+            
+            parsed.id = generateUUID();
+            parsed.name = parsed.name || "Imported Project";
+            migrateProject(parsed);
+            
             this.project = parsed;
-            migrateProject(this.project);
             this.selectedSlideId = parsed.slides.length > 0 ? parsed.slides[0].id : null;
             this.selectedElementId = null;
+            this.selectedElementIds = [];
+            this.undoStack = [];
+            this.redoStack = [];
+            this.updateUndoRedoUI();
+            this.hasUnsavedChanges = false;
             
             this.saveToLocalStorage();
+            
             this.emit('project-loaded', this.project);
             this.emit('slide-list-changed', this.project.slides);
             this.emit('slide-changed', this.getActiveSlide());
+            this.setView('editor');
             return true;
         } catch (e) {
             alert("Error importing project: " + e.message);
@@ -510,14 +729,22 @@ window.EngineState = {
     },
 
     clearProject() {
+        if (!this.project) return;
         if (confirm("Are you sure you want to clear the entire project? This cannot be undone.")) {
             this.pushHistory();
-            this.project = {
-                id: generateUUID(),
-                name: 'New Presentation Project',
-                slides: []
-            };
-            this.createDefaultProject();
+            this.project.slides = [];
+            const welcomeSlide = this.addSlide('Welcome Slide');
+            
+            const welcomeText = this.addElement('text');
+            welcomeText.text = "Welcome to SlideEngine";
+            welcomeText.x = 960 / 2 - 350;
+            welcomeText.y = 100;
+            welcomeText.width = 700;
+            welcomeText.height = 80;
+            welcomeText.fontSize = 42;
+            welcomeText.align = 'center';
+            
+            this.selectedSlideId = welcomeSlide.id;
             this.saveToLocalStorage();
             this.emit('project-loaded', this.project);
             this.emit('slide-list-changed', this.project.slides);
@@ -527,6 +754,7 @@ window.EngineState = {
 
     // Slide operations
     getActiveSlide() {
+        if (!this.project || !this.project.slides) return null;
         return this.project.slides.find(s => s.id === this.selectedSlideId) || null;
     },
 
