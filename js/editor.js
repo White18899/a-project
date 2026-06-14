@@ -539,9 +539,6 @@ function initEditorUI() {
         state.project.name = e.target.value;
         state.markUnsaved();
     });
-    document.getElementById('project-name-input').addEventListener('change', () => {
-        state.saveToLocalStorage();
-    });
 
     // Save/Load toolbar clicks
     document.getElementById('btn-save').onclick = () => {
@@ -585,7 +582,6 @@ function initEditorUI() {
         if (projectorWindow) {
             // Trigger a quick project sync broadcast immediately once popup loads
             setTimeout(() => {
-                state.saveToLocalStorage();
                 window.PlayerController.broadcastSync();
             }, 1000);
         } else {
@@ -602,12 +598,10 @@ function initEditorUI() {
     document.getElementById('slide-name-input').addEventListener('input', (e) => {
         state.updateSlideSettings({ name: e.target.value });
     });
-    document.getElementById('slide-name-input').addEventListener('change', () => state.saveToLocalStorage());
 
     document.getElementById('slide-transition').addEventListener('change', (e) => {
         state.updateSlideSettings({ transition: e.target.value });
         updateTransitionIcon(e.target.value);
-        state.saveToLocalStorage();
     });
 
     document.getElementById('slide-bg-type').addEventListener('change', (e) => {
@@ -619,7 +613,6 @@ function initEditorUI() {
             }
         });
         toggleBackgroundOptionFields(type);
-        state.saveToLocalStorage();
     });
 
     // Background color hex links
@@ -640,7 +633,6 @@ function initEditorUI() {
             }
         });
     });
-    document.getElementById('slide-bg-grad-angle').addEventListener('change', () => state.saveToLocalStorage());
 
     // BG Image URLs loaders
     document.getElementById('btn-upload-bg-url').onclick = () => {
@@ -652,7 +644,6 @@ function initEditorUI() {
                     imageUrl: url
                 }
             });
-            state.saveToLocalStorage();
         }
     };
 
@@ -672,7 +663,6 @@ function initEditorUI() {
                 });
                 document.getElementById('slide-bg-type').value = 'image';
                 toggleBackgroundOptionFields('image');
-                state.saveToLocalStorage();
             };
             reader.readAsDataURL(file);
         }
@@ -719,14 +709,12 @@ function initEditorUI() {
 
     const updateActiveElemAndSave = (props) => {
         updateActiveElem(props);
-        state.saveToLocalStorage();
     };
 
     // Text Content Area
     document.getElementById('elem-text').addEventListener('input', (e) => {
         updateActiveElem({ text: e.target.value });
     });
-    document.getElementById('elem-text').addEventListener('change', () => state.saveToLocalStorage());
 
     // Coordinates pos
     document.getElementById('elem-x').addEventListener('input', (e) => {
@@ -740,9 +728,6 @@ function initEditorUI() {
     });
     document.getElementById('elem-h').addEventListener('input', (e) => {
         updateActiveElem({ height: parseInt(e.target.value) || 30 });
-    });
-    ['elem-x', 'elem-y', 'elem-w', 'elem-h'].forEach(id => {
-        document.getElementById(id).addEventListener('change', () => state.saveToLocalStorage());
     });
     document.getElementById('elem-visible').addEventListener('change', (e) => {
         state.pushHistory();
@@ -760,7 +745,6 @@ function initEditorUI() {
     document.getElementById('elem-font-size').addEventListener('input', (e) => {
         updateActiveElem({ fontSize: parseInt(e.target.value) || 16 });
     });
-    document.getElementById('elem-font-size').addEventListener('change', () => state.saveToLocalStorage());
     document.getElementById('elem-align').addEventListener('change', (e) => {
         updateActiveElemAndSave({ align: e.target.value });
     });
@@ -775,15 +759,11 @@ function initEditorUI() {
     document.getElementById('elem-bg-alpha').addEventListener('input', (e) => {
         updateActiveElem({ bgAlpha: parseFloat(e.target.value) });
     });
-    document.getElementById('elem-bg-alpha').addEventListener('change', () => state.saveToLocalStorage());
     document.getElementById('elem-border-radius').addEventListener('input', (e) => {
         updateActiveElem({ borderRadius: parseInt(e.target.value) || 0 });
     });
     document.getElementById('elem-padding').addEventListener('input', (e) => {
         updateActiveElem({ padding: parseInt(e.target.value) || 0 });
-    });
-    ['elem-border-radius', 'elem-padding'].forEach(id => {
-        document.getElementById(id).addEventListener('change', () => state.saveToLocalStorage());
     });
 
     // Image URL elements
@@ -812,13 +792,11 @@ function initEditorUI() {
     document.getElementById('elem-option-group').addEventListener('input', (e) => {
         updateActiveElem({ group: e.target.value });
     });
-    document.getElementById('elem-option-group').addEventListener('change', () => state.saveToLocalStorage());
 
     // Timers dropdown and parameters
     document.getElementById('elem-timer-duration').addEventListener('input', (e) => {
         updateActiveElem({ duration: parseInt(e.target.value) || 30, text: e.target.value });
     });
-    document.getElementById('elem-timer-duration').addEventListener('change', () => state.saveToLocalStorage());
 
     document.getElementById('btn-add-timer-action').onclick = () => {
         const activeElem = state.getActiveElement();
@@ -831,7 +809,6 @@ function initEditorUI() {
             });
             state.updateElement(activeElem.id, { actions: activeElem.actions });
             renderTimerActions(activeElem);
-            state.saveToLocalStorage();
         }
     };
 
@@ -853,7 +830,6 @@ function initEditorUI() {
             });
             state.updateElement(activeElem.id, { actions: activeElem.actions });
             renderToggleActions(activeElem);
-            state.saveToLocalStorage();
         }
     };
     // Button markup settings change handlers
@@ -1048,7 +1024,6 @@ function initEditorUI() {
             hex.value = val;
             callback(val);
         });
-        picker.addEventListener('change', () => state.saveToLocalStorage());
 
         hex.addEventListener('input', (e) => {
             let val = e.target.value;
@@ -1058,7 +1033,6 @@ function initEditorUI() {
                 callback(val);
             }
         });
-        hex.addEventListener('change', () => state.saveToLocalStorage());
     }
 
     function switchTab(tabId) {
@@ -1184,7 +1158,6 @@ function initEditorUI() {
                 element.actions.splice(index, 1);
                 state.updateElement(element.id, { actions: element.actions });
                 renderTimerActions(element);
-                state.saveToLocalStorage();
             };
             header.appendChild(delBtn);
             card.appendChild(header);
@@ -1250,7 +1223,6 @@ function initEditorUI() {
                     act.targetId = '';
                 }
                 state.updateElement(element.id, { actions: element.actions });
-                state.saveToLocalStorage();
             };
 
             // Change listener for Target
@@ -1258,7 +1230,6 @@ function initEditorUI() {
                 state.pushHistory();
                 act.targetId = e.target.value;
                 state.updateElement(element.id, { actions: element.actions });
-                state.saveToLocalStorage();
             };
 
             container.appendChild(card);
@@ -1302,7 +1273,6 @@ function initEditorUI() {
                 element.actions.splice(index, 1);
                 state.updateElement(element.id, { actions: element.actions });
                 renderToggleActions(element);
-                state.saveToLocalStorage();
             };
             header.appendChild(delBtn);
             card.appendChild(header);
@@ -1360,7 +1330,6 @@ function initEditorUI() {
                 state.pushHistory();
                 act.type = e.target.value;
                 state.updateElement(element.id, { actions: element.actions });
-                state.saveToLocalStorage();
             };
 
             // Change listener for Target
@@ -1368,7 +1337,6 @@ function initEditorUI() {
                 state.pushHistory();
                 act.targetId = e.target.value;
                 state.updateElement(element.id, { actions: element.actions });
-                state.saveToLocalStorage();
             };
 
             container.appendChild(card);

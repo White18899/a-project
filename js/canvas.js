@@ -562,7 +562,7 @@ class SlideCanvas {
             this.renderSlide(window.EngineState.getActiveSlide());
         } else if (this.draggedElement) {
             // Save state updates
-            window.EngineState.saveToLocalStorage();
+            window.EngineState.markUnsaved();
             
             // If we did not move the mouse, select only this element (unless Ctrl is held)
             if (!this.hasMoved && this.dragData) {

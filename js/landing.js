@@ -14,6 +14,21 @@ document.addEventListener("DOMContentLoaded", () => {
         // Toggle view class on body wrapper
         appEl.className = `view-${view}`;
 
+        // Manage history routing for back/home button interceptions
+        if (view === 'editor') {
+            if (history.state?.view !== 'editor') {
+                history.pushState({ view: 'editor' }, '');
+            }
+        } else if (view === 'dashboard') {
+            if (history.state?.view === 'editor') {
+                history.back();
+            } else {
+                history.replaceState({ view: 'dashboard' }, '');
+            }
+        } else {
+            history.replaceState({ view: 'landing' }, '');
+        }
+
         // Trigger WebGL canvas play/pause state
         if (window.landingWebGL) {
             if (view === 'landing' || view === 'dashboard') {
@@ -364,30 +379,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Back button in workspace header
     document.getElementById('btn-editor-back').onclick = () => {
-        if (state.hasUnsavedChanges) {
-            if (!confirm("You have unsaved changes. Are you sure you want to go back to the dashboard?")) {
-                return;
-            }
-        }
-        // Save current and exit to dashboard
-        if (state.project) {
-            state.saveToLocalStorage();
-        }
-        state.project = null;
-        state.setView('dashboard');
+        history.back();
     };
 
     // Back button in device rotation warning overlay
     document.getElementById('btn-rotate-back').onclick = () => {
-        if (state.hasUnsavedChanges) {
-            if (!confirm("You have unsaved changes. Are you sure you want to go back to the dashboard?")) {
-                return;
-            }
-        }
-        if (state.project) {
-            state.saveToLocalStorage();
-        }
-        state.project = null;
-        state.setView('dashboard');
+        history.back();
     };
+
+    // Intercept browser back button and physical mobile back gesture/button
+    window.addEventListener('popstate', (e) => {
+        if (state.currentView === 'editor') {
+            if (state.hasUnsavedChanges) {
+                if (!confirm("You have unsaved changes. Are you sure you want to go back to the dashboard? (Unsaved changes will be lost)")) {
+                    // Re-push history state to stay on editor view
+                    history.pushState({ view: 'editor' }, '');
+                    return;
+                }
+            }
+            state.project = null;
+            state.setView('dashboard');
+        }
+    });
 });
