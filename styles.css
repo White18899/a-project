@@ -90,6 +90,7 @@ body {
     padding: 0 20px;
     z-index: 10;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    position: relative;
 }
 
 .header-logo {
@@ -316,6 +317,7 @@ aside {
     flex-direction: column;
     z-index: 5;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    position: relative;
 }
 
 .sidebar-left {
@@ -548,6 +550,7 @@ aside {
     justify-content: space-between;
     padding: 0 16px;
     z-index: 4;
+    position: relative;
 }
 
 .zoom-controls {
@@ -1261,6 +1264,7 @@ select option {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 .modal-header {
@@ -2128,11 +2132,17 @@ select option {
     border-radius: 0 !important;
 }
 
-/* 2. Global scanline overlay */
-body::before {
+/* 2. Global scanline overlay applied to UI elements only to keep slide canvas and presentation clean */
+#landing-view::before,
+#dashboard-view::before,
+.app-header::before,
+aside::before,
+.canvas-toolbar::before,
+.layers-overlay::before,
+.modal-card::before {
     content: " ";
     display: block;
-    position: fixed;
+    position: absolute;
     top: 0; left: 0; bottom: 0; right: 0;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
     z-index: 9999;
@@ -2205,33 +2215,27 @@ body::before {
 /* 6. Logo Chromatic Aberration Glitch Keyframes */
 @keyframes cyber-glitch {
     0% {
-        clip-path: inset(40% 0 61% 0);
-        transform: skew(0.3deg) translate(-1px, 1px);
-        text-shadow: 1px -1px var(--color-primary), -1px 1px var(--color-cyan);
+        transform: translate(-1px, 1px);
+        text-shadow: 2px -2px var(--color-primary), -2px 2px var(--color-cyan);
     }
     20% {
-        clip-path: inset(92% 0 1% 0);
-        transform: skew(-0.5deg) translate(1px, -1px);
-        text-shadow: -1px 1px var(--color-primary), 1px -1px var(--color-cyan);
+        transform: translate(1px, -1px);
+        text-shadow: -2px 2px var(--color-primary), 2px -2px var(--color-cyan);
     }
     40% {
-        clip-path: inset(15% 0 80% 0);
-        transform: skew(0.5deg) translate(-1px, -1px);
-        text-shadow: 1px 1px var(--color-primary), -1px 1px var(--color-cyan);
+        transform: translate(-1px, -1px);
+        text-shadow: 1.5px 1.5px var(--color-primary), -1.5px 1.5px var(--color-cyan);
     }
     60% {
-        clip-path: inset(80% 0 5% 0);
-        transform: skew(-0.2deg) translate(1px, 1px);
-        text-shadow: -1px 1px var(--color-primary), 1px -1px var(--color-cyan);
+        transform: translate(1px, 1px);
+        text-shadow: -1.5px 2px var(--color-primary), 1.5px -1.5px var(--color-cyan);
     }
     80% {
-        clip-path: inset(3% 0 92% 0);
-        transform: skew(0.4deg) translate(-1px, -1px);
-        text-shadow: 1px -1px var(--color-primary), -1px 1px var(--color-cyan);
+        transform: translate(-1.5px, -1px);
+        text-shadow: 2px -1px var(--color-primary), -1.5px 2px var(--color-cyan);
     }
     100% {
-        clip-path: inset(40% 0 61% 0);
-        transform: skew(0deg) translate(0px, 0px);
+        transform: translate(0px, 0px);
         text-shadow: none;
     }
 }
@@ -2275,5 +2279,39 @@ body::before {
     margin-bottom: 16px;
     text-shadow: 0 0 10px rgba(252, 238, 10, 0.1);
 }
+
+/* Light Glitch Animation for Button Hovers */
+@keyframes cyber-glitch-light {
+    0% {
+        transform: translate(-1px, 0.5px);
+        box-shadow: 1.5px -1.5px var(--color-primary), -1.5px 1.5px var(--color-cyan);
+    }
+    25% {
+        transform: translate(1px, -0.5px);
+        box-shadow: -1.5px 1.5px var(--color-primary), 1.5px -1.5px var(--color-cyan);
+    }
+    50% {
+        transform: translate(-0.5px, -0.5px);
+        box-shadow: 1px 1px var(--color-primary), -1px 1px var(--color-cyan);
+    }
+    75% {
+        transform: translate(0.5px, 0.5px);
+        box-shadow: -1px -1px var(--color-primary), 1px 1px var(--color-cyan);
+    }
+    100% {
+        transform: translate(0, 0);
+        box-shadow: none;
+    }
+}
+
+.btn-primary:hover,
+.btn-accent:hover,
+.btn-secondary:hover,
+.btn-danger-outline:hover,
+.btn-hud:hover,
+.btn-element-add:hover {
+    animation: cyber-glitch-light 0.2s steps(2, start) infinite !important;
+}
+
 
 
