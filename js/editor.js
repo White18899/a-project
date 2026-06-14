@@ -143,7 +143,6 @@ function initEditorUI() {
         document.getElementById('slide-bg-grad-2-hex').value = slide.background.gradientEnd;
         document.getElementById('slide-bg-grad-angle').value = slide.background.gradientAngle;
         document.getElementById('slide-bg-image-url').value = slide.background.imageUrl;
-        document.getElementById('slide-rpg-theme').checked = slide.rpgTheme;
 
         // Toggle backgrounds options visual elements
         toggleBackgroundOptionFields(slide.background.type);
@@ -211,7 +210,6 @@ function initEditorUI() {
                 document.getElementById('elem-bg-alpha').value = element.bgAlpha !== undefined ? element.bgAlpha : 1;
                 document.getElementById('elem-border-radius').value = element.borderRadius || 0;
                 document.getElementById('elem-padding').value = element.padding || 0;
-                document.getElementById('elem-rpg-box').checked = element.rpgStyle || false;
             }
 
             // Image URL properties
@@ -665,11 +663,7 @@ function initEditorUI() {
         }
     });
 
-    // RPG Slide styling checkbox
-    document.getElementById('slide-rpg-theme').addEventListener('change', (e) => {
-        state.updateSlideSettings({ rpgTheme: e.target.checked });
-        state.saveToLocalStorage();
-    });
+
 
     // ==========================================
     // WORKSPACE TOOLBAR BUTTONS: ADD ELEMENTS
@@ -775,9 +769,6 @@ function initEditorUI() {
     });
     ['elem-border-radius', 'elem-padding'].forEach(id => {
         document.getElementById(id).addEventListener('change', () => state.saveToLocalStorage());
-    });
-    document.getElementById('elem-rpg-box').addEventListener('change', (e) => {
-        updateActiveElemAndSave({ rpgStyle: e.target.checked });
     });
 
     // Image URL elements
