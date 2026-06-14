@@ -210,6 +210,15 @@ body {
     user-select: none;
 }
 
+.btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    position: static !important;
+    margin: 0 !important;
+    display: inline-block !important;
+}
+
 .btn:disabled,
 .btn-icon:disabled {
     opacity: 0.35;
@@ -2340,7 +2349,11 @@ svg.lucide,
     filter: drop-shadow(0 0 3px var(--color-cyan)) !important;
 }
 
-.btn-accent svg,
+.btn-accent svg {
+    color: var(--text-inverse) !important;
+    filter: drop-shadow(0 0 1px var(--text-inverse)) !important;
+}
+
 .logo-icon,
 .checkbox-label svg,
 .user-badge svg.avatar-icon,

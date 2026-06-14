@@ -104,6 +104,7 @@ function initEditorUI() {
     state.on('slide-changed', (slide) => {
         if (!slide) return;
         canvas.renderSlide(slide);
+        updateSlideCardPreview(slide);
         
         // Update Slide active card in list
         const cards = document.querySelectorAll('.slide-card');
@@ -269,6 +270,7 @@ function initEditorUI() {
         const slide = state.getActiveSlide();
         if (slide) {
             canvas.renderSlide(slide);
+            updateSlideCardPreview(slide);
         }
         
         // Also update properties fields if this updated element is the currently selected one
@@ -284,6 +286,104 @@ function initEditorUI() {
     // SIDEBAR SLIDE CARDS RENDERING
     // ==========================================
 
+    function updateSlideCardPreview(slide, card = null) {
+        if (!slide) return;
+        if (!card) {
+            card = document.querySelector(`.slide-card[data-id="${slide.id}"]`);
+        }
+        if (!card) return;
+        
+        let preview = card.querySelector('.slide-card-preview');
+        if (!preview) {
+            preview = document.createElement('div');
+            preview.className = 'slide-card-preview';
+            card.prepend(preview);
+        } else {
+            preview.innerHTML = '';
+        }
+        
+        const bgIndicator = document.createElement('div');
+        bgIndicator.className = 'slide-card-bg-indicator';
+        
+        if (slide.background.type === 'color') {
+            bgIndicator.style.backgroundColor = slide.background.color;
+        } else if (slide.background.type === 'gradient') {
+            bgIndicator.style.background = `linear-gradient(${slide.background.gradientAngle}deg, ${slide.background.gradientStart}, ${slide.background.gradientEnd})`;
+        } else if (slide.background.type === 'image' && slide.background.imageUrl) {
+            bgIndicator.style.backgroundImage = `url(${slide.background.imageUrl})`;
+        }
+        preview.appendChild(bgIndicator);
+
+        // Render mini elements inside the slide thumbnail preview
+        if (slide.elements && slide.elements.length > 0) {
+            const sortedElems = [...slide.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+            sortedElems.forEach(elem => {
+                const mini = document.createElement('div');
+                mini.style.position = 'absolute';
+                mini.style.left = `${(elem.x / 1920) * 100}%`;
+                mini.style.top = `${(elem.y / 1080) * 100}%`;
+                mini.style.width = `${(elem.width / 1920) * 100}%`;
+                mini.style.height = `${(elem.height / 1080) * 100}%`;
+                mini.style.zIndex = elem.zIndex || 0;
+                mini.style.pointerEvents = 'none';
+                
+                if (elem.type === 'text' || elem.type.startsWith('btn-') || elem.type === 'timer') {
+                    const isRpg = elem.rpgStyle || slide.rpgTheme;
+                    if (isRpg) {
+                        mini.style.backgroundColor = 'rgba(0, 0, 128, 0.9)';
+                        mini.style.border = '0.5px double #ffffff';
+                    } else {
+                        const hex = (elem.bgColor || '#16161a').replace('#', '');
+                        let r = 0, g = 0, b = 0;
+                        if (hex.length === 3) {
+                            r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+                            g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+                            b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+                        } else if (hex.length === 6) {
+                            r = parseInt(hex.substring(0, 2), 16);
+                            g = parseInt(hex.substring(2, 4), 16);
+                            b = parseInt(hex.substring(4, 6), 16);
+                        }
+                        const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
+                        mini.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                        const thumbScale = 222 / 1920;
+                        mini.style.borderRadius = `${(elem.borderRadius || 0) * thumbScale}px`;
+                    }
+                    
+                    if (elem.text) {
+                        const textSpan = document.createElement('span');
+                        textSpan.textContent = elem.text;
+                        textSpan.style.color = elem.textColor || '#ffffff';
+                        textSpan.style.fontSize = '4px';
+                        textSpan.style.fontFamily = isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit');
+                        textSpan.style.display = 'block';
+                        textSpan.style.overflow = 'hidden';
+                        textSpan.style.width = '100%';
+                        textSpan.style.height = '100%';
+                        textSpan.style.textAlign = elem.align || 'left';
+                        textSpan.style.whiteSpace = 'nowrap';
+                        textSpan.style.textOverflow = 'ellipsis';
+                        textSpan.style.lineHeight = '1.2';
+                        
+                        const pad = elem.padding || 0;
+                        textSpan.style.padding = `${(pad / 1080) * 100}%`;
+                        mini.appendChild(textSpan);
+                    }
+                } else if (elem.type === 'image') {
+                    mini.style.backgroundImage = `url(${elem.fileData || elem.url})`;
+                    mini.style.backgroundSize = 'cover';
+                    mini.style.backgroundPosition = 'center';
+                }
+                
+                if (elem.visible === false) {
+                    mini.style.opacity = '0.35';
+                }
+                
+                preview.appendChild(mini);
+            });
+        }
+    }
+
     function renderSlideList(slides) {
         const container = document.getElementById('slides-list-container');
         container.innerHTML = '';
@@ -296,89 +396,9 @@ function initEditorUI() {
             // Build Thumbnail preview
             const preview = document.createElement('div');
             preview.className = 'slide-card-preview';
-            
-            const bgIndicator = document.createElement('div');
-            bgIndicator.className = 'slide-card-bg-indicator';
-            
-            if (slide.background.type === 'color') {
-                bgIndicator.style.backgroundColor = slide.background.color;
-            } else if (slide.background.type === 'gradient') {
-                bgIndicator.style.background = `linear-gradient(${slide.background.gradientAngle}deg, ${slide.background.gradientStart}, ${slide.background.gradientEnd})`;
-            } else if (slide.background.type === 'image' && slide.background.imageUrl) {
-                bgIndicator.style.backgroundImage = `url(${slide.background.imageUrl})`;
-            }
-            preview.appendChild(bgIndicator);
-
-            // Render mini elements inside the slide thumbnail preview
-            if (slide.elements && slide.elements.length > 0) {
-                const sortedElems = [...slide.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-                sortedElems.forEach(elem => {
-                    const mini = document.createElement('div');
-                    mini.style.position = 'absolute';
-                    mini.style.left = `${(elem.x / 1920) * 100}%`;
-                    mini.style.top = `${(elem.y / 1080) * 100}%`;
-                    mini.style.width = `${(elem.width / 1920) * 100}%`;
-                    mini.style.height = `${(elem.height / 1080) * 100}%`;
-                    mini.style.zIndex = elem.zIndex || 0;
-                    mini.style.pointerEvents = 'none';
-                    
-                    if (elem.type === 'text' || elem.type.startsWith('btn-') || elem.type === 'timer') {
-                        const isRpg = elem.rpgStyle || slide.rpgTheme;
-                        if (isRpg) {
-                            mini.style.backgroundColor = 'rgba(0, 0, 128, 0.9)';
-                            mini.style.border = '0.5px double #ffffff';
-                        } else {
-                            const hex = (elem.bgColor || '#16161a').replace('#', '');
-                            let r = 0, g = 0, b = 0;
-                            if (hex.length === 3) {
-                                r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
-                                g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
-                                b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
-                            } else if (hex.length === 6) {
-                                r = parseInt(hex.substring(0, 2), 16);
-                                g = parseInt(hex.substring(2, 4), 16);
-                                b = parseInt(hex.substring(4, 6), 16);
-                            }
-                            const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
-                            mini.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                            const thumbScale = 222 / 1920;
-                            mini.style.borderRadius = `${(elem.borderRadius || 0) * thumbScale}px`;
-                        }
-                        
-                        if (elem.text) {
-                            const textSpan = document.createElement('span');
-                            textSpan.textContent = elem.text;
-                            textSpan.style.color = elem.textColor || '#ffffff';
-                            textSpan.style.fontSize = '4px';
-                            textSpan.style.fontFamily = isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit');
-                            textSpan.style.display = 'block';
-                            textSpan.style.overflow = 'hidden';
-                            textSpan.style.width = '100%';
-                            textSpan.style.height = '100%';
-                            textSpan.style.textAlign = elem.align || 'left';
-                            textSpan.style.whiteSpace = 'nowrap';
-                            textSpan.style.textOverflow = 'ellipsis';
-                            textSpan.style.lineHeight = '1.2';
-                            
-                            const pad = elem.padding || 0;
-                            textSpan.style.padding = `${(pad / 1080) * 100}%`;
-                            mini.appendChild(textSpan);
-                        }
-                    } else if (elem.type === 'image') {
-                        mini.style.backgroundImage = `url(${elem.fileData || elem.url})`;
-                        mini.style.backgroundSize = 'cover';
-                        mini.style.backgroundPosition = 'center';
-                    }
-                    
-                    if (elem.visible === false) {
-                        mini.style.opacity = '0.35';
-                    }
-                    
-                    preview.appendChild(mini);
-                });
-            }
-
             card.appendChild(preview);
+            
+            updateSlideCardPreview(slide, card);
 
             // Slide Info
             const info = document.createElement('div');

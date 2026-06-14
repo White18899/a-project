@@ -1,0 +1,121 @@
+{
+  "id": "id-iqoyizc41",
+  "name": "New Presentation",
+  "slides": [
+    {
+      "id": "id-4lnpl7bhb",
+      "name": "Welcome Slide",
+      "rpgTheme": false,
+      "transition": "none",
+      "background": {
+        "type": "color",
+        "color": "#050507",
+        "gradientStart": "#050507",
+        "gradientEnd": "#16161a",
+        "gradientAngle": 135,
+        "imageUrl": ""
+      },
+      "elements": [
+        {
+          "id": "id-xld1fy6hn",
+          "type": "text",
+          "text": "Welcome to SlideEngine",
+          "x": 130,
+          "y": 100,
+          "width": 700,
+          "height": 80,
+          "fontFamily": "Outfit",
+          "fontSize": 42,
+          "align": "center",
+          "textColor": "#ffffff",
+          "bgColor": "#16161a",
+          "bgAlpha": 0,
+          "borderRadius": 0,
+          "padding": 0,
+          "rpgStyle": false,
+          "visible": true,
+          "zIndex": 0
+        },
+        {
+          "id": "id-paqb29qlf",
+          "type": "text",
+          "text": "A flexible WebGL slide workspace. Create presentation slides, interactive branching quizzes, and RPG dialog cards.",
+          "x": 180,
+          "y": 220,
+          "width": 600,
+          "height": 120,
+          "fontFamily": "Outfit",
+          "fontSize": 20,
+          "align": "center",
+          "textColor": "#9ca3af",
+          "bgColor": "#16161a",
+          "bgAlpha": 0,
+          "borderRadius": 0,
+          "padding": 0,
+          "rpgStyle": false,
+          "visible": true,
+          "zIndex": 1
+        },
+        {
+          "id": "id-6hp3ht25r",
+          "type": "btn-nav",
+          "text": "Start Presentation",
+          "targetSlideId": "",
+          "x": 380,
+          "y": 400,
+          "width": 200,
+          "height": 50,
+          "fontFamily": "Outfit",
+          "fontSize": 18,
+          "align": "center",
+          "textColor": "#0a0a0c",
+          "bgColor": "#f1c40f",
+          "bgAlpha": 1,
+          "borderRadius": 8,
+          "padding": 8,
+          "rpgStyle": false,
+          "visible": true,
+          "useMarkupColor": false,
+          "markupColor": "#3b82f6",
+          "zIndex": 2
+        }
+      ]
+    },
+    {
+      "id": "id-i1lmxzz9o",
+      "name": "Slide 2",
+      "rpgTheme": false,
+      "transition": "none",
+      "background": {
+        "type": "color",
+        "color": "#050507",
+        "gradientStart": "#050507",
+        "gradientEnd": "#16161a",
+        "gradientAngle": 135,
+        "imageUrl": ""
+      },
+      "elements": [
+        {
+          "id": "id-dc0snhwco",
+          "type": "text",
+          "text": "Test Thumbnail Update",
+          "x": 3002000,
+          "y": 1000,
+          "width": 400,
+          "height": 100,
+          "fontFamily": "Outfit",
+          "fontSize": 28,
+          "align": "left",
+          "textColor": "#ffffff",
+          "bgColor": "#16161a",
+          "bgAlpha": 0,
+          "borderRadius": 0,
+          "padding": 0,
+          "rpgStyle": false,
+          "visible": true,
+          "zIndex": 0
+        }
+      ]
+    }
+  ]
+}
