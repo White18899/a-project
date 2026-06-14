@@ -11,4 +11,4 @@ compatibility_date = "2024-03-01"
 # 3. For local development, wrangler manages a local KV simulation automatically.
 [[kv_namespaces]]
 binding = "SLIDE_ENGINE_KV"
-id = "YOUR_CLOUDFLARE_KV_NAMESPACE_ID_HERE"
+id = "e55f900cec7d461cbaeab865b114deba"

@@ -6,7 +6,7 @@
 
 window.SlideEngineAPI = {
     // If opened via file://, point to local server. Otherwise, use relative origin.
-    baseUrl: window.location.protocol === 'file:' ? 'http://localhost:3000' : '',
+    baseUrl: 'https://slide-engine-api.white018899.workers.dev',
     token: localStorage.getItem('slide_engine_api_token') || null,
     username: localStorage.getItem('slide_engine_api_username') || null,
 
@@ -32,7 +32,7 @@ window.SlideEngineAPI = {
         }
 
         const url = `${this.baseUrl}${path}`;
-        
+
         try {
             const res = await fetch(url, {
                 ...options,
