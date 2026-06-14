@@ -173,6 +173,21 @@ function initEditorUI() {
             inspectorForm.classList.remove('hidden');
             switchTab('properties-tab');
             
+            // Expand right sidebar if collapsed
+            const editorView = document.getElementById('editor-view');
+            if (editorView && editorView.classList.contains('right-sidebar-collapsed')) {
+                editorView.classList.remove('right-sidebar-collapsed');
+                const toggleRightBtn = document.getElementById('btn-toggle-right-sidebar');
+                if (toggleRightBtn) {
+                    toggleRightBtn.title = "Collapse Inspector Panel";
+                    toggleRightBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
+                    if (window.lucide) lucide.createIcons();
+                }
+                if (window.editorCanvas) {
+                    window.editorCanvas.resize();
+                }
+            }
+            
             // Bind fields
             document.getElementById('inspector-element-title').textContent = `${element.type.toUpperCase()} Element`;
             document.getElementById('elem-id').value = element.id;
@@ -933,11 +948,11 @@ function initEditorUI() {
         const panel = document.getElementById('layers-panel');
         panel.classList.toggle('minimized');
         
-        const icon = document.querySelector('#btn-toggle-layers i');
+        const btn = document.getElementById('btn-toggle-layers');
         if (panel.classList.contains('minimized')) {
-            icon.setAttribute('data-lucide', 'chevron-up');
+            btn.innerHTML = '<i data-lucide="chevron-up"></i>';
         } else {
-            icon.setAttribute('data-lucide', 'chevron-down');
+            btn.innerHTML = '<i data-lucide="chevron-down"></i>';
         }
         if (window.lucide) lucide.createIcons();
     };
@@ -1447,6 +1462,47 @@ function initEditorUI() {
     document.getElementById('project-name-input').addEventListener('focusin', () => {
         state.pushHistory();
     });
+
+    // ==========================================
+    // SIDEBAR COLLAPSE/EXPAND TOGGLE LISTENERS
+    // ==========================================
+    const editorView = document.getElementById('editor-view');
+    const toggleLeftBtn = document.getElementById('btn-toggle-left-sidebar');
+    const toggleRightBtn = document.getElementById('btn-toggle-right-sidebar');
+
+    if (toggleLeftBtn) {
+        toggleLeftBtn.onclick = () => {
+            editorView.classList.toggle('left-sidebar-collapsed');
+            if (editorView.classList.contains('left-sidebar-collapsed')) {
+                toggleLeftBtn.title = "Expand Slides Panel";
+                toggleLeftBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
+            } else {
+                toggleLeftBtn.title = "Collapse Slides Panel";
+                toggleLeftBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+            if (window.editorCanvas) {
+                window.editorCanvas.resize();
+            }
+        };
+    }
+
+    if (toggleRightBtn) {
+        toggleRightBtn.onclick = () => {
+            editorView.classList.toggle('right-sidebar-collapsed');
+            if (editorView.classList.contains('right-sidebar-collapsed')) {
+                toggleRightBtn.title = "Expand Inspector Panel";
+                toggleRightBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
+            } else {
+                toggleRightBtn.title = "Collapse Inspector Panel";
+                toggleRightBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+            if (window.editorCanvas) {
+                window.editorCanvas.resize();
+            }
+        };
+    }
 }
 
 function updateTransitionIcon(val) {

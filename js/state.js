@@ -288,7 +288,7 @@ window.EngineState = {
             this.selectedElementId = null;
         }
 
-        this.saveToLocalStorage();
+        this.markUnsaved();
         this.emit('project-loaded', this.project);
         this.emit('slide-list-changed', this.project.slides);
         this.emit('slide-changed', this.getActiveSlide());
@@ -321,7 +321,7 @@ window.EngineState = {
             this.selectedElementId = null;
         }
 
-        this.saveToLocalStorage();
+        this.markUnsaved();
         this.emit('project-loaded', this.project);
         this.emit('slide-list-changed', this.project.slides);
         this.emit('slide-changed', this.getActiveSlide());
@@ -930,7 +930,7 @@ window.EngineState = {
             welcomeText.align = 'center';
             
             this.selectedSlideId = welcomeSlide.id;
-            this.saveToLocalStorage();
+            this.markUnsaved();
             this.emit('project-loaded', this.project);
             this.emit('slide-list-changed', this.project.slides);
             this.emit('slide-changed', this.getActiveSlide());
@@ -1054,7 +1054,6 @@ window.EngineState = {
         this.project.slides.splice(toIndex, 0, movedSlide);
         
         this.markUnsaved();
-        this.saveToLocalStorage();
         this.emit('slide-list-changed', this.project.slides);
         this.emit('slide-changed', this.getActiveSlide());
     },
@@ -1301,7 +1300,6 @@ window.EngineState = {
         this.selectElements(pastedIds);
 
         this.markUnsaved();
-        this.saveToLocalStorage();
 
         // Trigger reactive redraws
         this.emit('slide-changed', slide);

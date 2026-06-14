@@ -376,4 +376,18 @@ document.addEventListener("DOMContentLoaded", () => {
         state.project = null;
         state.setView('dashboard');
     };
+
+    // Back button in device rotation warning overlay
+    document.getElementById('btn-rotate-back').onclick = () => {
+        if (state.hasUnsavedChanges) {
+            if (!confirm("You have unsaved changes. Are you sure you want to go back to the dashboard?")) {
+                return;
+            }
+        }
+        if (state.project) {
+            state.saveToLocalStorage();
+        }
+        state.project = null;
+        state.setView('dashboard');
+    };
 });

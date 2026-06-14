@@ -113,23 +113,23 @@
                         <i data-lucide="presentation" class="logo-icon"></i>
                         <span class="logo-text">Slide<span>Engine</span></span>
                     </div>
-                    <button id="btn-editor-back" class="btn btn-secondary" title="Back to Dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                    <button id="btn-editor-back" class="btn btn-secondary" title="Back to Dashboard"><i data-lucide="layout-dashboard"></i> <span>Dashboard</span></button>
                 </div>
             <div class="project-info">
                 <input type="text" id="project-name-input" value="My Presentation Project" title="Project Name">
                 <span class="save-status" id="save-status"><i data-lucide="cloud-check"></i> Saved</span>
             </div>
             <div class="header-actions">
-                <button id="btn-save" class="btn btn-secondary" title="Save to Browser"><i data-lucide="save"></i> Save</button>
-                <button id="btn-export" class="btn btn-secondary" title="Export as JSON file"><i data-lucide="download"></i> Export</button>
-                <button id="btn-import-trigger" class="btn btn-secondary" title="Import JSON file"><i data-lucide="upload"></i> Import</button>
-                <button id="btn-clear" class="btn btn-danger-outline" title="Clear all"><i data-lucide="trash-2"></i> Clear</button>
+                <button id="btn-save" class="btn btn-secondary" title="Save to Browser"><i data-lucide="save"></i> <span>Save</span></button>
+                <button id="btn-export" class="btn btn-secondary" title="Export as JSON file"><i data-lucide="download"></i> <span>Export</span></button>
+                <button id="btn-import-trigger" class="btn btn-secondary" title="Import JSON file"><i data-lucide="upload"></i> <span>Import</span></button>
+                <button id="btn-clear" class="btn btn-danger-outline" title="Clear all"><i data-lucide="trash-2"></i> <span>Clear</span></button>
                 <div class="divider"></div>
                 <button id="btn-undo" class="btn btn-secondary btn-icon-only" title="Undo (Ctrl+Z)" disabled><i data-lucide="undo"></i></button>
                 <button id="btn-redo" class="btn btn-secondary btn-icon-only" title="Redo (Ctrl+Y)" disabled><i data-lucide="redo"></i></button>
                 <div class="divider"></div>
-                <button id="btn-output" class="btn btn-primary" title="Open Fullscreen Output"><i data-lucide="monitor-play"></i> Present (F11)</button>
-                <button id="btn-popup-output" class="btn btn-accent" title="Open Presentation in New Window"><i data-lucide="external-link"></i> Projector Window</button>
+                <button id="btn-output" class="btn btn-primary" title="Open Fullscreen Output"><i data-lucide="monitor-play"></i> <span>Present</span></button>
+                <button id="btn-popup-output" class="btn btn-accent" title="Open Presentation in New Window"><i data-lucide="external-link"></i> <span>Projector</span></button>
             </div>
         </header>
 
@@ -153,6 +153,8 @@
             <!-- CENTRAL STAGE: Slide Canvas -->
             <main class="canvas-viewport">
                 <div class="canvas-toolbar">
+                    <button id="btn-toggle-left-sidebar" class="btn-icon" title="Collapse Slides Panel"><i data-lucide="chevron-left"></i></button>
+                    <div class="divider" style="height: 16px; margin: 0 8px; width: 1px; background-color: var(--border-color);"></div>
                     <div class="zoom-controls">
                         <button id="btn-zoom-out" class="btn-icon" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
                         <span id="zoom-percentage">100%</span>
@@ -166,6 +168,8 @@
                     <div class="grid-controls">
                         <button id="btn-toggle-grid" class="btn-icon active" title="Toggle Snap-to-Grid"><i data-lucide="grid"></i></button>
                     </div>
+                    <div class="divider" style="height: 16px; margin: 0 8px; width: 1px; background-color: var(--border-color);"></div>
+                    <button id="btn-toggle-right-sidebar" class="btn-icon" title="Collapse Inspector Panel"><i data-lucide="chevron-right"></i></button>
                 </div>
                 <div class="canvas-container-outer">
                     <div id="canvas-container" class="canvas-container">
@@ -586,11 +590,19 @@
         <div class="layers-overlay" id="layers-panel">
             <div class="layers-header">
                 <span>Layers</span>
-                <button id="btn-toggle-layers" class="btn-icon" title="Toggle Layers Panel"><i data-lucide="chevron-up"></i></button>
+                <button id="btn-toggle-layers" class="btn-icon" title="Toggle Layers Panel"><i data-lucide="chevron-down"></i></button>
             </div>
             <div class="layers-list" id="layers-list-container">
                 <!-- Dynamically populated -->
             </div>
+        </div>
+
+        <!-- DEVICE ROTATION WARNING OVERLAY -->
+        <div id="rotate-device-overlay">
+            <div class="phone-icon-animation"></div>
+            <h2>Rotate Your Device</h2>
+            <p>SlideEngine Workspace requires landscape orientation. Please rotate your device to landscape mode to edit your presentations.</p>
+            <button id="btn-rotate-back" class="btn btn-secondary"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
         </div>
     </div> <!-- Close #editor-view wrapper -->
 
