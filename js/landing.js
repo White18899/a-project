@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
     signupTab.onclick = () => setAuthMode('signup');
 
     // Submit form handler
-    authForm.onsubmit = (e) => {
+    authForm.onsubmit = async (e) => {
         e.preventDefault();
         authErrorBanner.classList.add('hidden');
 
@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = document.getElementById('auth-password').value;
 
         if (currentAuthMode === 'login') {
-            const res = state.login(username, password);
+            const res = await state.login(username, password);
             if (res.success) {
                 closeAuth();
             } else {
@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const res = state.signup(username, password);
+            const res = await state.signup(username, password);
             if (res.success) {
                 closeAuth();
             } else {
@@ -257,13 +257,13 @@ document.addEventListener("DOMContentLoaded", () => {
             renameBtn.className = 'project-card-btn';
             renameBtn.title = 'Rename';
             renameBtn.innerHTML = '<i data-lucide="edit-3"></i>';
-            renameBtn.onclick = (e) => {
+            renameBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const newName = prompt("Enter new presentation name:", proj.name);
                 if (newName && newName.trim() !== '') {
                     // Temporarily load it, rename, save, and return to dashboard view state
                     const savedState = state.project ? state.project.id : null;
-                    const loaded = state.loadProject(proj.id);
+                    const loaded = await state.loadProject(proj.id);
                     if (loaded) {
                         state.updateSlideSettings({ name: state.project.slides[0].name }); // Dummy trigger to trigger save list
                         state.project.name = newName.trim();
@@ -271,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         
                         // Restore previous view / loaded project pointer
                         if (savedState && savedState !== proj.id) {
-                            state.loadProject(savedState);
+                            await state.loadProject(savedState);
                         } else {
                             state.project = null;
                             state.setView('dashboard');
@@ -287,9 +287,9 @@ document.addEventListener("DOMContentLoaded", () => {
             dupBtn.className = 'project-card-btn';
             dupBtn.title = 'Duplicate';
             dupBtn.innerHTML = '<i data-lucide="copy"></i>';
-            dupBtn.onclick = (e) => {
+            dupBtn.onclick = async (e) => {
                 e.stopPropagation();
-                state.duplicateProject(proj.id);
+                await state.duplicateProject(proj.id);
             };
             actions.appendChild(dupBtn);
 
@@ -318,10 +318,10 @@ document.addEventListener("DOMContentLoaded", () => {
             delBtn.className = 'project-card-btn delete-proj-btn';
             delBtn.title = 'Delete Presentation';
             delBtn.innerHTML = '<i data-lucide="trash-2"></i>';
-            delBtn.onclick = (e) => {
+            delBtn.onclick = async (e) => {
                 e.stopPropagation();
                 if (confirm(`Are you sure you want to delete "${proj.name}"? This cannot be undone.`)) {
-                    state.deleteProject(proj.id);
+                    await state.deleteProject(proj.id);
                 }
             };
             actions.appendChild(delBtn);
@@ -329,8 +329,8 @@ document.addEventListener("DOMContentLoaded", () => {
             card.appendChild(actions);
 
             // Opening project action
-            card.onclick = () => {
-                state.loadProject(proj.id);
+            card.onclick = async () => {
+                await state.loadProject(proj.id);
             };
 
             projectsGrid.appendChild(card);

@@ -62,8 +62,8 @@
                     vy: (Math.random() - 0.5) * 0.45,
                     radius: Math.random() * 2 + 1.25,
                     alpha: Math.random() * 0.45 + 0.15,
-                    // Subtle color variance (accent gold, soft white, clean grey)
-                    color: Math.random() > 0.6 ? 0xd4af37 : (Math.random() > 0.5 ? 0xffffff : 0x7c2d12)
+                    // Subtle color variance (accent yellow, neon cyan, hot pink)
+                    color: Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055)
                 });
             }
         }
@@ -136,9 +136,9 @@
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist < this.connectionDistance) {
-                        // Opacity fades out with distance
+                        // Opacity fades out with distance (cyan connection lines)
                         const alpha = (1 - (dist / this.connectionDistance)) * 0.18;
-                        this.graphics.lineStyle(1.2, 0xd4af37, alpha);
+                        this.graphics.lineStyle(1.2, 0x00f0ff, alpha);
                         this.graphics.moveTo(pi.x, pi.y);
                         this.graphics.lineTo(pj.x, pj.y);
                     }

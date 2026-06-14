@@ -374,7 +374,7 @@ window.EngineState = {
         this.emit('view-changed', view);
     },
 
-    signup(username, password) {
+    async signup(username, password) {
         username = username.trim();
         password = password.trim();
         if (!username || !password) {
@@ -386,6 +386,41 @@ window.EngineState = {
         if (password.length < 6) {
             return { success: false, message: "Password must be at least 6 characters." };
         }
+
+        if (window.SlideEngineAPI) {
+            try {
+                const res = await window.SlideEngineAPI.signup(username, password);
+                if (res.success) {
+                    this.currentUser = username;
+                    localStorage.setItem('slide_engine_active_user', username);
+                    this.emit('auth-changed', username);
+                    
+                    this.project = null;
+                    this.selectedSlideId = null;
+                    this.selectedElementId = null;
+                    this.selectedElementIds = [];
+                    this.undoStack = [];
+                    this.redoStack = [];
+                    this.updateUndoRedoUI();
+
+                    try {
+                        const cloudProjects = await window.SlideEngineAPI.getProjects();
+                        this.projectsList = this.projectsList.filter(p => p.userId !== username);
+                        this.projectsList.push(...cloudProjects);
+                        this.saveProjectsList();
+                    } catch (e) {
+                        console.warn("Could not load projects list on signup sync", e);
+                    }
+
+                    this.setView('dashboard');
+                    this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+                    return { success: true };
+                }
+            } catch (e) {
+                console.warn("API signup failed, falling back to LocalStorage:", e);
+            }
+        }
+
         this.loadUsers();
         if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
             return { success: false, message: "Username already exists." };
@@ -393,12 +428,47 @@ window.EngineState = {
         this.users.push({ username, password });
         this.saveUsers();
         
-        return this.login(username, password);
+        return await this.login(username, password);
     },
 
-    login(username, password) {
+    async login(username, password) {
         username = username.trim();
         password = password.trim();
+
+        if (window.SlideEngineAPI && !(username.toLowerCase() === 'guest' && password === 'guest')) {
+            try {
+                const res = await window.SlideEngineAPI.login(username, password);
+                if (res.success) {
+                    this.currentUser = username;
+                    localStorage.setItem('slide_engine_active_user', username);
+                    this.emit('auth-changed', username);
+                    
+                    this.project = null;
+                    this.selectedSlideId = null;
+                    this.selectedElementId = null;
+                    this.selectedElementIds = [];
+                    this.undoStack = [];
+                    this.redoStack = [];
+                    this.updateUndoRedoUI();
+
+                    try {
+                        const cloudProjects = await window.SlideEngineAPI.getProjects();
+                        this.projectsList = this.projectsList.filter(p => p.userId !== username);
+                        this.projectsList.push(...cloudProjects);
+                        this.saveProjectsList();
+                    } catch (e) {
+                        console.warn("Could not sync projects list from cloud on login", e);
+                    }
+
+                    this.setView('dashboard');
+                    this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+                    return { success: true };
+                }
+            } catch (e) {
+                console.warn("API login failed, checking LocalStorage fallback:", e);
+            }
+        }
+
         this.loadUsers();
         const user = this.users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
         
@@ -418,6 +488,10 @@ window.EngineState = {
         this.redoStack = [];
         this.updateUndoRedoUI();
 
+        if (window.SlideEngineAPI) {
+            window.SlideEngineAPI.logout();
+        }
+
         this.setView('dashboard');
         this.emit('projects-list-changed', this.getProjectsForCurrentUser());
         return { success: true };
@@ -426,6 +500,11 @@ window.EngineState = {
     logout() {
         this.currentUser = null;
         localStorage.removeItem('slide_engine_active_user');
+        
+        if (window.SlideEngineAPI) {
+            window.SlideEngineAPI.logout();
+        }
+
         this.emit('auth-changed', null);
         
         this.project = null;
@@ -440,7 +519,7 @@ window.EngineState = {
     },
 
     // Initialize state
-    init() {
+    async init() {
         this.loadUsers();
         this.loadActiveSession();
         this.loadProjectsList();
@@ -472,6 +551,18 @@ window.EngineState = {
                 localStorage.removeItem('slide_engine_project');
             } catch (e) {
                 console.error("Failed to migrate legacy project", e);
+            }
+        }
+
+        // Sync metadata list with API on init if logged in
+        if (window.SlideEngineAPI && window.SlideEngineAPI.token && this.currentUser && this.currentUser !== 'guest') {
+            try {
+                const cloudProjects = await window.SlideEngineAPI.getProjects();
+                this.projectsList = this.projectsList.filter(p => p.userId !== this.currentUser);
+                this.projectsList.push(...cloudProjects);
+                this.saveProjectsList();
+            } catch (e) {
+                console.warn("Could not sync projects on init", e);
             }
         }
 
@@ -539,8 +630,32 @@ window.EngineState = {
         return this.project;
     },
 
-    loadProject(id) {
-        const saved = localStorage.getItem(`slide_engine_project_${id}`);
+    async loadProject(id) {
+        let saved = null;
+
+        // Attempt cloud load first
+        if (window.SlideEngineAPI && this.currentUser && this.currentUser !== 'guest' && window.SlideEngineAPI.token) {
+            const statusEl = document.getElementById('save-status');
+            if (statusEl) {
+                statusEl.innerHTML = '<i data-lucide="refresh-cw" class="animate-spin" style="animation: spin 1s linear infinite;"></i> Loading...';
+                if (window.lucide) lucide.createIcons();
+            }
+            try {
+                const cloudProj = await window.SlideEngineAPI.getProject(id);
+                if (cloudProj && cloudProj.project) {
+                    saved = JSON.stringify(cloudProj.project);
+                    // Cache locally
+                    localStorage.setItem(`slide_engine_project_${id}`, saved);
+                }
+            } catch (e) {
+                console.warn("Could not load project from cloud, trying local cache", e);
+            }
+        }
+
+        if (!saved) {
+            saved = localStorage.getItem(`slide_engine_project_${id}`);
+        }
+
         if (!saved) {
             alert("Error: Project not found.");
             return false;
@@ -567,6 +682,18 @@ window.EngineState = {
             this.emit('slide-changed', this.getActiveSlide());
             
             this.setView('editor');
+
+            const statusEl = document.getElementById('save-status');
+            if (statusEl) {
+                if (window.SlideEngineAPI && this.currentUser && this.currentUser !== 'guest' && window.SlideEngineAPI.token) {
+                    statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Cloud Synced';
+                } else {
+                    statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
+                }
+                statusEl.classList.remove('unsaved');
+                if (window.lucide) lucide.createIcons();
+            }
+
             return true;
         } catch (e) {
             console.error("Failed to load project", e);
@@ -575,7 +702,15 @@ window.EngineState = {
         }
     },
 
-    deleteProject(id) {
+    async deleteProject(id) {
+        if (window.SlideEngineAPI && this.currentUser && this.currentUser !== 'guest' && window.SlideEngineAPI.token) {
+            try {
+                await window.SlideEngineAPI.deleteProject(id);
+            } catch (e) {
+                console.warn("Failed to delete project on cloud, deleting locally", e);
+            }
+        }
+
         localStorage.removeItem(`slide_engine_project_${id}`);
         
         this.loadProjectsList();
@@ -588,8 +723,24 @@ window.EngineState = {
         }
     },
 
-    duplicateProject(id) {
-        const saved = localStorage.getItem(`slide_engine_project_${id}`);
+    async duplicateProject(id) {
+        let saved = null;
+
+        if (window.SlideEngineAPI && this.currentUser && this.currentUser !== 'guest' && window.SlideEngineAPI.token) {
+            try {
+                const cloudProj = await window.SlideEngineAPI.getProject(id);
+                if (cloudProj && cloudProj.project) {
+                    saved = JSON.stringify(cloudProj.project);
+                }
+            } catch (e) {
+                console.warn("Failed to load project from cloud for duplication, using local storage", e);
+            }
+        }
+
+        if (!saved) {
+            saved = localStorage.getItem(`slide_engine_project_${id}`);
+        }
+
         if (!saved) return;
         try {
             const parsed = JSON.parse(saved);
@@ -631,6 +782,9 @@ window.EngineState = {
             this.loadProjectsList();
             this.projectsList.push(meta);
             this.saveProjectsList();
+
+            // Sync background to cloud
+            this.syncProjectToCloud(newProj, meta);
         } catch (e) {
             console.error("Failed to duplicate project", e);
         }
@@ -665,11 +819,42 @@ window.EngineState = {
         this.saveProjectsList();
         this.hasUnsavedChanges = false;
         
+        // Trigger background sync
+        this.syncProjectToCloud(this.project, meta);
+    },
+
+    async syncProjectToCloud(project, meta) {
         const statusEl = document.getElementById('save-status');
+
+        if (!this.currentUser || this.currentUser === 'guest' || !window.SlideEngineAPI || !window.SlideEngineAPI.token) {
+            if (statusEl) {
+                statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
+                statusEl.classList.remove('unsaved');
+                if (window.lucide) lucide.createIcons();
+            }
+            return;
+        }
+
         if (statusEl) {
-            statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
+            statusEl.innerHTML = '<i data-lucide="refresh-cw" class="animate-spin" style="animation: spin 1s linear infinite;"></i> Syncing...';
             statusEl.classList.remove('unsaved');
             if (window.lucide) lucide.createIcons();
+        }
+
+        try {
+            await window.SlideEngineAPI.saveProject(project.id, project, meta);
+            if (statusEl) {
+                statusEl.innerHTML = '<i data-lucide="cloud-check"></i> Cloud Synced';
+                statusEl.classList.remove('unsaved');
+                if (window.lucide) lucide.createIcons();
+            }
+        } catch (e) {
+            console.warn("Could not sync project changes to cloud, saved locally", e);
+            if (statusEl) {
+                statusEl.innerHTML = '<i data-lucide="wifi-off"></i> Saved locally';
+                statusEl.classList.remove('unsaved');
+                if (window.lucide) lucide.createIcons();
+            }
         }
     },
 

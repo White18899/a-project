@@ -1,0 +1,14 @@
+# Wrangler Configuration for SlideEngine API Worker
+# Documentation: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "slide-engine-api"
+main = "worker.js"
+compatibility_date = "2024-03-01"
+
+# Bind a KV Namespace to persist users and presentation data.
+# 1. Run `npx wrangler kv:namespace create SLIDE_ENGINE_KV` to create a production KV namespace.
+# 2. Paste the output ID in the `id` field below.
+# 3. For local development, wrangler manages a local KV simulation automatically.
+[[kv_namespaces]]
+binding = "SLIDE_ENGINE_KV"
+id = "YOUR_CLOUDFLARE_KV_NAMESPACE_ID_HERE"

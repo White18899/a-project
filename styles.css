@@ -1,31 +1,38 @@
 /* SlideEngine Modern Styling & Design System */
 
 :root {
-    --bg-main: #050507;
-    --bg-sidebar: #0d0d0f;
-    --bg-panel: #16161a;
-    --bg-input: #212124;
-    --border-color: #2f2e28;
-    --border-focus: #d4af37;
+    --bg-main: #020204; /* Cyber dark void */
+    --bg-sidebar: #06060c; /* Deep cyber navy-black */
+    --bg-panel: #0b0b14; /* Cyber panel gray-blue */
+    --bg-input: #11111c; /* Input fields navy-black */
+    --border-color: #202035; /* Cyber slate borders */
+    --border-focus: #00f0ff; /* Neon Cyan */
     
     --text-main: #ffffff;
-    --text-muted: #a3a3a6;
-    --text-inverse: #0a0a0c;
+    --text-muted: #8c8c9e;
+    --text-inverse: #020204;
     
-    --color-primary: #b8923a;
-    --color-primary-hover: #d4af37;
-    --color-accent: #f1c40f;
-    --color-accent-hover: #f3c623;
-    --color-danger: #e74c3c;
-    --color-danger-hover: #c0392b;
-    --color-success: #2ecc71;
-    --color-success-hover: #27ae60;
+    --color-primary: #ff0055; /* Neon Pink/Magenta */
+    --color-primary-hover: #ff2a73;
+    --color-accent: #fcee0a; /* Cyberpunk Signature Neon Yellow */
+    --color-accent-hover: #fff33b;
+    --color-danger: #ff003c; /* Neon Red */
+    --color-danger-hover: #ff2a55;
+    --color-success: #00ff66; /* Neon Green */
+    --color-success-hover: #2aff80;
+    
+    --color-cyan: #00f0ff; /* Neon Cyan */
+    --color-cyan-hover: #2affff;
 
-    --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.03);
-    --transition-fast: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-    --transition-normal: 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --panel-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 12px rgba(0, 240, 255, 0.03);
+    --neon-glow-cyan: 0 0 8px rgba(0, 240, 255, 0.45), 0 0 2px rgba(0, 240, 255, 0.25);
+    --neon-glow-pink: 0 0 8px rgba(255, 0, 85, 0.45), 0 0 2px rgba(255, 0, 85, 0.25);
+    --neon-glow-yellow: 0 0 8px rgba(253, 238, 10, 0.45), 0 0 2px rgba(253, 238, 10, 0.25);
     
-    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --transition-fast: 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-normal: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    
+    --font-ui: 'Space Grotesk', 'Rajdhani', system-ui, -apple-system, sans-serif;
     --font-slide-default: 'Outfit', sans-serif;
     --font-retro: 'Press Start 2P', monospace;
 }
@@ -2098,4 +2105,175 @@ select option {
     background-color: rgba(255,255,255,0.08);
     border-color: var(--color-primary);
 }
+
+
+/* ========================================================== */
+/* CYBERPUNK 2077 STYLE OVERRIDES                            */
+/* ========================================================== */
+
+/* 1. Sharp polygon clip-paths for card elements & buttons */
+.btn-primary,
+.btn-accent,
+.btn-secondary,
+.btn-danger-outline,
+.btn-hud,
+.slide-card,
+.project-card,
+.feature-card,
+.modal-card,
+.auth-card,
+.btn-element-add,
+.layers-overlay {
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    border-radius: 0 !important;
+}
+
+/* 2. Global scanline overlay */
+body::before {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+    z-index: 9999;
+    background-size: 100% 4px, 4px 100%;
+    pointer-events: none;
+    opacity: 0.18;
+}
+
+/* 3. Cyber logo text overhaul */
+.logo-text {
+    font-family: 'Rajdhani', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 1.35rem !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+}
+
+/* 4. Hazard stripes background class */
+.cyber-stripes {
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--color-accent),
+        var(--color-accent) 8px,
+        #000000 8px,
+        #000000 16px
+    ) !important;
+}
+
+/* 5. Glow and shadow states */
+.tab-btn.active {
+    color: var(--color-accent) !important;
+    border-bottom: 2px solid var(--color-accent) !important;
+    text-shadow: var(--neon-glow-yellow) !important;
+}
+
+.slide-card.active {
+    border-color: var(--color-primary) !important;
+    box-shadow: var(--neon-glow-pink), 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.project-card:hover {
+    border-color: var(--color-cyan) !important;
+    box-shadow: var(--neon-glow-cyan), 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+
+.project-card-banner {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.12) 0%, rgba(255, 0, 85, 0.03) 100%) !important;
+}
+
+.btn-primary:hover {
+    box-shadow: var(--neon-glow-pink) !important;
+}
+
+.btn-accent:hover {
+    box-shadow: var(--neon-glow-yellow) !important;
+}
+
+.btn-icon.active {
+    color: var(--color-cyan) !important;
+    background-color: rgba(0, 240, 255, 0.12) !important;
+    box-shadow: var(--neon-glow-cyan) !important;
+}
+
+.layer-item.active {
+    background-color: rgba(255, 0, 85, 0.12) !important;
+    color: var(--color-primary) !important;
+    border-left: 3px solid var(--color-primary) !important;
+}
+
+/* 6. Logo Chromatic Aberration Glitch Keyframes */
+@keyframes cyber-glitch {
+    0% {
+        clip-path: inset(40% 0 61% 0);
+        transform: skew(0.3deg) translate(-1px, 1px);
+        text-shadow: 1px -1px var(--color-primary), -1px 1px var(--color-cyan);
+    }
+    20% {
+        clip-path: inset(92% 0 1% 0);
+        transform: skew(-0.5deg) translate(1px, -1px);
+        text-shadow: -1px 1px var(--color-primary), 1px -1px var(--color-cyan);
+    }
+    40% {
+        clip-path: inset(15% 0 80% 0);
+        transform: skew(0.5deg) translate(-1px, -1px);
+        text-shadow: 1px 1px var(--color-primary), -1px 1px var(--color-cyan);
+    }
+    60% {
+        clip-path: inset(80% 0 5% 0);
+        transform: skew(-0.2deg) translate(1px, 1px);
+        text-shadow: -1px 1px var(--color-primary), 1px -1px var(--color-cyan);
+    }
+    80% {
+        clip-path: inset(3% 0 92% 0);
+        transform: skew(0.4deg) translate(-1px, -1px);
+        text-shadow: 1px -1px var(--color-primary), -1px 1px var(--color-cyan);
+    }
+    100% {
+        clip-path: inset(40% 0 61% 0);
+        transform: skew(0deg) translate(0px, 0px);
+        text-shadow: none;
+    }
+}
+
+.header-logo:hover .logo-text,
+.landing-title:hover {
+    animation: cyber-glitch 0.25s steps(2, start) infinite;
+}
+
+/* Scrollbars - Pink & Cyan */
+::-webkit-scrollbar-thumb {
+    background: var(--color-primary) !important;
+    border-radius: 0px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-cyan) !important;
+}
+
+.badge-glow {
+    background-color: rgba(0, 240, 255, 0.1) !important;
+    border: 1px solid var(--color-cyan) !important;
+    color: var(--color-cyan) !important;
+    box-shadow: var(--neon-glow-cyan) !important;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    display: inline-block;
+}
+
+.landing-title {
+    font-family: 'Rajdhani', sans-serif !important;
+    text-transform: uppercase;
+    font-size: 3.5rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px !important;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-accent) 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    margin-bottom: 16px;
+    text-shadow: 0 0 10px rgba(252, 238, 10, 0.1);
+}
+
 
