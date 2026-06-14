@@ -1545,7 +1545,7 @@ select option {
 #landing-view {
     position: relative;
     z-index: 1;
-    background: radial-gradient(circle at 50% 50%, rgba(13, 13, 15, 0.4) 0%, rgba(5, 5, 7, 0.95) 100%);
+    background: radial-gradient(circle at 50% 50%, rgba(13, 13, 15, 0.25) 0%, rgba(5, 5, 7, 0.6) 100%);
     align-items: center;
     color: var(--text-main);
 }
@@ -2311,6 +2311,70 @@ aside::before,
 .btn-hud:hover,
 .btn-element-add:hover {
     animation: cyber-glitch-light 0.2s steps(2, start) infinite !important;
+}
+
+/* 7. Cyberpunk Neon Icon System & Micro-Animations */
+svg.lucide,
+.lucide,
+.logo-icon,
+.search-icon {
+    filter: drop-shadow(0 0 1px currentColor);
+    transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Context-based icon coloring & glow shadows */
+.btn-primary svg,
+.btn-hud svg {
+    color: #ffffff !important;
+    filter: drop-shadow(0 0 3px var(--color-primary)) !important;
+}
+
+.btn-secondary svg,
+.btn-icon svg,
+.btn-icon-only svg,
+.tab-btn svg,
+.layer-btn svg,
+.select-icon-indicator svg,
+.search-icon {
+    color: var(--color-cyan) !important;
+    filter: drop-shadow(0 0 3px var(--color-cyan)) !important;
+}
+
+.btn-accent svg,
+.logo-icon,
+.checkbox-label svg,
+.user-badge svg.avatar-icon,
+.proj-banner-icon {
+    color: var(--color-accent) !important;
+    filter: drop-shadow(0 0 3px var(--color-accent)) !important;
+}
+
+.btn-danger-outline svg,
+.delete-btn svg,
+.delete-proj-btn svg {
+    color: var(--color-danger) !important;
+    filter: drop-shadow(0 0 3px var(--color-danger)) !important;
+}
+
+/* Hover pulse micro-animation for interface icons */
+@keyframes cyber-icon-pulse {
+    0% {
+        transform: scale(1.0);
+        filter: drop-shadow(0 0 2px currentColor);
+    }
+    100% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 6px currentColor);
+    }
+}
+
+.btn:hover svg.lucide,
+.btn-icon:hover svg,
+.btn-icon-only:hover svg,
+.tab-btn:hover svg,
+.layer-btn:hover svg,
+.project-card:hover svg.proj-banner-icon {
+    animation: cyber-icon-pulse 0.4s ease-in-out infinite alternate !important;
 }
 
 

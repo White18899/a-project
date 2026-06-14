@@ -11,8 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. UI Controller Setup
     initEditorUI();
 
-    // 3. Initialize State
-    window.EngineState.init();
+    // 3. Initialize State (deferred to allow other files' DOMContentLoaded listeners to bind first)
+    setTimeout(() => {
+        window.EngineState.init();
+    }, 0);
 
     // 4. Redraw slide when Google Fonts load to ensure correct size and layout metrics
     if (document.fonts) {
