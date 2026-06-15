@@ -1302,9 +1302,28 @@ select option {
 }
 
 #import-json-textarea {
-    background-color: var(--bg-main);
-    font-family: 'Courier New', monospace;
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Fira Code', 'Courier New', monospace;
     font-size: 0.75rem;
+    width: 100%;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+#import-json-textarea:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(33, 33, 36, 0.8);
+}
+
+#import-json-textarea:focus {
+    border-color: var(--border-focus);
+    background-color: var(--bg-panel);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
 }
 
 .modal-footer {
