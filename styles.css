@@ -1597,9 +1597,9 @@ select option {
 .theme-prompt-tag {
     font-size: 0.72rem;
     font-weight: 600;
-    color: var(--color-primary);
-    background: rgba(25, 135, 84, 0.08);
-    border: 1px solid rgba(25, 135, 84, 0.2);
+    color: #0f5132;
+    background: rgba(15, 81, 50, 0.08);
+    border: 1px solid rgba(15, 81, 50, 0.2);
     padding: 4px 10px;
     border-radius: 20px;
     white-space: nowrap;
@@ -3191,13 +3191,14 @@ body.light-theme .modal-card::before {
 
 /* Restore logo to classic clean styling */
 body.light-theme .logo-text {
+    color: #212529 !important;
     font-family: 'Outfit', sans-serif !important;
     text-transform: none !important;
     letter-spacing: -0.2px !important;
 }
 
 body.light-theme .logo-text span {
-    color: var(--color-primary) !important;
+    color: #0f5132 !important;
 }
 
 /* Buttons style overrides: classic hover and clean shadow */
@@ -3432,10 +3433,18 @@ body.light-theme .app-header {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
 }
 
-body.light-theme .landing-header .logo-text,
 body.light-theme .dashboard-header .logo-text {
     color: #ffffff !important;
 }
+
+body.light-theme .dashboard-header .logo-text span {
+    color: #198754 !important;
+}
+
+body.light-theme .dashboard-header .logo-icon {
+    color: #198754 !important;
+}
+
 
 body.light-theme .dashboard-header .view-indicator {
     background: rgba(255, 255, 255, 0.08) !important;
@@ -3559,7 +3568,7 @@ body.light-theme .btn-accent:hover svg {
 }
 
 body.light-theme .logo-icon {
-    color: var(--color-primary) !important;
+    color: #0f5132 !important;
     filter: none !important;
 }
 
@@ -3630,6 +3639,461 @@ body.light-theme .phone-icon-animation {
 }
 body.light-theme .phone-icon-animation::after {
     background-color: var(--color-primary) !important;
+}
+
+/* ==========================================
+   CUSTOM COLOR PICKER POPOVER STYLES
+   ========================================== */
+
+/* Main Popover Container */
+.custom-color-picker {
+    position: absolute;
+    z-index: 10000;
+    width: 232px;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    user-select: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: calc(100vh - 32px); /* Limit picker height dynamically to visible viewport */
+    
+    /* Default (Dark theme) settings */
+    background: rgba(22, 22, 26, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+/* Light Theme overrides */
+body.light-theme .custom-color-picker {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #1e293b;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.custom-color-picker.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Header styling */
+.custom-color-picker .picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .custom-color-picker .picker-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.custom-color-picker .picker-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+}
+
+.custom-color-picker .picker-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+
+.custom-color-picker .picker-close-btn:hover {
+    opacity: 1;
+}
+
+/* Body container styling with scrollbar support */
+.custom-color-picker .picker-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1; /* Allow body to shrink and grow within container bounds */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar styling for picker body */
+.custom-color-picker .picker-body::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-color-picker .picker-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+.custom-color-picker .picker-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+.custom-color-picker .picker-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+body.light-theme .custom-color-picker .picker-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+}
+body.light-theme .custom-color-picker .picker-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+}
+body.light-theme .custom-color-picker .picker-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.22);
+}
+
+/* 2D HSB Canvas Container */
+.custom-color-picker .color-map-container {
+    position: relative;
+    width: 208px;
+    height: 120px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    cursor: crosshair;
+}
+
+.custom-color-picker #color-map {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.custom-color-picker .picker-cursor {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    transform: translate(-6px, -6px);
+    pointer-events: none;
+    left: 0;
+    top: 0;
+}
+
+/* Row wrapper */
+.custom-color-picker .picker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-color-picker .picker-row-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    width: 30px;
+    opacity: 0.8;
+}
+
+/* Hue Slider track and custom styling */
+.custom-color-picker .hue-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.custom-color-picker .hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #333333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    cursor: pointer;
+}
+
+.custom-color-picker .hue-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #333333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    cursor: pointer;
+}
+
+/* RGB sliders styling */
+.custom-color-picker .rgb-sliders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.12);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+body.light-theme .custom-color-picker .rgb-sliders-container {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.custom-color-picker .rgb-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-color-picker .rgb-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    width: 12px;
+    opacity: 0.8;
+}
+
+.custom-color-picker .rgb-range-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+body.light-theme .custom-color-picker .rgb-range-slider {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Red, Green, Blue tracks custom colors */
+.custom-color-picker .red-track {
+    background: linear-gradient(to right, #000, #ff0000) !important;
+}
+.custom-color-picker .green-track {
+    background: linear-gradient(to right, #000, #00ff00) !important;
+}
+.custom-color-picker .blue-track {
+    background: linear-gradient(to right, #000, #0000ff) !important;
+}
+
+.custom-color-picker .rgb-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    border: 1px solid #666;
+    cursor: pointer;
+}
+
+.custom-color-picker .rgb-number-input {
+    width: 44px;
+    padding: 2px 4px;
+    font-size: 0.7rem;
+    font-family: inherit;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.custom-color-picker .rgb-number-input::-webkit-outer-spin-button,
+.custom-color-picker .rgb-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+body.light-theme .custom-color-picker .rgb-number-input {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Eyedropper, Swatch and Hex input row */
+.custom-color-picker .picker-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+}
+
+.custom-color-picker .picker-eyedropper-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+body.light-theme .custom-color-picker .picker-eyedropper-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.custom-color-picker .picker-eyedropper-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+body.light-theme .custom-color-picker .picker-eyedropper-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.custom-color-picker .picker-eyedropper-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.custom-color-picker .preview-swatch-wrapper {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+    /* Checkered pattern background for transparent preview */
+    background-image: linear-gradient(45deg, #888 25%, transparent 25%), 
+                      linear-gradient(-45deg, #888 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #888 75%), 
+                      linear-gradient(-45deg, transparent 75%, #888 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    background-color: #eee;
+}
+
+.custom-color-picker .picker-preview-swatch {
+    width: 100%;
+    height: 100%;
+}
+
+.custom-color-picker #picker-hex {
+    flex: 1;
+    height: 100%;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-family: 'Fira Code', monospace;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+}
+
+body.light-theme .custom-color-picker #picker-hex {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Preset grid styling */
+.custom-color-picker .picker-presets {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 8px;
+}
+
+body.light-theme .custom-color-picker .picker-presets {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.custom-color-picker .presets-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    opacity: 0.7;
+}
+
+.custom-color-picker .presets-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.custom-color-picker .preset-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.custom-color-picker .preset-swatch:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+body.light-theme .custom-color-picker .preset-swatch:hover {
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Special styling for transparent preset swatch */
+.custom-color-picker .preset-swatch.preset-transparent {
+    background-image: linear-gradient(45deg, #888 25%, transparent 25%), 
+                      linear-gradient(-45deg, #888 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #888 75%), 
+                      linear-gradient(-45deg, transparent 75%, #888 75%) !important;
+    background-size: 6px 6px !important;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0px !important;
+    background-color: #eee !important;
+}
+
+/* Checkered style for custom transparent state on target color inputs */
+.color-picker-wrapper.color-transparent input[type="color"] {
+    background-image: linear-gradient(45deg, #888 25%, transparent 25%), 
+                      linear-gradient(-45deg, #888 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #888 75%), 
+                      linear-gradient(-45deg, transparent 75%, #888 75%) !important;
+    background-size: 6px 6px !important;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0px !important;
+    background-color: #eee !important;
+}
+
+.color-picker-wrapper.color-transparent input[type="color"]::-webkit-color-swatch-wrapper {
+    display: none !important; /* Hide native color swatch when transparent */
+}
+
+/* Mobile viewport centering overlay rules */
+.custom-color-picker.mobile-picker {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    max-height: calc(100vh - 40px) !important;
+}
+
+.custom-color-picker.mobile-picker .picker-body {
+    max-height: calc(100vh - 90px) !important;
+}
+
+body.light-theme .custom-color-picker.mobile-picker {
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2) !important;
 }
 
 

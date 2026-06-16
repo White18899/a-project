@@ -135,12 +135,21 @@ function initEditorUI() {
         document.getElementById('slide-bg-type').value = slide.background.type;
         document.getElementById('slide-transition').value = slide.transition || 'none';
         updateTransitionIcon(slide.transition || 'none');
-        document.getElementById('slide-bg-color').value = slide.background.color;
-        document.getElementById('slide-bg-color-hex').value = slide.background.color;
-        document.getElementById('slide-bg-grad-1').value = slide.background.gradientStart;
-        document.getElementById('slide-bg-grad-1-hex').value = slide.background.gradientStart;
-        document.getElementById('slide-bg-grad-2').value = slide.background.gradientEnd;
-        document.getElementById('slide-bg-grad-2-hex').value = slide.background.gradientEnd;
+        const bgCol = slide.background.color || '#1e293b';
+        document.getElementById('slide-bg-color').value = bgCol === 'transparent' ? '#000000' : bgCol;
+        document.getElementById('slide-bg-color-hex').value = bgCol;
+        syncColorSwatchTransparentClass(document.getElementById('slide-bg-color'), bgCol);
+
+        const grad1 = slide.background.gradientStart || '#0f172a';
+        document.getElementById('slide-bg-grad-1').value = grad1 === 'transparent' ? '#000000' : grad1;
+        document.getElementById('slide-bg-grad-1-hex').value = grad1;
+        syncColorSwatchTransparentClass(document.getElementById('slide-bg-grad-1'), grad1);
+
+        const grad2 = slide.background.gradientEnd || '#1e293b';
+        document.getElementById('slide-bg-grad-2').value = grad2 === 'transparent' ? '#000000' : grad2;
+        document.getElementById('slide-bg-grad-2-hex').value = grad2;
+        syncColorSwatchTransparentClass(document.getElementById('slide-bg-grad-2'), grad2);
+
         document.getElementById('slide-bg-grad-angle').value = slide.background.gradientAngle;
         document.getElementById('slide-bg-image-url').value = slide.background.imageUrl;
 
@@ -214,14 +223,18 @@ function initEditorUI() {
                 document.getElementById('elem-font-family').value = element.fontFamily;
                 document.getElementById('elem-font-size').value = element.fontSize;
                 document.getElementById('elem-align').value = element.align;
-                document.getElementById('elem-text-color').value = element.textColor;
-                document.getElementById('elem-text-color-hex').value = element.textColor;
+                const txtCol = element.textColor || '#ffffff';
+                document.getElementById('elem-text-color').value = txtCol === 'transparent' ? '#000000' : txtCol;
+                document.getElementById('elem-text-color-hex').value = txtCol;
+                syncColorSwatchTransparentClass(document.getElementById('elem-text-color'), txtCol);
             }
 
             // Bind background formatting inputs
             if (element.bgColor !== undefined) {
-                document.getElementById('elem-bg-color').value = element.bgColor;
-                document.getElementById('elem-bg-color-hex').value = element.bgColor;
+                const bgCol = element.bgColor || '#334155';
+                document.getElementById('elem-bg-color').value = bgCol === 'transparent' ? '#000000' : bgCol;
+                document.getElementById('elem-bg-color-hex').value = bgCol;
+                syncColorSwatchTransparentClass(document.getElementById('elem-bg-color'), bgCol);
                 document.getElementById('elem-bg-alpha').value = element.bgAlpha !== undefined ? element.bgAlpha : 1;
                 document.getElementById('elem-border-radius').value = element.borderRadius || 0;
                 document.getElementById('elem-padding').value = element.padding || 0;
@@ -262,8 +275,10 @@ function initEditorUI() {
             // Button markup properties binding
             if (element.type && element.type.startsWith('btn-')) {
                 document.getElementById('elem-use-markup').checked = element.useMarkupColor || false;
-                document.getElementById('elem-markup-color').value = element.markupColor || '#3b82f6';
-                document.getElementById('elem-markup-color-hex').value = element.markupColor || '#3b82f6';
+                const markCol = element.markupColor || '#3b82f6';
+                document.getElementById('elem-markup-color').value = markCol === 'transparent' ? '#000000' : markCol;
+                document.getElementById('elem-markup-color-hex').value = markCol;
+                syncColorSwatchTransparentClass(document.getElementById('elem-markup-color'), markCol);
                 
                 if (element.useMarkupColor) {
                     document.getElementById('field-markup-color').classList.remove('hidden');
@@ -1008,29 +1023,437 @@ function initEditorUI() {
     // UTILITY HELPER HANDLERS
     // ==========================================
 
+    // ==========================================
+    // UTILITY HELPER HANDLERS
+    // ==========================================
+
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+    }
+
+    function hexToRgb(hex) {
+        if (hex === 'transparent') return { r: 0, g: 0, b: 0 };
+        const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        const fullHex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    }
+
+    function rgbToHsv(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        let max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, v = max;
+        let d = max - min;
+        s = max === 0 ? 0 : d / max;
+        if (max === min) {
+            h = 0;
+        } else {
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h: Math.round(h * 360), s: s, v: v };
+    }
+
+    function hsvToRgb(h, s, v) {
+        let r, g, b;
+        let i = Math.floor(h / 60);
+        let f = h / 60 - i;
+        let p = v * (1 - s);
+        let q = v * (1 - f * s);
+        let t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
+        }
+        return {
+            r: Math.round(r * 255),
+            g: Math.round(g * 255),
+            b: Math.round(b * 255)
+        };
+    }
+
+    // Custom Color Picker Manager DOM hooks
+    const customPicker = document.getElementById('custom-color-picker');
+    const colorMap = document.getElementById('color-map');
+    const colorMapCursor = document.getElementById('color-map-cursor');
+    const pickerHue = document.getElementById('picker-hue');
+    const pickerRed = document.getElementById('picker-red');
+    const pickerGreen = document.getElementById('picker-green');
+    const pickerBlue = document.getElementById('picker-blue');
+    const pickerRedNum = document.getElementById('picker-red-num');
+    const pickerGreenNum = document.getElementById('picker-green-num');
+    const pickerBlueNum = document.getElementById('picker-blue-num');
+    const pickerHex = document.getElementById('picker-hex');
+    const pickerPreview = document.getElementById('picker-preview');
+    const pickerClose = document.getElementById('picker-close');
+    const pickerEyedropper = document.getElementById('picker-eyedropper');
+    const presetsGrid = document.getElementById('picker-presets-grid');
+
+    let customPickerActivePair = null; // { picker: InputEl, hex: InputEl, callback: Fn }
+    let customPickerColor = { h: 0, s: 1, v: 1 };
+    let isDraggingMap = false;
+
+    // Eye Dropper Feature Integration
+    if (!window.EyeDropper) {
+        pickerEyedropper.style.display = 'none';
+    } else {
+        pickerEyedropper.addEventListener('click', async () => {
+            try {
+                const eyeDropper = new EyeDropper();
+                const result = await eyeDropper.open();
+                updateFromHex(result.sRGBHex);
+            } catch (e) {
+                console.error("Eyedropper failed: ", e);
+            }
+        });
+    }
+
+    // Swatches Palette Config
+    const presetColors = [
+        '#004d40', '#10b981', '#84cc16', '#a7f3d0',
+        '#00f0ff', '#ff0055', '#ffe600', '#b026ff',
+        '#000000', '#1e293b', '#64748b', '#e2e8f0', '#ffffff',
+        'transparent'
+    ];
+
+    function initPresets() {
+        presetsGrid.innerHTML = '';
+        presetColors.forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = `preset-swatch ${color === 'transparent' ? 'preset-transparent' : ''}`;
+            if (color !== 'transparent') {
+                swatch.style.backgroundColor = color;
+            }
+            swatch.title = color;
+            swatch.addEventListener('click', () => {
+                if (color === 'transparent') {
+                    updateFromTransparent();
+                } else {
+                    updateFromHex(color);
+                }
+            });
+            presetsGrid.appendChild(swatch);
+        });
+    }
+    initPresets();
+
+    function drawColorMap() {
+        const ctx = colorMap.getContext('2d');
+        const width = colorMap.width;
+        const height = colorMap.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const hueColor = `hsl(${customPickerColor.h}, 100%, 50%)`;
+        const horizGrad = ctx.createLinearGradient(0, 0, width, 0);
+        horizGrad.addColorStop(0, '#ffffff');
+        horizGrad.addColorStop(1, hueColor);
+        ctx.fillStyle = horizGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        const vertGrad = ctx.createLinearGradient(0, 0, 0, height);
+        vertGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vertGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+        ctx.fillStyle = vertGrad;
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    function updateControlsFromHsv(triggerCallback = true) {
+        const rgb = hsvToRgb(customPickerColor.h, customPickerColor.s, customPickerColor.v);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+        const mapWidth = colorMap.offsetWidth || 208;
+        const mapHeight = colorMap.offsetHeight || 120;
+        colorMapCursor.style.left = `${customPickerColor.s * mapWidth}px`;
+        colorMapCursor.style.top = `${(1 - customPickerColor.v) * mapHeight}px`;
+
+        pickerHue.value = customPickerColor.h;
+
+        pickerRed.value = rgb.r;
+        pickerRedNum.value = rgb.r;
+        pickerGreen.value = rgb.g;
+        pickerGreenNum.value = rgb.g;
+        pickerBlue.value = rgb.b;
+        pickerBlueNum.value = rgb.b;
+
+        pickerHex.value = hex;
+        pickerPreview.style.backgroundColor = hex;
+
+        if (customPickerActivePair) {
+            customPickerActivePair.picker.value = hex;
+            customPickerActivePair.hex.value = hex;
+            syncColorSwatchTransparentClass(customPickerActivePair.picker, hex);
+
+            if (triggerCallback && customPickerActivePair.callback) {
+                customPickerActivePair.callback(hex);
+            }
+        }
+    }
+
+    function updateFromHex(hexVal, triggerCallback = true) {
+        let cleanHex = hexVal.trim();
+        if (!cleanHex.startsWith('#')) cleanHex = '#' + cleanHex;
+        if (/^#[0-9A-F]{6}$/i.test(cleanHex)) {
+            const rgb = hexToRgb(cleanHex);
+            const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+            customPickerColor = hsv;
+            drawColorMap();
+            updateControlsFromHsv(triggerCallback);
+        }
+    }
+
+    function updateFromTransparent(triggerCallback = true) {
+        pickerPreview.style.backgroundColor = 'transparent';
+        pickerHex.value = 'transparent';
+
+        if (customPickerActivePair) {
+            customPickerActivePair.picker.value = '#000000';
+            customPickerActivePair.hex.value = 'transparent';
+            syncColorSwatchTransparentClass(customPickerActivePair.picker, 'transparent');
+
+            if (triggerCallback && customPickerActivePair.callback) {
+                customPickerActivePair.callback('transparent');
+            }
+        }
+    }
+
+    function updateFromRgb(triggerCallback = true) {
+        const r = parseInt(pickerRed.value) || 0;
+        const g = parseInt(pickerGreen.value) || 0;
+        const b = parseInt(pickerBlue.value) || 0;
+        const hsv = rgbToHsv(r, g, b);
+        customPickerColor = hsv;
+        drawColorMap();
+        updateControlsFromHsv(triggerCallback);
+    }
+
+    function handleMapPointer(e) {
+        const rect = colorMap.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+
+        x = Math.max(0, Math.min(rect.width, x));
+        y = Math.max(0, Math.min(rect.height, y));
+
+        customPickerColor.s = x / rect.width;
+        customPickerColor.v = 1 - (y / rect.height);
+
+        updateControlsFromHsv();
+    }
+
+    colorMap.addEventListener('mousedown', (e) => {
+        isDraggingMap = true;
+        handleMapPointer(e);
+        state.pushHistory();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDraggingMap) {
+            handleMapPointer(e);
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDraggingMap = false;
+    });
+
+    colorMap.addEventListener('touchstart', (e) => {
+        isDraggingMap = true;
+        if (e.touches[0]) {
+            handleMapPointer(e.touches[0]);
+        }
+        state.pushHistory();
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (isDraggingMap && e.touches[0]) {
+            handleMapPointer(e.touches[0]);
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+        isDraggingMap = false;
+    });
+
+    pickerHue.addEventListener('input', (e) => {
+        customPickerColor.h = parseInt(e.target.value);
+        drawColorMap();
+        updateControlsFromHsv();
+    });
+    pickerHue.addEventListener('mousedown', () => state.pushHistory());
+
+    const bindRgbSlider = (sliderEl, numEl) => {
+        sliderEl.addEventListener('input', (e) => {
+            numEl.value = e.target.value;
+            updateFromRgb();
+        });
+        sliderEl.addEventListener('mousedown', () => state.pushHistory());
+        
+        numEl.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value) || 0;
+            val = Math.max(0, Math.min(255, val));
+            e.target.value = val;
+            sliderEl.value = val;
+            updateFromRgb();
+        });
+        numEl.addEventListener('focus', () => state.pushHistory());
+    };
+    bindRgbSlider(pickerRed, pickerRedNum);
+    bindRgbSlider(pickerGreen, pickerGreenNum);
+    bindRgbSlider(pickerBlue, pickerBlueNum);
+
+    pickerHex.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val === 'transparent') {
+            updateFromTransparent();
+        } else {
+            updateFromHex(val);
+        }
+    });
+    pickerHex.addEventListener('focus', () => state.pushHistory());
+
+    pickerClose.addEventListener('click', () => {
+        closeCustomColorPicker();
+    });
+
+    document.addEventListener('mousedown', (e) => {
+        if (!customPicker.classList.contains('hidden')) {
+            const isClickInside = customPicker.contains(e.target);
+            const isClickOnSwatch = customPickerActivePair && 
+                (customPickerActivePair.picker.contains(e.target) || customPickerActivePair.hex.contains(e.target));
+            if (!isClickInside && !isClickOnSwatch) {
+                closeCustomColorPicker();
+            }
+        }
+    });
+
+    function openCustomColorPicker(pickerEl, hexEl, callback) {
+        customPickerActivePair = { picker: pickerEl, hex: hexEl, callback: callback };
+        
+        // Show the picker first so offset dimensions are readable and canvas context is visible
+        customPicker.classList.remove('hidden');
+
+        // Reset scroll position to top
+        const body = customPicker.querySelector('.picker-body');
+        if (body) {
+            body.scrollTop = 0;
+        }
+
+        const currentVal = hexEl.value.trim();
+        if (currentVal === 'transparent') {
+            updateFromTransparent(false);
+        } else {
+            updateFromHex(currentVal, false);
+        }
+
+        repositionCustomPicker(pickerEl);
+    }
+
+    function repositionCustomPicker(pickerEl) {
+        if (customPicker.classList.contains('hidden') || !pickerEl) return;
+
+        // On mobile viewports, center the color picker as a modal popover
+        if (window.innerWidth <= 576) {
+            customPicker.classList.add('mobile-picker');
+            customPicker.style.top = '';
+            customPicker.style.left = '';
+            customPicker.style.maxHeight = ''; // reset inline max-height
+            return;
+        } else {
+            customPicker.classList.remove('mobile-picker');
+        }
+
+        const rect = pickerEl.getBoundingClientRect();
+        
+        let top = rect.bottom + window.scrollY + 6;
+        let left = rect.left + window.scrollX;
+
+        const popoverWidth = customPicker.offsetWidth || 232;
+        const popoverHeight = customPicker.offsetHeight || 380;
+
+        if (left + popoverWidth > window.innerWidth) {
+            left = window.innerWidth - popoverWidth - 12;
+        }
+        if (left < 12) left = 12;
+
+        const viewportBottom = window.scrollY + window.innerHeight;
+        if (top + popoverHeight > viewportBottom) {
+            const topPlacement = rect.top + window.scrollY - popoverHeight - 6;
+            if (topPlacement >= window.scrollY) {
+                top = topPlacement;
+            } else {
+                // Pin to bottom viewport bounds if it doesn't fit above or below
+                top = Math.max(window.scrollY + 12, viewportBottom - popoverHeight - 12);
+            }
+        }
+
+        customPicker.style.top = `${top}px`;
+        customPicker.style.left = `${left}px`;
+
+        // Dynamically constrain container max-height so it shrinks and scrolls instead of clipping
+        const maxAvailableHeight = Math.min(window.innerHeight - 24, viewportBottom - top - 12);
+        customPicker.style.maxHeight = `${maxAvailableHeight}px`;
+    }
+
+    function closeCustomColorPicker() {
+        customPicker.classList.add('hidden');
+        customPickerActivePair = null;
+    }
+
+    window.addEventListener('resize', () => {
+        if (customPickerActivePair) {
+            repositionCustomPicker(customPickerActivePair.picker);
+        }
+    });
+
+    function syncColorSwatchTransparentClass(pickerEl, val) {
+        if (!pickerEl || !pickerEl.parentElement) return;
+        if (val === 'transparent') {
+            pickerEl.parentElement.classList.add('color-transparent');
+        } else {
+            pickerEl.parentElement.classList.remove('color-transparent');
+        }
+    }
+
     function bindColorPickerPair(pickerId, hexInputId, callback) {
         const picker = document.getElementById(pickerId);
         const hex = document.getElementById(hexInputId);
 
-        picker.addEventListener('click', () => {
+        picker.addEventListener('click', (e) => {
+            e.preventDefault();
             state.pushHistory();
+            openCustomColorPicker(picker, hex, callback);
         });
+
         hex.addEventListener('focus', () => {
             state.pushHistory();
         });
 
-        picker.addEventListener('input', (e) => {
-            const val = e.target.value;
-            hex.value = val;
-            callback(val);
-        });
-
         hex.addEventListener('input', (e) => {
-            let val = e.target.value;
-            if (!val.startsWith('#')) val = '#' + val;
-            if (/^#[0-9A-F]{6}$/i.test(val)) {
-                picker.value = val;
-                callback(val);
+            let val = e.target.value.trim();
+            if (val === 'transparent') {
+                syncColorSwatchTransparentClass(picker, 'transparent');
+                picker.value = '#000000';
+                callback('transparent');
+            } else {
+                if (!val.startsWith('#')) val = '#' + val;
+                if (/^#[0-9A-F]{6}$/i.test(val)) {
+                    syncColorSwatchTransparentClass(picker, val);
+                    picker.value = val;
+                    callback(val);
+                }
             }
         });
     }

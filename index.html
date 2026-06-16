@@ -694,6 +694,61 @@
     </div>
 </div>
 
+    <!-- CUSTOM PREMIUM COLOR PICKER POPOVER -->
+    <div id="custom-color-picker" class="custom-color-picker hidden">
+        <div class="picker-header">
+            <span class="picker-title">Color Editor</span>
+            <button id="picker-close" class="picker-close-btn" title="Close">&times;</button>
+        </div>
+        <div class="picker-body">
+            <!-- HSB Map Canvas -->
+            <div class="color-map-container">
+                <canvas id="color-map" width="200" height="120"></canvas>
+                <div id="color-map-cursor" class="picker-cursor"></div>
+            </div>
+            <!-- Hue Slider -->
+            <div class="picker-row hue-row">
+                <span class="picker-row-label">Hue</span>
+                <input type="range" id="picker-hue" min="0" max="360" value="0" class="hue-slider">
+            </div>
+            <!-- RGB Sliders -->
+            <div class="rgb-sliders-container">
+                <div class="rgb-slider-row">
+                    <span class="rgb-label">R</span>
+                    <input type="range" id="picker-red" min="0" max="255" value="255" class="rgb-range-slider red-track">
+                    <input type="number" id="picker-red-num" min="0" max="255" value="255" class="rgb-number-input">
+                </div>
+                <div class="rgb-slider-row">
+                    <span class="rgb-label">G</span>
+                    <input type="range" id="picker-green" min="0" max="255" value="0" class="rgb-range-slider green-track">
+                    <input type="number" id="picker-green-num" min="0" max="255" value="0" class="rgb-number-input">
+                </div>
+                <div class="rgb-slider-row">
+                    <span class="rgb-label">B</span>
+                    <input type="range" id="picker-blue" min="0" max="255" value="0" class="rgb-range-slider blue-track">
+                    <input type="number" id="picker-blue-num" min="0" max="255" value="0" class="rgb-number-input">
+                </div>
+            </div>
+            <!-- Eye Dropper, Swatch, & Hex Input -->
+            <div class="picker-controls-row">
+                <button id="picker-eyedropper" class="picker-eyedropper-btn" title="Eye Dropper">
+                    <i data-lucide="pipette"></i>
+                </button>
+                <div class="preview-swatch-wrapper">
+                    <div id="picker-preview" class="picker-preview-swatch"></div>
+                </div>
+                <input type="text" id="picker-hex" value="#FF0000" placeholder="#HEX">
+            </div>
+            <!-- Preset Swatches Grid -->
+            <div class="picker-presets">
+                <div class="presets-title">Presets</div>
+                <div class="presets-grid" id="picker-presets-grid">
+                    <!-- Generated dynamically in Javascript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- Application scripts -->
 <script src="js/api.js"></script>
 <script src="js/state.js"></script>

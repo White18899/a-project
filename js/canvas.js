@@ -171,10 +171,12 @@ class SlideCanvas {
         
         if (bg.type === 'color') {
             const colorStr = bg.color || '#1e293b';
-            bgGraphics.beginFill(parseInt(colorStr.replace('#', '0x')));
-            bgGraphics.drawRect(0, 0, this.baseWidth, this.baseHeight);
-            bgGraphics.endFill();
-            targetContainer.addChild(bgGraphics);
+            if (colorStr !== 'transparent') {
+                bgGraphics.beginFill(parseInt(colorStr.replace('#', '0x')));
+                bgGraphics.drawRect(0, 0, this.baseWidth, this.baseHeight);
+                bgGraphics.endFill();
+                targetContainer.addChild(bgGraphics);
+            }
         } else if (bg.type === 'gradient') {
             // WebGL doesn't do smooth gradients natively on shape fills easily, so we generate a 1D texture
             const canvas = document.createElement('canvas');
@@ -353,7 +355,12 @@ class SlideCanvas {
             if (elem.useMarkupColor && elem.markupActive && elem.markupColor) {
                 colorHex = elem.markupColor;
             }
-            graphics.beginFill(parseInt(colorHex.replace('#', '0x')));
+            let fillAlpha = 1;
+            if (colorHex === 'transparent') {
+                colorHex = '#000000';
+                fillAlpha = 0;
+            }
+            graphics.beginFill(parseInt(colorHex.replace('#', '0x')), fillAlpha);
             graphics.drawRect(2, 2, w - 4, h - 4);
             graphics.endFill();
             
@@ -367,12 +374,18 @@ class SlideCanvas {
             
         } else {
             // Modern styled box
-            const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
+            let alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
             let colorStr = elem.bgColor || '#1e293b';
+            if (colorStr === 'transparent') {
+                alpha = 0;
+            }
             if (elem.useMarkupColor && elem.markupActive && elem.markupColor) {
                 colorStr = elem.markupColor;
+                if (colorStr === 'transparent') {
+                    alpha = 0;
+                }
             }
-            const color = parseInt(colorStr.replace('#', '0x'));
+            const color = colorStr === 'transparent' ? 0x000000 : parseInt(colorStr.replace('#', '0x'));
             const radius = elem.borderRadius || 0;
             
             graphics.beginFill(color, alpha);
