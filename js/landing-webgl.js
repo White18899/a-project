@@ -18,6 +18,7 @@
             this.connectionDistance = 125;
             this.cursor = { x: 0, y: 0, active: false, rx: 0, ry: 0 };
             this.dataStreams = [];
+            this.wasLightTheme = null;
             
             this.init();
         }
@@ -62,8 +63,12 @@
             this.particles = [];
             const w = window.innerWidth;
             const h = window.innerHeight;
+            const isLightTheme = document.body.classList.contains('light-theme');
 
             for (let i = 0; i < this.numParticles; i++) {
+                const color = isLightTheme
+                    ? (Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132))
+                    : (Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055));
                 this.particles.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
@@ -71,7 +76,7 @@
                     vy: (Math.random() - 0.5) * 0.4,
                     radius: Math.random() * 4.5 + 3.5,
                     alpha: Math.random() * 0.45 + 0.45,
-                    color: Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055),
+                    color: color,
                     shape: Math.random() > 0.5 ? 'cross' : 'square',
                     glitched: false
                 });
@@ -85,14 +90,19 @@
             const w = window.innerWidth;
             const h = window.innerHeight;
             const numStreams = Math.floor(w / 140); // Spawn one column every 140px
+            const isLightTheme = document.body.classList.contains('light-theme');
 
             for (let i = 0; i < numStreams; i++) {
                 const size = Math.random() * 5 + 13; // Cyber font size
+                const fill = isLightTheme
+                    ? (Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132))
+                    : (Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055));
+                const fontFamily = isLightTheme ? 'Inter' : 'Rajdhani';
                 const textObj = new PIXI.Text('', new PIXI.TextStyle({
-                    fontFamily: 'Rajdhani',
+                    fontFamily: fontFamily,
                     fontSize: size,
                     fontWeight: '600',
-                    fill: Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055),
+                    fill: fill,
                     align: 'center',
                     letterSpacing: 1
                 }));
@@ -137,14 +147,37 @@
         update(delta) {
             const w = this.app.screen.width;
             const h = this.app.screen.height;
+            const isLightTheme = document.body.classList.contains('light-theme');
+
+            // Handle transition changes in real-time
+            if (this.wasLightTheme !== isLightTheme) {
+                this.wasLightTheme = isLightTheme;
+                this.particles.forEach(p => {
+                    if (isLightTheme) {
+                        p.color = Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132);
+                    } else {
+                        p.color = Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055);
+                    }
+                });
+                this.dataStreams.forEach(s => {
+                    if (isLightTheme) {
+                        s.textObj.style.fill = Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132);
+                        s.textObj.style.fontFamily = 'Inter';
+                    } else {
+                        s.textObj.style.fill = Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055);
+                        s.textObj.style.fontFamily = 'Rajdhani';
+                    }
+                    s.textObj.style.fontSize = Math.random() * 5 + 13;
+                });
+            }
 
             // Clear vector drawings
             this.graphics.clear();
 
             // 1. Draw High-Tech Grid Lines
             const gridSize = 90;
-            const gridColor = 0x00f0ff;
-            const gridAlpha = 0.08;
+            const gridColor = isLightTheme ? 0x198754 : 0x00f0ff;
+            const gridAlpha = isLightTheme ? 0.04 : 0.08;
             this.graphics.lineStyle(1, gridColor, gridAlpha);
 
             for (let x = 0; x < w; x += gridSize) {
@@ -187,8 +220,8 @@
                     }
                 }
 
-                // Cyber flicker trigger
-                if (Math.random() < 0.008) {
+                // Cyber flicker trigger (disabled in light theme for clean feeling)
+                if (!isLightTheme && Math.random() < 0.008) {
                     p.glitched = !p.glitched;
                 }
             });
@@ -205,7 +238,9 @@
 
                     if (dist < this.connectionDistance) {
                         const alpha = (1 - (dist / this.connectionDistance)) * 0.38;
-                        this.graphics.lineStyle(1.0, 0x00f0ff, alpha);
+                        const connColor = isLightTheme ? 0x198754 : 0x00f0ff;
+                        const connAlpha = isLightTheme ? alpha * 0.45 : alpha;
+                        this.graphics.lineStyle(1.0, connColor, connAlpha);
                         this.graphics.moveTo(pi.x, pi.y);
                         this.graphics.lineTo(pj.x, pj.y);
                     }
@@ -214,8 +249,8 @@
 
             // 4. Draw Particles as Cyber HUD crosses and boxes
             this.particles.forEach(p => {
-                const size = p.radius * (p.glitched ? (Math.random() * 1.6 + 1.2) : 1.0);
-                const alpha = p.alpha * (p.glitched ? 0.45 : 1.0);
+                const size = p.radius * ((!isLightTheme && p.glitched) ? (Math.random() * 1.6 + 1.2) : 1.0);
+                const alpha = p.alpha * ((!isLightTheme && p.glitched) ? 0.45 : 1.0);
                 
                 this.graphics.lineStyle(1.2, p.color, alpha);
                 if (p.shape === 'cross') {
@@ -252,7 +287,7 @@
                 s.textObj.x = s.x;
                 s.textObj.y = s.y;
                 // Fade streams out as they travel further down the layout
-                s.textObj.alpha = 0.95 * (1.0 - (s.y / h));
+                s.textObj.alpha = isLightTheme ? 0.55 * (1.0 - (s.y / h)) : 0.95 * (1.0 - (s.y / h));
 
                 if (s.y > h) {
                     s.y = -s.textObj.height - 30;
@@ -271,7 +306,8 @@
                 const ry = this.cursor.ry;
 
                 // Draw radar ring
-                this.graphics.lineStyle(1.0, 0xfcee0a, 0.85);
+                const radarColor = isLightTheme ? 0x198754 : 0xfcee0a;
+                this.graphics.lineStyle(1.0, radarColor, 0.85);
                 this.graphics.drawCircle(rx, ry, 26);
                 
                 // Draw targeting brackets
@@ -292,7 +328,9 @@
 
                     if (dist < 150) {
                         const laserAlpha = (1.0 - (dist / 150)) * 0.65;
-                        this.graphics.lineStyle(0.8, 0xff0055, laserAlpha);
+                        const laserColor = isLightTheme ? 0x20c997 : 0xff0055;
+                        const finalLaserAlpha = isLightTheme ? laserAlpha * 0.4 : laserAlpha;
+                        this.graphics.lineStyle(0.8, laserColor, finalLaserAlpha);
                         this.graphics.moveTo(rx, ry);
                         this.graphics.lineTo(p.x, p.y);
                     }

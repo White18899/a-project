@@ -8,6 +8,49 @@ document.addEventListener("DOMContentLoaded", () => {
     const appEl = document.getElementById('app');
 
     // ==========================================
+    // THEME MANAGEMENT (Dark / Light Theme Toggle)
+    // ==========================================
+    function initTheme() {
+        const savedTheme = localStorage.getItem('slide-engine-theme') || 'dark-theme';
+        document.body.className = savedTheme;
+        updateThemeUI(savedTheme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.classList.contains('light-theme') ? 'light-theme' : 'dark-theme';
+        const newTheme = currentTheme === 'light-theme' ? 'dark-theme' : 'light-theme';
+        document.body.className = newTheme;
+        localStorage.setItem('slide-engine-theme', newTheme);
+        updateThemeUI(newTheme);
+    }
+
+    function updateThemeUI(theme) {
+        const iconName = theme === 'light-theme' ? 'moon' : 'sun';
+        const btnIds = ['btn-theme-toggle-landing', 'btn-theme-toggle-dashboard', 'btn-theme-toggle-editor'];
+        btnIds.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+                btn.title = theme === 'light-theme' ? 'Switch to Dark Cyberpunk Theme' : 'Switch to Light Classic Theme';
+            }
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Bind event listeners to theme buttons
+    ['btn-theme-toggle-landing', 'btn-theme-toggle-dashboard', 'btn-theme-toggle-editor'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.onclick = (e) => {
+                e.stopPropagation();
+                toggleTheme();
+            };
+        }
+    });
+
+    initTheme();
+
+    // ==========================================
     // VIEW ROUTING
     // ==========================================
     state.on('view-changed', (view) => {
