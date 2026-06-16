@@ -1894,6 +1894,354 @@ function initEditorUI() {
             }
         };
     }
+
+    // ==========================================
+    // INTERACTIVE TUTORIAL GUIDE TOUR CONTROLLER
+    // ==========================================
+
+    let currentTourStep = 0;
+    const tourSteps = [
+        {
+            target: '.header-logo-group',
+            title: 'Welcome to SlideEngine!',
+            text: 'SlideEngine is a next-gen GPU-accelerated presentation builder. Let us take a quick 1-minute tour of your new workspace.',
+            placement: 'bottom',
+            onShow: () => {
+                // Ensure sidebars are expanded for the tour
+                if (editorView) {
+                    editorView.classList.remove('left-sidebar-collapsed');
+                    editorView.classList.remove('right-sidebar-collapsed');
+                }
+                const toggleLeftBtn = document.getElementById('btn-toggle-left-sidebar');
+                const toggleRightBtn = document.getElementById('btn-toggle-right-sidebar');
+                if (toggleLeftBtn) {
+                    toggleLeftBtn.title = "Collapse Slides Panel";
+                    toggleLeftBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
+                }
+                if (toggleRightBtn) {
+                    toggleRightBtn.title = "Collapse Inspector Panel";
+                    toggleRightBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
+                }
+                if (window.lucide) lucide.createIcons();
+                if (window.editorCanvas) window.editorCanvas.resize();
+            }
+        },
+        {
+            target: 'aside.sidebar-left',
+            title: 'Slide Manager',
+            text: 'This sidebar lists all slides in your deck. Here you can add new slides, copy/paste elements, duplicate slides, or drag-and-drop to reorder them.',
+            placement: 'right'
+        },
+        {
+            target: '#canvas-container',
+            title: 'WebGL Presentation Stage',
+            text: 'The central stage runs on a high-performance vector WebGL canvas. Select items to move or resize them, or double-click text/timer boxes to edit values.',
+            placement: 'top'
+        },
+        {
+            target: '.element-grid',
+            title: 'Add Interactive Elements',
+            text: 'Click any element here to instantly add it to your slide. You can add static text, images, timers, slide navigation links, quiz buttons, and custom triggers.',
+            placement: 'left',
+            onShow: () => {
+                switchTab('elements-tab');
+            }
+        },
+        {
+            target: '#slide-properties-section',
+            title: 'Slide Layout & Transitions',
+            text: 'Configure background colors, gradients, images, and visual slide transitions (like fade, 3D cube, or spin-zoom) here.',
+            placement: 'left',
+            onShow: () => {
+                switchTab('elements-tab');
+            }
+        },
+        {
+            target: '#properties-tab',
+            title: 'Properties Inspector',
+            text: 'When you select an element on the WebGL stage, this tab displays. Customize fonts, colors, dimensions, borders, and interactive trigger click scripts here.',
+            placement: 'left',
+            onShow: () => {
+                switchTab('properties-tab');
+            }
+        },
+        {
+            target: '#layers-panel',
+            title: 'Z-Order Layers Manager',
+            text: 'Control the stacking order of elements on the canvas. Drag entries or click controls to send elements forward or backward.',
+            placement: 'left',
+            onShow: () => {
+                // Ensure layers panel is not minimized
+                const lp = document.getElementById('layers-panel');
+                const btn = document.getElementById('btn-toggle-layers');
+                if (lp && lp.classList.contains('minimized')) {
+                    lp.classList.remove('minimized');
+                    if (btn) btn.innerHTML = '<i data-lucide="chevron-down"></i>';
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        },
+        {
+            target: '#btn-output',
+            title: 'Play & Sync Presentation',
+            text: 'Click "Present" for full-screen playback. Click "Projector" to open a secondary synchronized viewport, ideal for dual-monitor presenting.',
+            placement: 'bottom'
+        }
+    ];
+
+    const overlay = document.getElementById('tutorial-overlay');
+    const popover = document.getElementById('tutorial-popover');
+    const stepTitle = document.getElementById('tutorial-step-title');
+    const stepText = document.getElementById('tutorial-step-text');
+    const dotsContainer = document.getElementById('tutorial-dots');
+    const btnSkip = document.getElementById('btn-tutorial-skip');
+    const btnPrev = document.getElementById('btn-tutorial-prev');
+    const btnNext = document.getElementById('btn-tutorial-next');
+    const btnTrigger = document.getElementById('btn-tutorial-trigger');
+
+    function startTutorialTour() {
+        currentTourStep = 0;
+        if (overlay) overlay.classList.remove('hidden');
+        if (popover) popover.classList.remove('hidden');
+        document.body.classList.add('tutorial-active');
+        showTutorialStep(currentTourStep);
+    }
+
+    function endTutorialTour() {
+        if (overlay) overlay.classList.add('hidden');
+        if (popover) popover.classList.add('hidden');
+        document.body.classList.remove('tutorial-active');
+        // Clean up highlights
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
+        });
+        // Save completion to localStorage
+        localStorage.setItem('slide_engine_tutorial_completed', 'true');
+    }
+
+    function showTutorialStep(index) {
+        if (index < 0 || index >= tourSteps.length) {
+            endTutorialTour();
+            return;
+        }
+        currentTourStep = index;
+
+        const step = tourSteps[index];
+
+        // Remove any existing highlights
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
+        });
+
+        // Run onShow action if present
+        if (step.onShow) {
+            step.onShow();
+        }
+
+        // Update text
+        if (stepTitle) stepTitle.textContent = step.title;
+        if (stepText) stepText.textContent = step.text;
+
+        // Update Nav Buttons
+        if (btnPrev) {
+            if (index === 0) {
+                btnPrev.style.display = 'none';
+            } else {
+                btnPrev.style.display = 'inline-flex';
+            }
+        }
+
+        if (btnNext) {
+            if (index === tourSteps.length - 1) {
+                btnNext.textContent = 'Finish';
+            } else {
+                btnNext.textContent = 'Next';
+            }
+        }
+
+        // Rebuild dots
+        rebuildTutorialDots();
+
+        // Target element highlight
+        const targetEl = document.querySelector(step.target);
+        if (targetEl) {
+            targetEl.classList.add('tutorial-highlight');
+            
+            // Wait for DOM to adjust layout (especially tab switches/sidebar toggle actions)
+            setTimeout(() => {
+                positionTutorialPopover(targetEl, popover, step.placement);
+            }, 150);
+        } else {
+            // If target is missing, center the popover on screen
+            positionPopoverCenter();
+        }
+    }
+
+    function rebuildTutorialDots() {
+        if (!dotsContainer) return;
+        dotsContainer.innerHTML = '';
+        tourSteps.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = `tutorial-dot ${idx === currentTourStep ? 'active' : ''}`;
+            dot.addEventListener('click', () => {
+                showTutorialStep(idx);
+            });
+            dotsContainer.appendChild(dot);
+        });
+    }
+
+    function positionPopoverCenter() {
+        if (!popover) return;
+        popover.className = 'tutorial-popover'; // Reset positioning classes
+        popover.style.position = 'fixed';
+        popover.style.top = '50%';
+        popover.style.left = '50%';
+        popover.style.transform = 'translate(-50%, -50%)';
+        
+        const arrow = popover.querySelector('.tutorial-arrow');
+        if (arrow) arrow.style.display = 'none';
+    }
+
+    function positionTutorialPopover(targetEl, popoverEl, placement) {
+        if (!popoverEl) return;
+        const arrowEl = popoverEl.querySelector('.tutorial-arrow');
+        if (arrowEl) arrowEl.style.display = 'block';
+
+        // Reset classes & styles
+        popoverEl.className = 'tutorial-popover';
+        popoverEl.style.position = 'absolute';
+        popoverEl.style.transform = '';
+        
+        const targetRect = targetEl.getBoundingClientRect();
+        const popoverWidth = popoverEl.offsetWidth || 290;
+        const popoverHeight = popoverEl.offsetHeight || 150;
+        
+        const gap = 12;
+        let top = 0;
+        let left = 0;
+        let arrowPlacement = placement;
+
+        // Determine absolute positioning based on placement
+        if (placement === 'bottom') {
+            top = targetRect.bottom + window.scrollY + gap;
+            left = targetRect.left + window.scrollX + (targetRect.width - popoverWidth) / 2;
+            popoverEl.classList.add('arrow-top');
+            arrowPlacement = 'arrow-top';
+        } else if (placement === 'top') {
+            top = targetRect.top + window.scrollY - popoverHeight - gap;
+            left = targetRect.left + window.scrollX + (targetRect.width - popoverWidth) / 2;
+            popoverEl.classList.add('arrow-bottom');
+            arrowPlacement = 'arrow-bottom';
+        } else if (placement === 'right') {
+            top = targetRect.top + window.scrollY + (targetRect.height - popoverHeight) / 2;
+            left = targetRect.right + window.scrollX + gap;
+            popoverEl.classList.add('arrow-left');
+            arrowPlacement = 'arrow-left';
+        } else if (placement === 'left') {
+            top = targetRect.top + window.scrollY + (targetRect.height - popoverHeight) / 2;
+            left = targetRect.left - popoverWidth - gap;
+            popoverEl.classList.add('arrow-right');
+            arrowPlacement = 'arrow-right';
+        }
+
+        // Constrain inside viewport boundaries
+        if (left < 10) {
+            left = 10;
+        }
+        if (left + popoverWidth > window.innerWidth - 10) {
+            left = window.innerWidth - popoverWidth - 10;
+        }
+        if (top < 10) {
+            top = 10;
+        }
+        if (top + popoverHeight > window.innerHeight + window.scrollY - 10) {
+            top = window.innerHeight + window.scrollY - popoverHeight - 10;
+        }
+
+        popoverEl.style.top = `${top}px`;
+        popoverEl.style.left = `${left}px`;
+
+        // Position the arrow dynamically to point at target center
+        if (arrowEl) {
+            if (arrowPlacement === 'arrow-top' || arrowPlacement === 'arrow-bottom') {
+                const targetCenterX = targetRect.left + window.scrollX + targetRect.width / 2;
+                let arrowLeft = targetCenterX - left - 8;
+                arrowLeft = Math.max(16, Math.min(popoverWidth - 24, arrowLeft));
+                arrowEl.style.left = `${arrowLeft}px`;
+                arrowEl.style.top = '';
+                arrowEl.style.bottom = '';
+                arrowEl.style.right = '';
+            } else {
+                const targetCenterY = targetRect.top + window.scrollY + targetRect.height / 2;
+                let arrowTop = targetCenterY - top - 8;
+                arrowTop = Math.max(16, Math.min(popoverHeight - 24, arrowTop));
+                arrowEl.style.top = `${arrowTop}px`;
+                arrowEl.style.left = '';
+                arrowEl.style.bottom = '';
+                arrowEl.style.right = '';
+            }
+        }
+    }
+
+    // Window Resize alignment listener
+    window.addEventListener('resize', () => {
+        if (popover && !popover.classList.contains('hidden') && document.body.classList.contains('tutorial-active')) {
+            const step = tourSteps[currentTourStep];
+            const targetEl = document.querySelector(step.target);
+            if (targetEl) {
+                positionTutorialPopover(targetEl, popover, step.placement);
+            } else {
+                positionPopoverCenter();
+            }
+        }
+    });
+
+    // Wire Up Control Buttons
+    if (btnTrigger) {
+        btnTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            startTutorialTour();
+        });
+    }
+
+    if (btnSkip) {
+        btnSkip.addEventListener('click', () => {
+            endTutorialTour();
+        });
+    }
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', () => {
+            showTutorialStep(currentTourStep - 1);
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', () => {
+            if (currentTourStep === tourSteps.length - 1) {
+                endTutorialTour();
+            } else {
+                showTutorialStep(currentTourStep + 1);
+            }
+        });
+    }
+
+    // Auto-launch trigger for new users opening their first project
+    state.on('view-changed', (view) => {
+        if (view === 'editor') {
+            setTimeout(() => {
+                const projects = state.getProjectsForCurrentUser ? state.getProjectsForCurrentUser() : [];
+                const completed = localStorage.getItem('slide_engine_tutorial_completed') === 'true';
+                if (projects.length <= 1 && !completed) {
+                    startTutorialTour();
+                }
+            }, 600);
+        } else {
+            if (popover && !popover.classList.contains('hidden')) {
+                endTutorialTour();
+            }
+        }
+    });
 }
 
 function updateTransitionIcon(val) {

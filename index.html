@@ -124,6 +124,7 @@
             </div>
             <div class="header-actions">
                 <button id="btn-theme-toggle-editor" class="btn btn-secondary btn-icon-only" title="Toggle Theme"><i data-lucide="sun"></i></button>
+                <button id="btn-tutorial-trigger" class="btn btn-secondary btn-icon-only" title="Start Tutorial Guide"><i data-lucide="help-circle"></i></button>
                 <button id="btn-save" class="btn btn-secondary" title="Save to Browser"><i data-lucide="save"></i> <span>Save</span></button>
                 <button id="btn-export" class="btn btn-secondary" title="Export as JSON file"><i data-lucide="download"></i> <span>Export</span></button>
                 <button id="btn-import-trigger" class="btn btn-secondary" title="Import JSON file"><i data-lucide="upload"></i> <span>Import</span></button>
@@ -746,6 +747,24 @@
                     <!-- Generated dynamically in Javascript -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- TUTORIAL SPOTLIGHT OVERLAY & POPOVER -->
+    <div id="tutorial-overlay" class="hidden"></div>
+    <div id="tutorial-popover" class="tutorial-popover hidden">
+        <div class="tutorial-arrow"></div>
+        <div class="tutorial-content">
+            <h4 id="tutorial-step-title">Tutorial Step</h4>
+            <p id="tutorial-step-text">Tutorial text...</p>
+            <div class="tutorial-footer">
+                <button id="btn-tutorial-skip" class="btn btn-secondary btn-small">Skip</button>
+                <div class="tutorial-nav-btns">
+                    <button id="btn-tutorial-prev" class="btn btn-secondary btn-small">Back</button>
+                    <button id="btn-tutorial-next" class="btn btn-primary btn-small">Next</button>
+                </div>
+            </div>
+            <div class="tutorial-dots" id="tutorial-dots"></div>
         </div>
     </div>
 
