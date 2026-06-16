@@ -4120,7 +4120,6 @@ body.light-theme .custom-color-picker.mobile-picker {
 
 /* Highlight targeted element dynamically */
 .tutorial-highlight {
-    position: relative !important;
     z-index: 9999 !important;
     pointer-events: none !important; /* Prevent clicks on highlighted element during tour */
     box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.3), 0 0 20px rgba(16, 185, 129, 0.5) !important;
@@ -4128,6 +4127,12 @@ body.light-theme .custom-color-picker.mobile-picker {
     background-color: var(--bg-surface) !important;
     transition: box-shadow 0.25s ease, outline 0.25s ease;
 }
+
+/* Position relative is only needed to establish z-index context on elements that are static by default */
+.tutorial-highlight:not(.layers-overlay) {
+    position: relative !important;
+}
+
 
 body.light-theme .tutorial-highlight {
     background-color: #ffffff !important;

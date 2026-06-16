@@ -2107,37 +2107,86 @@ function initEditorUI() {
         const arrowEl = popoverEl.querySelector('.tutorial-arrow');
         if (arrowEl) arrowEl.style.display = 'block';
 
+        const targetRect = targetEl.getBoundingClientRect();
+        const popoverWidth = popoverEl.offsetWidth || 290;
+        const popoverHeight = popoverEl.offsetHeight || 150;
+        const gap = 12;
+
+        let chosenPlacement = placement;
+
+        // Dynamic collision/overflow fallback check
+        if (placement === 'left') {
+            if (targetRect.left < popoverWidth + gap) {
+                // Try top, then bottom, then right
+                if (targetRect.top > popoverHeight + gap) {
+                    chosenPlacement = 'top';
+                } else if (window.innerHeight - targetRect.bottom > popoverHeight + gap) {
+                    chosenPlacement = 'bottom';
+                } else if (window.innerWidth - targetRect.right > popoverWidth + gap) {
+                    chosenPlacement = 'right';
+                }
+            }
+        } else if (placement === 'right') {
+            if (window.innerWidth - targetRect.right < popoverWidth + gap) {
+                // Try left, then top, then bottom
+                if (targetRect.left > popoverWidth + gap) {
+                    chosenPlacement = 'left';
+                } else if (targetRect.top > popoverHeight + gap) {
+                    chosenPlacement = 'top';
+                } else if (window.innerHeight - targetRect.bottom > popoverHeight + gap) {
+                    chosenPlacement = 'bottom';
+                }
+            }
+        } else if (placement === 'top') {
+            if (targetRect.top < popoverHeight + gap) {
+                // Try bottom, then left, then right
+                if (window.innerHeight - targetRect.bottom > popoverHeight + gap) {
+                    chosenPlacement = 'bottom';
+                } else if (targetRect.left > popoverWidth + gap) {
+                    chosenPlacement = 'left';
+                } else if (window.innerWidth - targetRect.right > popoverWidth + gap) {
+                    chosenPlacement = 'right';
+                }
+            }
+        } else if (placement === 'bottom') {
+            if (window.innerHeight - targetRect.bottom < popoverHeight + gap) {
+                // Try top, then left, then right
+                if (targetRect.top > popoverHeight + gap) {
+                    chosenPlacement = 'top';
+                } else if (targetRect.left > popoverWidth + gap) {
+                    chosenPlacement = 'left';
+                } else if (window.innerWidth - targetRect.right > popoverWidth + gap) {
+                    chosenPlacement = 'right';
+                }
+            }
+        }
+
         // Reset classes & styles
         popoverEl.className = 'tutorial-popover';
         popoverEl.style.position = 'absolute';
         popoverEl.style.transform = '';
         
-        const targetRect = targetEl.getBoundingClientRect();
-        const popoverWidth = popoverEl.offsetWidth || 290;
-        const popoverHeight = popoverEl.offsetHeight || 150;
-        
-        const gap = 12;
         let top = 0;
         let left = 0;
-        let arrowPlacement = placement;
+        let arrowPlacement = chosenPlacement;
 
-        // Determine absolute positioning based on placement
-        if (placement === 'bottom') {
+        // Determine absolute positioning based on chosenPlacement
+        if (chosenPlacement === 'bottom') {
             top = targetRect.bottom + window.scrollY + gap;
             left = targetRect.left + window.scrollX + (targetRect.width - popoverWidth) / 2;
             popoverEl.classList.add('arrow-top');
             arrowPlacement = 'arrow-top';
-        } else if (placement === 'top') {
+        } else if (chosenPlacement === 'top') {
             top = targetRect.top + window.scrollY - popoverHeight - gap;
             left = targetRect.left + window.scrollX + (targetRect.width - popoverWidth) / 2;
             popoverEl.classList.add('arrow-bottom');
             arrowPlacement = 'arrow-bottom';
-        } else if (placement === 'right') {
+        } else if (chosenPlacement === 'right') {
             top = targetRect.top + window.scrollY + (targetRect.height - popoverHeight) / 2;
             left = targetRect.right + window.scrollX + gap;
             popoverEl.classList.add('arrow-left');
             arrowPlacement = 'arrow-left';
-        } else if (placement === 'left') {
+        } else if (chosenPlacement === 'left') {
             top = targetRect.top + window.scrollY + (targetRect.height - popoverHeight) / 2;
             left = targetRect.left - popoverWidth - gap;
             popoverEl.classList.add('arrow-right');
