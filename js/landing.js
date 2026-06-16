@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // THEME MANAGEMENT (Dark / Light Theme Toggle)
     // ==========================================
     function initTheme() {
-        const savedTheme = localStorage.getItem('slide-engine-theme') || 'dark-theme';
+        const savedTheme = localStorage.getItem('slide-engine-theme') || 'light-theme';
         document.body.className = savedTheme;
         updateThemeUI(savedTheme);
     }
@@ -34,6 +34,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.title = theme === 'light-theme' ? 'Switch to Dark Cyberpunk Theme' : 'Switch to Light Classic Theme';
             }
         });
+
+        // Update the prompt tag text dynamically
+        const promptTag = document.getElementById('theme-prompt-tag');
+        if (promptTag) {
+            promptTag.textContent = theme === 'light-theme' ? 'Try dark theme!' : 'Try light theme!';
+        }
+
         if (window.lucide) lucide.createIcons();
     }
 

@@ -1590,7 +1590,36 @@ select option {
 
 .landing-nav-actions {
     display: flex;
+    align-items: center;
     gap: 16px;
+}
+
+.theme-prompt-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    background: rgba(25, 135, 84, 0.08);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    animation: pulse-glow 2s infinite alternate;
+}
+
+body.dark-theme .theme-prompt-tag {
+    color: var(--color-cyan) !important;
+    background: rgba(0, 240, 255, 0.1) !important;
+    border: 1px solid rgba(0, 240, 255, 0.3) !important;
+    box-shadow: var(--neon-glow-cyan) !important;
+}
+
+@keyframes pulse-glow {
+    0% {
+        opacity: 0.9;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
 .landing-hero-container {
@@ -1736,7 +1765,7 @@ select option {
 #dashboard-view {
     position: relative;
     z-index: 1;
-    background: linear-gradient(135deg, rgba(13, 13, 15, 0.5) 0%, rgba(5, 5, 7, 0.95) 100%);
+    background: radial-gradient(circle at 50% 50%, rgba(13, 13, 15, 0.25) 0%, rgba(5, 5, 7, 0.6) 100%);
 }
 
 .dashboard-header {
@@ -2496,8 +2525,52 @@ svg.lucide,
 @media (max-width: 768px) {
     /* LANDING VIEW */
     .landing-header {
-        padding: 0 16px;
+        padding: 0 12px !important;
         height: 60px;
+    }
+    
+    .landing-header .logo-text {
+        font-size: 1rem !important;
+    }
+    
+    .landing-header .logo-icon {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    
+    .landing-nav-actions {
+        gap: 6px !important;
+    }
+    
+    .landing-nav-actions .theme-prompt-tag {
+        display: none !important;
+    }
+    
+    .landing-nav-actions .btn {
+        padding: 6px 10px !important;
+        font-size: 0.72rem !important;
+        height: 32px !important;
+        white-space: nowrap !important;
+    }
+    
+    .landing-nav-actions .btn svg,
+    .landing-nav-actions .btn i {
+        display: none !important; /* Hide icons to save space on mobile */
+    }
+
+    .landing-nav-actions #btn-theme-toggle-landing {
+        padding: 6px !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .landing-nav-actions #btn-theme-toggle-landing svg {
+        display: block !important; /* Keep theme toggle icon visible */
+        width: 14px !important;
+        height: 14px !important;
     }
     
     .landing-hero-container {
@@ -2539,8 +2612,17 @@ svg.lucide,
     
     /* DASHBOARD VIEW */
     .dashboard-header {
-        padding: 0 16px;
+        padding: 0 12px !important;
         height: 60px;
+    }
+    
+    .dashboard-header .logo-text {
+        font-size: 1rem !important;
+    }
+    
+    .dashboard-header .logo-icon {
+        width: 18px !important;
+        height: 18px !important;
     }
     
     .dashboard-header .view-indicator {
@@ -2548,12 +2630,44 @@ svg.lucide,
     }
     
     .dashboard-user-actions {
-        gap: 10px;
+        gap: 6px !important;
+    }
+    
+    .dashboard-user-actions .btn {
+        padding: 6px 10px !important;
+        font-size: 0.72rem !important;
+        height: 32px !important;
+        white-space: nowrap !important;
+    }
+    
+    .dashboard-user-actions .btn svg,
+    .dashboard-user-actions .btn i {
+        display: none !important; /* Hide icons to save space on mobile */
+    }
+
+    .dashboard-user-actions #btn-theme-toggle-dashboard {
+        padding: 6px !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .dashboard-user-actions #btn-theme-toggle-dashboard svg {
+        display: block !important;
+        width: 14px !important;
+        height: 14px !important;
     }
     
     .user-badge {
-        padding: 4px 10px;
-        font-size: 0.78rem;
+        padding: 4px 8px !important;
+        font-size: 0.72rem !important;
+    }
+    
+    .user-badge svg {
+        width: 12px !important;
+        height: 12px !important;
     }
     
     .dashboard-content {
@@ -3044,41 +3158,9 @@ body.light-theme {
 }
 
 /* Custom View & Layout Overrides for Light Theme */
-body.light-theme #dashboard-view {
-    background: #f8f9fa !important;
-}
-
-body.light-theme .dashboard-header {
-    background: #ffffff !important;
-    border-bottom: 1px solid #dee2e6 !important;
-}
-
-body.light-theme .dashboard-header .view-indicator {
-    background: rgba(25, 135, 84, 0.08) !important;
-    border: 1px solid rgba(25, 135, 84, 0.15) !important;
-    color: var(--color-primary) !important;
-}
-
 body.light-theme .canvas-toolbar {
     background-color: #ffffff !important;
     border-bottom: 1px solid #dee2e6 !important;
-}
-
-body.light-theme #project-search-input {
-    background-color: #ffffff !important;
-    border: 1px solid #dee2e6 !important;
-    color: #212529 !important;
-}
-
-body.light-theme #project-search-input:focus {
-    background-color: #ffffff !important;
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1) !important;
-}
-
-body.light-theme .projects-empty-state {
-    background-color: rgba(0, 0, 0, 0.02) !important;
-    border: 1px dashed #dee2e6 !important;
 }
 
 /* Remove polygon clip-paths and use standard border-radius */
@@ -3120,6 +3202,7 @@ body.light-theme .logo-text span {
 
 /* Buttons style overrides: classic hover and clean shadow */
 body.light-theme .btn {
+    clip-path: none !important;
     border-radius: 6px !important;
 }
 
@@ -3235,9 +3318,11 @@ body.light-theme .landing-title:hover {
 
 /* Cards & sidebars classic shadows and styles */
 body.light-theme .slide-card {
-    background-color: #f3f4f6 !important;
-    border-color: #dee2e6 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important;
     border-radius: 8px !important;
 }
 
@@ -3254,9 +3339,19 @@ body.light-theme .slide-card.active {
 }
 
 body.light-theme .project-card {
-    background-color: #f3f4f6 !important;
-    border: 1px solid #dee2e6 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .project-card h3,
+body.light-theme .project-card-meta,
+body.light-theme .project-card-meta span,
+body.light-theme .project-card-meta svg,
+body.light-theme .project-card-meta i {
+    color: #ffffff !important;
 }
 
 body.light-theme .project-card:hover {
@@ -3295,9 +3390,16 @@ body.light-theme .project-card-btn.delete-proj-btn:hover {
 }
 
 body.light-theme .feature-card {
-    background-color: #f3f4f6 !important;
-    border: 1px solid #dee2e6 !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .feature-card h3,
+body.light-theme .feature-card p {
+    color: #ffffff !important;
 }
 
 body.light-theme .feature-card:hover {
@@ -3330,6 +3432,17 @@ body.light-theme .app-header {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
 }
 
+body.light-theme .landing-header .logo-text,
+body.light-theme .dashboard-header .logo-text {
+    color: #ffffff !important;
+}
+
+body.light-theme .dashboard-header .view-indicator {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
 body.light-theme #project-name-input {
     background: #f1f3f5 !important;
     border: 1px solid #dee2e6 !important;
@@ -3345,6 +3458,22 @@ body.light-theme #project-name-input:focus {
     background: #ffffff !important;
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1) !important;
+}
+
+body.light-theme #project-search-input {
+    background: rgba(33, 33, 36, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+body.light-theme #project-search-input:focus {
+    background: rgba(33, 33, 36, 0.8) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1) !important;
+}
+
+body.light-theme #project-search-input::placeholder {
+    color: #8c8c9e !important;
 }
 
 body.light-theme .save-status {

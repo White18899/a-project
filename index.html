@@ -14,7 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="dark-theme">
+<body class="light-theme">
     <div id="app" class="view-landing">
         <!-- WebGL Constellation Background Canvas -->
         <canvas id="landing-bg-canvas"></canvas>
@@ -27,6 +27,7 @@
                     <span class="logo-text">Slide<span>Engine</span></span>
                 </div>
                 <div class="landing-nav-actions">
+                    <span id="theme-prompt-tag" class="theme-prompt-tag">Try dark theme!</span>
                     <button id="btn-theme-toggle-landing" class="btn btn-secondary btn-icon-only" title="Toggle Theme"><i data-lucide="sun"></i></button>
                     <button id="btn-landing-login" class="btn btn-secondary"><i data-lucide="log-in"></i> Sign In</button>
                     <button id="btn-landing-signup" class="btn btn-primary"><i data-lucide="user-plus"></i> Join Free</button>
