@@ -100,16 +100,40 @@ class SlideCanvas {
         this.app.view.style.height = '100%';
     }
 
+    pauseVideosInContainer(container) {
+        if (!container) return;
+        const traverseAndPause = (node) => {
+            if (node.videoElement) {
+                try {
+                    node.videoElement.pause();
+                    node.videoElement.src = "";
+                    node.videoElement.load();
+                } catch(e) {}
+            }
+            if (node.videoTexture) {
+                try {
+                    node.videoTexture.destroy(true);
+                } catch(e) {}
+            }
+            if (node.children) {
+                node.children.forEach(traverseAndPause);
+            }
+        };
+        traverseAndPause(container);
+    }
+
     renderSlide(slide, targetContainer = this.slideContainer) {
         if (!slide) return;
         
         // Clear children
         if (targetContainer === this.slideContainer) {
+            this.pauseVideosInContainer(this.slideContainer);
             this.slideContainer.removeChildren();
             if (this.uiContainer) {
                 this.uiContainer.removeChildren();
             }
         } else {
+            this.pauseVideosInContainer(targetContainer);
             targetContainer.removeChildren();
         }
         
@@ -334,7 +358,64 @@ class SlideCanvas {
                 graphics.drawRect(0, 0, contentWidth, contentHeight);
                 graphics.endFill();
             }
+        } else if (elem.type === 'video') {
+            try {
+                const videoElement = document.createElement('video');
+                videoElement.src = elem.url || '';
+                videoElement.crossOrigin = 'anonymous';
+                videoElement.preload = 'auto';
+                videoElement.loop = elem.loop !== false;
+                
+                if (this.mode === 'play') {
+                    videoElement.autoplay = elem.autoplay !== false;
+                    videoElement.muted = elem.muted === true;
+                    videoElement.volume = elem.volume !== undefined ? elem.volume : 1.0;
+                    if (videoElement.autoplay) {
+                        videoElement.play().catch(e => {
+                            console.warn("Autoplay blocked, playing muted:", e);
+                            videoElement.muted = true;
+                            videoElement.play().catch(err => console.error("Muted play failed:", err));
+                        });
+                    }
+                } else {
+                    videoElement.autoplay = false;
+                    videoElement.muted = true;
+                    videoElement.currentTime = 0.1; // Seek to first frame
+                }
+
+                const texture = PIXI.Texture.from(videoElement);
+                const sprite = new PIXI.Sprite(texture);
+                sprite.width = contentWidth;
+                sprite.height = contentHeight;
+                container.addChild(sprite);
+
+                container.videoElement = videoElement;
+                container.videoTexture = texture;
+
+                texture.baseTexture.on('loaded', () => {
+                    sprite.width = contentWidth;
+                    sprite.height = contentHeight;
+                });
+
+                texture.baseTexture.on('error', (err) => {
+                    console.error("Video load error:", err);
+                    graphics.beginFill(0x7f1d1d);
+                    graphics.drawRect(0, 0, contentWidth, contentHeight);
+                    graphics.endFill();
+
+                    const errText = new PIXI.Text("Video Error", new PIXI.TextStyle({fill: 0xffffff, fontSize: 14}));
+                    errText.x = 10;
+                    errText.y = 10;
+                    container.addChild(errText);
+                });
+            } catch (e) {
+                console.error("Video creation error:", e);
+                graphics.beginFill(0x7f1d1d);
+                graphics.drawRect(0, 0, contentWidth, contentHeight);
+                graphics.endFill();
+            }
         }
+
         
         targetContainer.addChild(container);
         this.pixiElements.set(elem.id, container);
@@ -965,6 +1046,9 @@ class SlideCanvas {
 
         const cleanup = () => {
             this.activeTransition = null;
+            
+            // Pause any videos in oldContainer before discarding it
+            this.pauseVideosInContainer(oldContainer);
             
             // Remove mask if we did iris or wipe/split transition
             if (newContainer.mask) {

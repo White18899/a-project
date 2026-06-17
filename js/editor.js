@@ -245,6 +245,15 @@ function initEditorUI() {
                 document.getElementById('elem-image-url').value = element.url || '';
             }
 
+            // Video properties
+            if (element.type === 'video') {
+                document.getElementById('elem-video-url').value = element.url || '';
+                document.getElementById('elem-video-autoplay').checked = element.autoplay !== false;
+                document.getElementById('elem-video-loop').checked = element.loop !== false;
+                document.getElementById('elem-video-muted').checked = element.muted === true;
+                document.getElementById('elem-video-volume').value = element.volume !== undefined ? element.volume : 1.0;
+            }
+
             // Navigation Button properties
             if (element.type === 'btn-nav') {
                 document.getElementById('elem-nav-target').value = element.targetSlideId || '';
@@ -401,6 +410,21 @@ function initEditorUI() {
                     mini.style.backgroundImage = `url(${elem.fileData || elem.url})`;
                     mini.style.backgroundSize = 'cover';
                     mini.style.backgroundPosition = 'center';
+                } else if (elem.type === 'video') {
+                    mini.style.backgroundColor = '#0b0b14';
+                    mini.style.border = '0.5px solid #dee2e6';
+                    
+                    const playIcon = document.createElement('div');
+                    playIcon.style.width = '0';
+                    playIcon.style.height = '0';
+                    playIcon.style.borderTop = '3px solid transparent';
+                    playIcon.style.borderBottom = '3px solid transparent';
+                    playIcon.style.borderLeft = '5px solid #ffffff';
+                    playIcon.style.position = 'absolute';
+                    playIcon.style.left = '50%';
+                    playIcon.style.top = '50%';
+                    playIcon.style.transform = 'translate(-50%, -50%)';
+                    mini.appendChild(playIcon);
                 }
                 
                 if (elem.visible === false) {
@@ -800,6 +824,24 @@ function initEditorUI() {
         }
     });
 
+    // Video elements
+    document.getElementById('elem-video-url').addEventListener('input', (e) => {
+        updateActiveElemAndSave({ url: e.target.value });
+    });
+    document.getElementById('elem-video-autoplay').addEventListener('change', (e) => {
+        updateActiveElemAndSave({ autoplay: e.target.checked });
+    });
+    document.getElementById('elem-video-loop').addEventListener('change', (e) => {
+        updateActiveElemAndSave({ loop: e.target.checked });
+    });
+    document.getElementById('elem-video-muted').addEventListener('change', (e) => {
+        updateActiveElemAndSave({ muted: e.target.checked });
+    });
+    document.getElementById('elem-video-volume').addEventListener('input', (e) => {
+        updateActiveElem({ volume: parseFloat(e.target.value) });
+    });
+
+
     // MCQ option buttons
     document.getElementById('elem-option-correct').addEventListener('change', (e) => {
         updateActiveElemAndSave({ isCorrect: e.target.checked });
@@ -972,6 +1014,7 @@ function initEditorUI() {
             // Icon according to element type
             let iconName = 'type';
             if (elem.type === 'image') iconName = 'image';
+            else if (elem.type === 'video') iconName = 'video';
             else if (elem.type === 'timer') iconName = 'timer';
             else if (elem.type.startsWith('btn-')) iconName = 'mouse-pointer';
 
@@ -1485,6 +1528,7 @@ function initEditorUI() {
         document.getElementById('group-text-styles').classList.add('hidden');
         document.getElementById('group-bg-styles').classList.add('hidden');
         document.getElementById('group-image-styles').classList.add('hidden');
+        document.getElementById('group-video-styles').classList.add('hidden');
         document.getElementById('group-timer-settings').classList.add('hidden');
         document.getElementById('group-nav-settings').classList.add('hidden');
         document.getElementById('group-option-settings').classList.add('hidden');
@@ -1497,6 +1541,8 @@ function initEditorUI() {
             document.getElementById('group-bg-styles').classList.remove('hidden');
         } else if (type === 'image') {
             document.getElementById('group-image-styles').classList.remove('hidden');
+        } else if (type === 'video') {
+            document.getElementById('group-video-styles').classList.remove('hidden');
         } else if (type === 'timer') {
             document.getElementById('group-text-styles').classList.remove('hidden');
             document.getElementById('group-bg-styles').classList.remove('hidden');
@@ -1623,7 +1669,7 @@ function initEditorUI() {
             targetSelect.innerHTML = '<option value="">-- Select target --</option>';
 
             activeSlide.elements.forEach(elem => {
-                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
+                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'video' || elem.type === 'timer' || elem.type.startsWith('btn-');
                 if (isTargetable && elem.id !== element.id) {
                     const opt = document.createElement('option');
                     opt.value = elem.id;
@@ -1736,7 +1782,7 @@ function initEditorUI() {
             targetSelect.innerHTML = '<option value="">-- Select target --</option>';
 
             activeSlide.elements.forEach(elem => {
-                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
+                const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'video' || elem.type === 'timer' || elem.type.startsWith('btn-');
                 if (isTargetable && elem.id !== element.id) {
                     const opt = document.createElement('option');
                     opt.value = elem.id;
@@ -1781,7 +1827,7 @@ function initEditorUI() {
 
         activeSlide.elements.forEach(elem => {
             // Exclude buttons themselves from target pools to keep references simple
-            const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'timer' || elem.type.startsWith('btn-');
+            const isTargetable = elem.type === 'text' || elem.type === 'image' || elem.type === 'video' || elem.type === 'timer' || elem.type.startsWith('btn-');
             
             if (isTargetable) {
                 if (showSelect) {

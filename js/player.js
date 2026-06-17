@@ -220,6 +220,9 @@ class PlayerController {
         
         // Clear application viewer references
         if (this.canvas) {
+            if (this.canvas.slideContainer) {
+                this.canvas.pauseVideosInContainer(this.canvas.slideContainer);
+            }
             this.canvas.app.destroy(true, { children: true, texture: true, baseTexture: true });
             this.canvas = null;
         }

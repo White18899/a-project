@@ -198,6 +198,21 @@ const ElementTemplates = {
         useMarkupColor: false,
         markupColor: '#3b82f6',
         zIndex: 0
+    }),
+    video: (slideId) => ({
+        id: generateUUID(),
+        type: 'video',
+        url: 'https://pixijs.com/assets/video.mp4',
+        autoplay: true,
+        loop: true,
+        muted: true,
+        volume: 1.0,
+        x: 200,
+        y: 150,
+        width: 400,
+        height: 225,
+        visible: true,
+        zIndex: 0
     })
 };
 

@@ -3527,6 +3527,32 @@ body.light-theme .form-group textarea:focus {
     box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1) !important;
 }
 
+/* Custom Checkbox Light Theme Overrides */
+body.light-theme .checkbox-label input[type="checkbox"] {
+    background-color: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+body.light-theme .checkbox-label:hover input[type="checkbox"] {
+    border-color: var(--color-primary) !important;
+}
+
+body.light-theme .checkbox-label input[type="checkbox"]:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2) !important;
+}
+
+body.light-theme .checkbox-label input[type="checkbox"]:checked {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 8px rgba(25, 135, 84, 0.15) !important;
+}
+
+body.light-theme .checkbox-label input[type="checkbox"]:checked::before {
+    background-color: #ffffff !important;
+}
+
+
 /* Icon filters removal */
 body.light-theme svg.lucide,
 body.light-theme .lucide,
