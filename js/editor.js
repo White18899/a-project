@@ -252,6 +252,28 @@ function initEditorUI() {
                 document.getElementById('elem-video-loop').checked = element.loop !== false;
                 document.getElementById('elem-video-muted').checked = element.muted === true;
                 document.getElementById('elem-video-volume').value = element.volume !== undefined ? element.volume : 1.0;
+                
+                const statusText = document.getElementById('video-status-text');
+                const fileLabel = document.getElementById('video-file-label');
+                if (element.fileData) {
+                    if (statusText) {
+                        statusText.textContent = "Local video file loaded";
+                        statusText.style.color = "#10b981";
+                    }
+                    if (fileLabel) fileLabel.textContent = "Replace video file...";
+                } else if (element.url) {
+                    if (statusText) {
+                        statusText.textContent = "Video loaded via URL";
+                        statusText.style.color = "#3b82f6";
+                    }
+                    if (fileLabel) fileLabel.textContent = "Choose file...";
+                } else {
+                    if (statusText) {
+                        statusText.textContent = "No video file loaded";
+                        statusText.style.color = "var(--text-muted)";
+                    }
+                    if (fileLabel) fileLabel.textContent = "Choose file...";
+                }
             }
 
             // Navigation Button properties
@@ -826,8 +848,79 @@ function initEditorUI() {
 
     // Video elements
     document.getElementById('elem-video-url').addEventListener('input', (e) => {
-        updateActiveElemAndSave({ url: e.target.value });
+        const val = e.target.value;
+        updateActiveElemAndSave({ url: val, fileData: null });
+        
+        const statusText = document.getElementById('video-status-text');
+        const fileLabel = document.getElementById('video-file-label');
+        if (val) {
+            if (statusText) {
+                statusText.textContent = "Video loaded via URL";
+                statusText.style.color = "#3b82f6";
+            }
+            if (fileLabel) fileLabel.textContent = "Choose file...";
+        } else {
+            if (statusText) {
+                statusText.textContent = "No video file loaded";
+                statusText.style.color = "var(--text-muted)";
+            }
+            if (fileLabel) fileLabel.textContent = "Choose file...";
+        }
     });
+
+    document.getElementById('btn-upload-video-url').onclick = () => {
+        const url = document.getElementById('elem-video-url').value;
+        updateActiveElemAndSave({ url: url, fileData: null });
+        
+        const statusText = document.getElementById('video-status-text');
+        const fileLabel = document.getElementById('video-file-label');
+        if (url) {
+            if (statusText) {
+                statusText.textContent = "Video loaded via URL";
+                statusText.style.color = "#3b82f6";
+            }
+            if (fileLabel) fileLabel.textContent = "Choose file...";
+        } else {
+            if (statusText) {
+                statusText.textContent = "No video file loaded";
+                statusText.style.color = "var(--text-muted)";
+            }
+            if (fileLabel) fileLabel.textContent = "Choose file...";
+        }
+    };
+
+    document.getElementById('elem-video-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const statusText = document.getElementById('video-status-text');
+            if (statusText) {
+                statusText.textContent = "Loading video file...";
+                statusText.style.color = "var(--text-muted)";
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const dataUrl = evt.target.result;
+                updateActiveElemAndSave({ url: '', fileData: dataUrl });
+                
+                if (statusText) {
+                    statusText.textContent = "Local video file loaded";
+                    statusText.style.color = "#10b981";
+                }
+                const fileLabel = document.getElementById('video-file-label');
+                if (fileLabel) fileLabel.textContent = "Replace video file...";
+                document.getElementById('elem-video-url').value = '';
+            };
+            reader.onerror = () => {
+                if (statusText) {
+                    statusText.textContent = "Failed to load video file";
+                    statusText.style.color = "#ef4444";
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     document.getElementById('elem-video-autoplay').addEventListener('change', (e) => {
         updateActiveElemAndSave({ autoplay: e.target.checked });
     });

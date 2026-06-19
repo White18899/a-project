@@ -216,6 +216,7 @@ class PlayerController {
         
         // Clear application viewer references
         if (this.canvas) {
+            this.canvas.clearVideoOverlays();
             if (this.canvas.slideContainer) {
                 this.canvas.pauseVideosInContainer(this.canvas.slideContainer);
             }

@@ -128,6 +128,7 @@ class SlideCanvas {
         // Clear children
         if (targetContainer === this.slideContainer) {
             this.pauseVideosInContainer(this.slideContainer);
+            this.clearVideoOverlays();
             this.slideContainer.removeChildren();
             if (this.uiContainer) {
                 this.uiContainer.removeChildren();
@@ -186,6 +187,11 @@ class SlideCanvas {
         // If elements are selected, draw selection indicators
         if (this.mode === 'edit' && targetContainer === this.slideContainer && window.EngineState.selectedElementIds && window.EngineState.selectedElementIds.length > 0) {
             this.drawSelectionUI();
+        }
+
+        // Render HTML Video Overlays
+        if (targetContainer === this.slideContainer) {
+            this.renderVideoOverlays(slide);
         }
     }
 
@@ -363,66 +369,35 @@ class SlideCanvas {
                 graphics.endFill();
             }
         } else if (elem.type === 'video') {
-            try {
-                const videoElement = document.createElement('video');
-                videoElement.src = elem.url || '';
-                videoElement.crossOrigin = 'anonymous';
-                videoElement.preload = 'auto';
-                videoElement.loop = elem.loop !== false;
-                
-                if (this.mode === 'play') {
-                    videoElement.autoplay = elem.autoplay !== false;
-                    videoElement.muted = elem.muted === true;
-                    videoElement.volume = elem.volume !== undefined ? elem.volume : 1.0;
-                    if (videoElement.autoplay) {
-                        videoElement.play().catch(e => {
-                            console.warn("Autoplay blocked, playing muted:", e);
-                            videoElement.muted = true;
-                            videoElement.play().catch(err => console.error("Muted play failed:", err));
-                        });
-                    }
-                } else {
-                    videoElement.autoplay = false;
-                    videoElement.muted = true;
-                    videoElement.currentTime = 0.1; // Seek to first frame
-                }
+            // Draw visual editor placeholder for mapping selection/dragging
+            graphics.beginFill(0x0f172a, 0.95);
+            graphics.lineStyle(1.5, 0x334155, 1);
+            graphics.drawRect(0, 0, contentWidth, contentHeight);
+            graphics.endFill();
 
-                const texture = PIXI.Texture.from(videoElement);
-                const sprite = new PIXI.Sprite(texture);
-                container.addChild(sprite);
+            // Centered white play button icon
+            const playIcon = new PIXI.Graphics();
+            playIcon.beginFill(0xffffff, 0.45);
+            playIcon.moveTo(-10, -15);
+            playIcon.lineTo(15, 0);
+            playIcon.lineTo(-10, 15);
+            playIcon.closePath();
+            playIcon.endFill();
+            playIcon.x = contentWidth / 2;
+            playIcon.y = contentHeight / 2;
+            container.addChild(playIcon);
 
-                container.videoElement = videoElement;
-                container.videoTexture = texture;
-
-                if (texture.baseTexture.valid) {
-                    sprite.width = contentWidth;
-                    sprite.height = contentHeight;
-                } else {
-                    sprite.width = contentWidth;
-                    sprite.height = contentHeight;
-                    texture.baseTexture.on('loaded', () => {
-                        sprite.width = contentWidth;
-                        sprite.height = contentHeight;
-                    });
-                }
-
-                texture.baseTexture.on('error', (err) => {
-                    console.error("Video load error:", err);
-                    graphics.beginFill(0x7f1d1d);
-                    graphics.drawRect(0, 0, contentWidth, contentHeight);
-                    graphics.endFill();
-
-                    const errText = new PIXI.Text("Video Error", new PIXI.TextStyle({fill: 0xffffff, fontSize: 14}));
-                    errText.x = 10;
-                    errText.y = 10;
-                    container.addChild(errText);
-                });
-            } catch (e) {
-                console.error("Video creation error:", e);
-                graphics.beginFill(0x7f1d1d);
-                graphics.drawRect(0, 0, contentWidth, contentHeight);
-                graphics.endFill();
-            }
+            // Add indicator text
+            const typeText = new PIXI.Text(elem.fileData ? "Local Video" : (elem.url && elem.url.includes("youtu") ? "YouTube Video" : "Video URL"), new PIXI.TextStyle({
+                fontFamily: 'Outfit',
+                fontSize: 14,
+                fill: 0x9ca3af,
+                align: 'center'
+            }));
+            typeText.anchor.set(0.5, 0);
+            typeText.x = contentWidth / 2;
+            typeText.y = contentHeight / 2 + 25;
+            container.addChild(typeText);
         }
 
         
@@ -594,6 +569,13 @@ class SlideCanvas {
                 // Local visual update to keep it responsive (no lag)
                 container.x = newX;
                 container.y = newY;
+
+                // Sync HTML overlay position
+                const overlay = this.container.querySelector(`.html-video-overlay[data-element-id="${elem.id}"]`);
+                if (overlay) {
+                    overlay.style.left = `${(newX / this.baseWidth) * 100}%`;
+                    overlay.style.top = `${(newY / this.baseHeight) * 100}%`;
+                }
             });
             
             this.drawSelectionUI();
@@ -654,6 +636,15 @@ class SlideCanvas {
             this.draggedContainer.y = newY;
             this.renderElement(this.draggedElement, window.EngineState.getActiveSlide().rpgTheme);
             this.drawSelectionUI();
+
+            // Sync HTML overlay position & size
+            const overlay = this.container.querySelector(`.html-video-overlay[data-element-id="${this.draggedElement.id}"]`);
+            if (overlay) {
+                overlay.style.left = `${(newX / this.baseWidth) * 100}%`;
+                overlay.style.top = `${(newY / this.baseHeight) * 100}%`;
+                overlay.style.width = `${(newW / this.baseWidth) * 100}%`;
+                overlay.style.height = `${(newH / this.baseHeight) * 100}%`;
+            }
         }
     }
 
@@ -1099,6 +1090,7 @@ class SlideCanvas {
             finalChildren.forEach(child => {
                 this.slideContainer.addChild(child);
             });
+            this.renderVideoOverlays(slide);
         };
 
         const ticker = () => {
@@ -1331,6 +1323,92 @@ class SlideCanvas {
         };
 
         requestAnimationFrame(ticker);
+    }
+
+    clearVideoOverlays() {
+        if (!this.container) return;
+        const overlays = this.container.querySelectorAll('.html-video-overlay');
+        overlays.forEach(el => {
+            const iframe = el.querySelector('iframe');
+            if (iframe) {
+                iframe.src = 'about:blank';
+            }
+            const video = el.querySelector('video');
+            if (video) {
+                video.pause();
+                video.src = '';
+                video.load();
+            }
+            el.remove();
+        });
+    }
+
+    renderVideoOverlays(slide) {
+        if (!slide || !this.container) return;
+        this.clearVideoOverlays();
+        
+        slide.elements.forEach(elem => {
+            if (elem.type !== 'video') return;
+            if (this.mode === 'play' && elem.visible === false) return;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'html-video-overlay';
+            overlay.setAttribute('data-element-id', elem.id);
+            
+            overlay.style.left = `${(elem.x / this.baseWidth) * 100}%`;
+            overlay.style.top = `${(elem.y / this.baseHeight) * 100}%`;
+            overlay.style.width = `${(elem.width / this.baseWidth) * 100}%`;
+            overlay.style.height = `${(elem.height / this.baseHeight) * 100}%`;
+            overlay.style.zIndex = elem.zIndex || 0;
+            
+            if (this.mode === 'edit') {
+                overlay.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            }
+            
+            const ytId = this.getYouTubeId(elem.fileData ? '' : elem.url);
+            if (ytId) {
+                const iframe = document.createElement('iframe');
+                const autoplay = (this.mode === 'play' && elem.autoplay !== false) ? 1 : 0;
+                const loop = (elem.loop !== false) ? 1 : 0;
+                const mute = (this.mode === 'play' && elem.muted === true) ? 1 : 0;
+                
+                iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=${autoplay}&loop=${loop}&playlist=${ytId}&mute=${mute}&controls=1&enablejsapi=1`;
+                iframe.allow = "autoplay; encrypted-media";
+                iframe.allowFullscreen = true;
+                overlay.appendChild(iframe);
+            } else {
+                const video = document.createElement('video');
+                video.src = elem.fileData || elem.url || '';
+                video.controls = true;
+                video.loop = elem.loop !== false;
+                video.muted = (this.mode === 'play' && elem.muted === true) || (this.mode === 'edit');
+                
+                if (this.mode === 'play') {
+                    video.autoplay = elem.autoplay !== false;
+                    video.volume = elem.volume !== undefined ? elem.volume : 1.0;
+                    if (video.autoplay) {
+                        video.play().catch(err => {
+                            console.warn("Autoplay blocked, running muted fallback:", err);
+                            video.muted = true;
+                            video.play().catch(e => console.error("Muted playback failed:", e));
+                        });
+                    }
+                } else {
+                    video.autoplay = false;
+                    video.currentTime = 0.1;
+                }
+                overlay.appendChild(video);
+            }
+            
+            this.container.appendChild(overlay);
+        });
+    }
+
+    getYouTubeId(url) {
+        if (!url) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
     }
 }
 
