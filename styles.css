@@ -3267,6 +3267,16 @@ body.light-theme .btn-icon-only:hover {
     transform: translateY(-1px) !important;
 }
 
+body.light-theme .player-hud {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%) !important;
+    color: #212529 !important;
+}
+
+body.light-theme .hud-slide-counter {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    color: #212529 !important;
+}
+
 body.light-theme .btn-hud {
     background-color: #ffffff !important;
     border: 1px solid #dee2e6 !important;
@@ -3277,6 +3287,35 @@ body.light-theme .btn-hud:hover {
     background-color: #f8f9fa !important;
     color: var(--color-primary) !important;
     animation: none !important;
+}
+
+body.light-theme .btn-hud svg {
+    color: #212529 !important;
+    filter: none !important;
+}
+
+body.light-theme .btn-hud:hover svg {
+    color: var(--color-primary) !important;
+}
+
+body.light-theme .btn-hud-close {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+    color: #dc3545 !important;
+}
+
+body.light-theme .btn-hud-close:hover {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+}
+
+body.light-theme .btn-hud-close svg {
+    color: #dc3545 !important;
+}
+
+body.light-theme .btn-hud-close:hover svg {
+    color: #ffffff !important;
 }
 
 body.light-theme .btn-element-add {
@@ -3561,8 +3600,7 @@ body.light-theme .search-icon {
     filter: none !important;
 }
 
-body.light-theme .btn-primary svg,
-body.light-theme .btn-hud svg {
+body.light-theme .btn-primary svg {
     color: #ffffff !important;
     filter: none !important;
 }

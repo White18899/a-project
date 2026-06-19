@@ -103,13 +103,11 @@ class PlayerController {
         // Button events
         const prevBtn = document.getElementById('btn-hud-prev');
         const nextBtn = document.getElementById('btn-hud-next');
-        const resetBtn = document.getElementById('btn-hud-reset');
         const fsBtn = document.getElementById('btn-hud-fullscreen');
         const exitBtn = document.getElementById('btn-hud-exit');
 
         prevBtn.onclick = () => this.prevSlide();
         nextBtn.onclick = () => this.nextSlide();
-        resetBtn.onclick = () => this.resetCurrentSlide(true);
         fsBtn.onclick = () => this.toggleFullscreen();
         exitBtn.onclick = () => this.exit();
 
@@ -119,8 +117,6 @@ class PlayerController {
                 this.nextSlide();
             } else if (e.key === 'ArrowLeft') {
                 this.prevSlide();
-            } else if (e.key.toLowerCase() === 'r') {
-                this.resetCurrentSlide(true);
             } else if (e.key === 'Escape') {
                 this.exit();
             } else if (e.key.toLowerCase() === 'f') {
