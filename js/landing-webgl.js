@@ -1,358 +1,384 @@
-/**
- * SlideEngine Landing Page WebGL Background Visuals
- * Overhauled to a Cyberpunk 2077 Netrunner HUD grid with Hex/Binary data stream rain,
- * glitching cyber-crosses/squares, and an interactive mouse targeting reticle.
- */
+import { Renderer, Program, Mesh, Triangle } from 'https://cdn.jsdelivr.net/npm/ogl@1.0.11/+esm';
 
-(function () {
-    class LandingWebGLBackground {
-        constructor() {
-            this.canvas = document.getElementById('landing-bg-canvas');
-            if (!this.canvas) return;
+const MAX_COLORS = 8;
 
-            this.app = null;
-            this.graphics = null;
-            this.textContainer = null;
-            this.particles = [];
-            this.numParticles = 65;
-            this.connectionDistance = 125;
-            this.cursor = { x: 0, y: 0, active: false, rx: 0, ry: 0 };
-            this.dataStreams = [];
-            this.wasLightTheme = null;
+const hexToRGB = hex => {
+  const c = hex.replace('#', '').padEnd(6, '0');
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  return [r, g, b];
+};
+
+const prepColors = input => {
+  const base = (input && input.length ? input : ['#ffffff', '#ffffff', '#ffffff']).slice(0, MAX_COLORS);
+  const count = base.length;
+  const arr = [];
+  for (let i = 0; i < MAX_COLORS; i++) arr.push(hexToRGB(base[Math.min(i, base.length - 1)]));
+  const avg = [0, 0, 0];
+  for (let i = 0; i < count; i++) {
+    avg[0] += arr[i][0];
+    avg[1] += arr[i][1];
+    avg[2] += arr[i][2];
+  }
+  avg[0] /= count;
+  avg[1] /= count;
+  avg[2] /= count;
+  return { arr, count, avg };
+};
+
+const flowVec = d => {
+  switch (d) {
+    case 'up':
+      return [0, 1];
+    case 'down':
+      return [0, -1];
+    case 'left':
+      return [-1, 0];
+    case 'right':
+      return [1, 0];
+    default:
+      return [0, -1];
+  }
+};
+
+const vertex = `
+attribute vec2 position;
+attribute vec2 uv;
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+const fragment = `
+precision highp float;
+
+uniform vec3  iResolution;
+uniform vec2  iMouse;
+uniform float iTime;
+
+uniform vec3  uColor0;
+uniform vec3  uColor1;
+uniform vec3  uColor2;
+uniform vec3  uColor3;
+uniform vec3  uColor4;
+uniform vec3  uColor5;
+uniform vec3  uColor6;
+uniform vec3  uColor7;
+uniform int   uColorCount;
+
+uniform vec3  uMouseColor;
+uniform vec2  uFlow;
+uniform float uSpeed;
+uniform float uScale;
+uniform float uTurbulence;
+uniform float uFluidity;
+uniform float uRimWidth;
+uniform float uSharpness;
+uniform float uShimmer;
+uniform float uGlow;
+uniform float uOpacity;
+uniform float uMouseEnabled;
+uniform float uMouseStrength;
+uniform float uMouseRadius;
+
+varying vec2 vUv;
+
+#define PI 3.14159265
+
+vec3 palette(float h) {
+  int count = uColorCount;
+  if (count < 1) count = 1;
+  int idx = int(floor(clamp(h, 0.0, 0.999999) * float(count)));
+  if (idx <= 0) return uColor0;
+  if (idx == 1) return uColor1;
+  if (idx == 2) return uColor2;
+  if (idx == 3) return uColor3;
+  if (idx == 4) return uColor4;
+  if (idx == 5) return uColor5;
+  if (idx == 6) return uColor6;
+  return uColor7;
+}
+
+float hash(vec3 p3) {
+  p3 = fract(p3 * 0.1031);
+  p3 += dot(p3, p3.zyx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float smin(float a, float b, float k) {
+  float r = exp2(-a / k) + exp2(-b / k);
+  return -k * log2(r);
+}
+
+float sinlerp(float a, float b, float w) {
+  return mix(a, b, (sin(w * PI - PI / 2.0) + 1.0) / 2.0);
+}
+
+float vn(vec2 p, float s, float seed) {
+  vec2 cellp = floor(p / s);
+  vec2 relp = mod(p, s);
+  float g1 = hash(vec3(cellp, seed));
+  float g2 = hash(vec3(cellp.x + 1.0, cellp.y, seed));
+  float g3 = hash(vec3(cellp.x + 1.0, cellp.y + 1.0, seed));
+  float g4 = hash(vec3(cellp.x, cellp.y + 1.0, seed));
+  float bx = sinlerp(g1, g2, relp.x / s);
+  float tx = sinlerp(g4, g3, relp.x / s);
+  return sinlerp(bx, tx, relp.y / s);
+}
+
+float dbn(vec2 p, float s, float seed) {
+  float o = s / 2.0;
+  float n0 = vn(p, s, seed);
+  float n1 = vn(p + vec2(o, o), s, seed + 0.1);
+  float n2 = vn(p + vec2(-o, o), s, seed + 0.2);
+  float n3 = vn(p + vec2(o, -o), s, seed + 0.3);
+  float n4 = vn(p + vec2(-o, -o), s, seed + 0.4);
+  return (2.0 * n0 + 1.5 * n1 + 1.25 * n2 + 1.125 * n3 + n4) / 7.0;
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  float ref = 700.0 / max(uScale, 0.05);
+  vec2 p = fragCoord / iResolution.y * ref;
+
+  float spd = 200.0 * uSpeed;
+  float t = iTime;
+
+  vec2 dir = uFlow;
+  vec2 perp = vec2(-dir.y, dir.x);
+
+  float distort1 = vn(p + perp * (t * spd), 60.0, 10.0) * 50.0 * uTurbulence;
+  float distort2 = vn(p - perp * (t * spd), 120.0, 15.0) * 100.0 * uTurbulence;
+
+  float peaks = dbn(p + distort1 + dir * (t * spd * 0.5), 40.0, 1.0);
+  float peaks2 = dbn(p + distort2 - dir * (t * spd * 0.5), 40.0, 0.0);
+
+  float mapeaks = smin(peaks, peaks2, max(uFluidity, 0.001));
+
+  float mGlow = 0.0;
+  if (uMouseEnabled > 0.5) {
+    vec2 mp = iMouse / iResolution.y * ref;
+    float md = length(p - mp) / ref;
+    float rr = max(uMouseRadius, 0.02);
+    mGlow = exp(-md * md / (rr * rr)) * uMouseStrength;
+  }
+
+  float band = (uRimWidth - abs((mapeaks - 0.4) * 2.0)) * 5.0;
+  float ltn = clamp(band - vn(p + dir * (t * spd * 0.5), 60.0, 12.0) * uShimmer, 0.0, 1.0);
+  ltn = pow(ltn, uSharpness) * uGlow;
+  ltn *= clamp(1.0 - mGlow, 0.0, 1.0);
+
+  float h = clamp(0.5 + (peaks - peaks2) * 0.8, 0.0, 1.0);
+  vec3 col = palette(h);
+
+  vec3 outc = col * ltn;
+  float a = clamp(max(outc.r, max(outc.g, outc.b)), 0.0, 1.0);
+  fragColor = vec4(outc, a * uOpacity);
+}
+
+void main() {
+  vec4 color;
+  mainImage(color, vUv * iResolution.xy);
+  gl_FragColor = color;
+}
+`;
+
+class LandingWebGLBackground {
+    constructor() {
+        this.canvas = document.getElementById('landing-bg-canvas');
+        if (!this.canvas) return;
+
+        this.paused = false;
+        this.renderer = null;
+        this.gl = null;
+        this.program = null;
+        this.geometry = null;
+        this.mesh = null;
+        this.rafId = null;
+        this.resizeObserver = null;
+        
+        // Settings matching requested values
+        this.colors = ["#ffffff", "#ffffff", "#ffffff"];
+        this.speed = 0.5;
+        this.scale = 1.6;
+        this.turbulence = 1.0;
+        this.fluidity = 0.1;
+        this.rimWidth = 0.2;
+        this.sharpness = 2.5;
+        this.shimmer = 1.5;
+        this.glow = 2.0;
+        this.flowDirection = "down";
+        this.opacity = 1.0;
+        this.mouseInteraction = true;
+        this.mouseStrength = 1.0;
+        this.mouseRadius = 0.35;
+        this.mouseDampening = 0.15;
+        
+        this.mouseTarget = [0, 0];
+        this.lastTime = 0;
+
+        this.init();
+    }
+
+    init() {
+        try {
+            const dpr = window.devicePixelRatio || 1;
+            this.renderer = new Renderer({
+                canvas: this.canvas,
+                dpr: dpr,
+                alpha: true,
+                antialias: true
+            });
             
-            this.init();
+            this.gl = this.renderer.gl;
+            this.gl.clearColor(0, 0, 0, 0);
+            
+            this.canvas.style.width = '100%';
+            this.canvas.style.height = '100%';
+            this.canvas.style.display = 'block';
+
+            const { arr, count, avg } = prepColors(this.colors);
+
+            this.uniforms = {
+                iResolution: { value: [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight, 1] },
+                iMouse: { value: [0, 0] },
+                iTime: { value: 0 },
+                uColor0: { value: arr[0] },
+                uColor1: { value: arr[1] },
+                uColor2: { value: arr[2] },
+                uColor3: { value: arr[3] },
+                uColor4: { value: arr[4] },
+                uColor5: { value: arr[5] },
+                uColor6: { value: arr[6] },
+                uColor7: { value: arr[7] },
+                uColorCount: { value: count },
+                uMouseColor: { value: avg },
+                uFlow: { value: flowVec(this.flowDirection) },
+                uSpeed: { value: this.speed },
+                uScale: { value: this.scale },
+                uTurbulence: { value: this.turbulence },
+                uFluidity: { value: this.fluidity },
+                uRimWidth: { value: this.rimWidth },
+                uSharpness: { value: this.sharpness },
+                uShimmer: { value: this.shimmer },
+                uGlow: { value: this.glow },
+                uOpacity: { value: this.opacity },
+                uMouseEnabled: { value: this.mouseInteraction ? 1 : 0 },
+                uMouseStrength: { value: this.mouseStrength },
+                uMouseRadius: { value: this.mouseRadius }
+            };
+
+            this.program = new Program(this.gl, {
+                vertex,
+                fragment,
+                uniforms: this.uniforms
+            });
+
+            this.geometry = new Triangle(this.gl);
+            this.mesh = new Mesh(this.gl, { geometry: this.geometry, program: this.program });
+
+            this.resize();
+            this.resizeObserver = new ResizeObserver(() => this.resize());
+            this.resizeObserver.observe(this.canvas.parentElement || document.body);
+
+            this.onPointerMove = this.onPointerMove.bind(this);
+            if (this.mouseInteraction) {
+                window.addEventListener('pointermove', this.onPointerMove);
+            }
+
+            this.loop = this.loop.bind(this);
+            this.rafId = requestAnimationFrame(this.loop);
+        } catch (e) {
+            console.error("Failed to initialize OGL Ferrofluid background:", e);
+        }
+    }
+
+    resize() {
+        if (!this.canvas || !this.renderer) return;
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.renderer.setSize(rect.width, rect.height);
+        if (this.uniforms && this.uniforms.iResolution) {
+            this.uniforms.iResolution.value = [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight, 1];
+        }
+    }
+
+    onPointerMove(e) {
+        if (!this.canvas || !this.renderer) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const sc = this.renderer.dpr || 1;
+        const x = (e.clientX - rect.left) * sc;
+        const y = (rect.height - (e.clientY - rect.top)) * sc;
+        this.mouseTarget = [x, y];
+        if (this.mouseDampening <= 0 && this.uniforms && this.uniforms.iMouse) {
+            this.uniforms.iMouse.value = [x, y];
+        }
+    }
+
+    loop(t) {
+        this.rafId = requestAnimationFrame(this.loop);
+        if (this.uniforms && this.uniforms.iTime) {
+            this.uniforms.iTime.value = t * 0.001;
         }
 
-        init() {
+        if (this.mouseDampening > 0 && this.uniforms && this.uniforms.iMouse) {
+            if (!this.lastTime) this.lastTime = t;
+            const dt = (t - this.lastTime) / 1000;
+            this.lastTime = t;
+            const tau = Math.max(1e-4, this.mouseDampening);
+            let factor = 1 - Math.exp(-dt / tau);
+            if (factor > 1) factor = 1;
+            const target = this.mouseTarget;
+            const cur = this.uniforms.iMouse.value;
+            cur[0] += (target[0] - cur[0]) * factor;
+            cur[1] += (target[1] - cur[1]) * factor;
+        } else {
+            this.lastTime = t;
+        }
+
+        if (!this.paused && this.program && this.mesh && this.renderer) {
             try {
-                // Initialize PixiJS Application
-                this.app = new PIXI.Application({
-                    view: this.canvas,
-                    resizeTo: window,
-                    backgroundAlpha: 0, // Transparent overlaying background CSS gradient
-                    antialias: true,
-                    resolution: window.devicePixelRatio || 1,
-                    autoDensity: true
-                });
-
-                // Create a single Graphics object for bulk vector drawings
-                this.graphics = new PIXI.Graphics();
-                this.app.stage.addChild(this.graphics);
-
-                // Create container for data matrix texts
-                this.textContainer = new PIXI.Container();
-                this.app.stage.addChild(this.textContainer);
-
-                // Initialize Cyber Particles
-                this.generateParticles();
-
-                // Initialize Hex/Binary streams
-                this.generateDataStreams();
-
-                // Start Ticker Loop
-                this.app.ticker.add(this.update.bind(this));
-
-                // Bind Events
-                this.bindEvents();
+                this.renderer.render({ scene: this.mesh });
             } catch (e) {
-                console.error("Failed to initialize Cyberpunk WebGL background: ", e);
-            }
-        }
-
-        generateParticles() {
-            this.particles = [];
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const isLightTheme = document.body.classList.contains('light-theme');
-
-            for (let i = 0; i < this.numParticles; i++) {
-                const color = isLightTheme
-                    ? (Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132))
-                    : (Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055));
-                this.particles.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    vx: (Math.random() - 0.5) * 0.4,
-                    vy: (Math.random() - 0.5) * 0.4,
-                    radius: Math.random() * 4.5 + 3.5,
-                    alpha: Math.random() * 0.45 + 0.45,
-                    color: color,
-                    shape: Math.random() > 0.5 ? 'cross' : 'square',
-                    glitched: false
-                });
-            }
-        }
-
-        generateDataStreams() {
-            this.textContainer.removeChildren();
-            this.dataStreams = [];
-
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const numStreams = Math.floor(w / 140); // Spawn one column every 140px
-            const isLightTheme = document.body.classList.contains('light-theme');
-
-            for (let i = 0; i < numStreams; i++) {
-                const size = Math.random() * 5 + 13; // Cyber font size
-                const fill = isLightTheme
-                    ? (Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132))
-                    : (Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055));
-                const fontFamily = isLightTheme ? 'Inter' : 'Rajdhani';
-                const textObj = new PIXI.Text('', new PIXI.TextStyle({
-                    fontFamily: fontFamily,
-                    fontSize: size,
-                    fontWeight: '600',
-                    fill: fill,
-                    align: 'center',
-                    letterSpacing: 1
-                }));
-                this.textContainer.addChild(textObj);
-
-                this.dataStreams.push({
-                    textObj: textObj,
-                    x: Math.random() * w,
-                    y: Math.random() * -h - 100,
-                    speed: Math.random() * 1.8 + 0.8,
-                    chars: [],
-                    updateTimer: 0
-                });
-            }
-        }
-
-        bindEvents() {
-            window.addEventListener('mousemove', (e) => {
-                this.cursor.x = e.clientX;
-                this.cursor.y = e.clientY;
-                if (!this.cursor.active) {
-                    this.cursor.active = true;
-                    this.cursor.rx = e.clientX;
-                    this.cursor.ry = e.clientY;
-                }
-            });
-
-            window.addEventListener('mouseleave', () => {
-                this.cursor.active = false;
-            });
-
-            window.addEventListener('resize', () => {
-                this.graphics.clear();
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                this.dataStreams.forEach(s => {
-                    s.x = Math.random() * w;
-                });
-            });
-        }
-
-        update(delta) {
-            const w = this.app.screen.width;
-            const h = this.app.screen.height;
-            const isLightTheme = document.body.classList.contains('light-theme');
-
-            // Handle transition changes in real-time
-            if (this.wasLightTheme !== isLightTheme) {
-                this.wasLightTheme = isLightTheme;
-                this.particles.forEach(p => {
-                    if (isLightTheme) {
-                        p.color = Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132);
-                    } else {
-                        p.color = Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055);
-                    }
-                });
-                this.dataStreams.forEach(s => {
-                    if (isLightTheme) {
-                        s.textObj.style.fill = Math.random() > 0.65 ? 0x198754 : (Math.random() > 0.5 ? 0x20c997 : 0x0f5132);
-                        s.textObj.style.fontFamily = 'Inter';
-                    } else {
-                        s.textObj.style.fill = Math.random() > 0.65 ? 0xfcee0a : (Math.random() > 0.5 ? 0x00f0ff : 0xff0055);
-                        s.textObj.style.fontFamily = 'Rajdhani';
-                    }
-                    s.textObj.style.fontSize = Math.random() * 5 + 13;
-                });
-            }
-
-            // Clear vector drawings
-            this.graphics.clear();
-
-            // 1. Draw High-Tech Grid Lines
-            const gridSize = 90;
-            const gridColor = isLightTheme ? 0x198754 : 0x00f0ff;
-            const gridAlpha = isLightTheme ? 0.04 : 0.08;
-            this.graphics.lineStyle(1, gridColor, gridAlpha);
-
-            for (let x = 0; x < w; x += gridSize) {
-                this.graphics.moveTo(x, 0);
-                this.graphics.lineTo(x, h);
-            }
-            for (let y = 0; y < h; y += gridSize) {
-                this.graphics.moveTo(0, y);
-                this.graphics.lineTo(w, y);
-            }
-
-            // 2. Position updates & Mouse attraction pull
-            this.particles.forEach(p => {
-                p.x += p.vx * delta;
-                p.y += p.vy * delta;
-
-                // Screen boundaries wrapping
-                if (p.x < -10) p.x = w + 10;
-                if (p.x > w + 10) p.x = -10;
-                if (p.y < -10) p.y = h + 10;
-                if (p.y > h + 10) p.y = -10;
-
-                // Mouse proximity soft gravity
-                if (this.cursor.active) {
-                    const dx = this.cursor.x - p.x;
-                    const dy = this.cursor.y - p.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 220) {
-                        const force = (220 - dist) / 220 * 0.035;
-                        p.vx += (dx / dist) * force;
-                        p.vy += (dy / dist) * force;
-
-                        // Clamp velocity
-                        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                        if (speed > 1.4) {
-                            p.vx = (p.vx / speed) * 1.4;
-                            p.vy = (p.vy / speed) * 1.4;
-                        }
-                    }
-                }
-
-                // Cyber flicker trigger (disabled in light theme for clean feeling)
-                if (!isLightTheme && Math.random() < 0.008) {
-                    p.glitched = !p.glitched;
-                }
-            });
-
-            // 3. Draw connections between nodes
-            for (let i = 0; i < this.particles.length; i++) {
-                for (let j = i + 1; j < this.particles.length; j++) {
-                    const pi = this.particles[i];
-                    const pj = this.particles[j];
-
-                    const dx = pi.x - pj.x;
-                    const dy = pi.y - pj.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < this.connectionDistance) {
-                        const alpha = (1 - (dist / this.connectionDistance)) * 0.38;
-                        const connColor = isLightTheme ? 0x198754 : 0x00f0ff;
-                        const connAlpha = isLightTheme ? alpha * 0.45 : alpha;
-                        this.graphics.lineStyle(1.0, connColor, connAlpha);
-                        this.graphics.moveTo(pi.x, pi.y);
-                        this.graphics.lineTo(pj.x, pj.y);
-                    }
-                }
-            }
-
-            // 4. Draw Particles as Cyber HUD crosses and boxes
-            this.particles.forEach(p => {
-                const size = p.radius * ((!isLightTheme && p.glitched) ? (Math.random() * 1.6 + 1.2) : 1.0);
-                const alpha = p.alpha * ((!isLightTheme && p.glitched) ? 0.45 : 1.0);
-                
-                this.graphics.lineStyle(1.2, p.color, alpha);
-                if (p.shape === 'cross') {
-                    // Draw Cross (+)
-                    this.graphics.moveTo(p.x - size, p.y);
-                    this.graphics.lineTo(p.x + size, p.y);
-                    this.graphics.moveTo(p.x, p.y - size);
-                    this.graphics.lineTo(p.x, p.y + size);
-                } else {
-                    // Draw Square Box
-                    this.graphics.drawRect(p.x - size / 2, p.y - size / 2, size, size);
-                }
-            });
-
-            // 5. Update and render Hex/Binary code rain streams
-            this.dataStreams.forEach(s => {
-                s.y += s.speed * delta;
-                s.updateTimer += delta;
-
-                // Dynamically update contents to simulate cyber glitching data
-                if (s.updateTimer > 20 || s.chars.length === 0) {
-                    s.updateTimer = 0;
-                    const len = Math.floor(Math.random() * 7) + 4;
-                    s.chars = [];
-                    for (let c = 0; c < len; c++) {
-                        const hex = Math.random() > 0.4
-                            ? Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, '0')
-                            : (Math.random() > 0.5 ? '1' : '0');
-                        s.chars.push(hex);
-                    }
-                    s.textObj.text = s.chars.join('\n');
-                }
-
-                s.textObj.x = s.x;
-                s.textObj.y = s.y;
-                // Fade streams out as they travel further down the layout
-                s.textObj.alpha = isLightTheme ? 0.55 * (1.0 - (s.y / h)) : 0.95 * (1.0 - (s.y / h));
-
-                if (s.y > h) {
-                    s.y = -s.textObj.height - 30;
-                    s.x = Math.random() * w;
-                    s.speed = Math.random() * 1.8 + 0.8;
-                }
-            });
-
-            // 6. Draw interactive Mouse HUD Targeting Scanner
-            if (this.cursor.active) {
-                // Smooth follow reticle
-                this.cursor.rx += (this.cursor.x - this.cursor.rx) * 0.18 * delta;
-                this.cursor.ry += (this.cursor.y - this.cursor.ry) * 0.18 * delta;
-
-                const rx = this.cursor.rx;
-                const ry = this.cursor.ry;
-
-                // Draw radar ring
-                const radarColor = isLightTheme ? 0x198754 : 0xfcee0a;
-                this.graphics.lineStyle(1.0, radarColor, 0.85);
-                this.graphics.drawCircle(rx, ry, 26);
-                
-                // Draw targeting brackets
-                this.graphics.moveTo(rx - 36, ry);
-                this.graphics.lineTo(rx - 18, ry);
-                this.graphics.moveTo(rx + 18, ry);
-                this.graphics.lineTo(rx + 36, ry);
-                this.graphics.moveTo(rx, ry - 36);
-                this.graphics.lineTo(rx, ry - 18);
-                this.graphics.moveTo(rx, ry + 18);
-                this.graphics.lineTo(rx, ry + 36);
-
-                // Laser connect to nearest particles
-                this.particles.forEach(p => {
-                    const dx = rx - p.x;
-                    const dy = ry - p.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 150) {
-                        const laserAlpha = (1.0 - (dist / 150)) * 0.65;
-                        const laserColor = isLightTheme ? 0x20c997 : 0xff0055;
-                        const finalLaserAlpha = isLightTheme ? laserAlpha * 0.4 : laserAlpha;
-                        this.graphics.lineStyle(0.8, laserColor, finalLaserAlpha);
-                        this.graphics.moveTo(rx, ry);
-                        this.graphics.lineTo(p.x, p.y);
-                    }
-                });
-            }
-        }
-
-        play() {
-            if (this.app && this.app.ticker) {
-                this.app.ticker.start();
-            }
-        }
-
-        pause() {
-            if (this.app && this.app.ticker) {
-                this.app.ticker.stop();
+                console.error(e);
             }
         }
     }
 
-    // Register globally on load
-    window.addEventListener('load', () => {
-        window.landingWebGL = new LandingWebGLBackground();
-    });
-})();
+    play() {
+        this.paused = false;
+    }
+
+    pause() {
+        this.paused = true;
+    }
+
+    destroy() {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        if (this.mouseInteraction) window.removeEventListener('pointermove', this.onPointerMove);
+        if (this.resizeObserver) this.resizeObserver.disconnect();
+        
+        const callIfFn = (obj, key) => {
+            const fn = obj && obj[key];
+            if (typeof fn === 'function') {
+                fn.call(obj);
+            }
+        };
+        
+        callIfFn(this.program, 'remove');
+        callIfFn(this.geometry, 'remove');
+        callIfFn(this.mesh, 'remove');
+        callIfFn(this.renderer, 'destroy');
+        
+        this.program = null;
+        this.geometry = null;
+        this.mesh = null;
+        this.renderer = null;
+    }
+}
+
+// Register globally on DOM Content Loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.landingWebGL = new LandingWebGLBackground();
+});

@@ -7,55 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const state = window.EngineState;
     const appEl = document.getElementById('app');
 
-    // ==========================================
-    // THEME MANAGEMENT (Dark / Light Theme Toggle)
-    // ==========================================
-    function initTheme() {
-        const savedTheme = localStorage.getItem('slide-engine-theme') || 'light-theme';
-        document.body.className = savedTheme;
-        updateThemeUI(savedTheme);
-    }
 
-    function toggleTheme() {
-        const currentTheme = document.body.classList.contains('light-theme') ? 'light-theme' : 'dark-theme';
-        const newTheme = currentTheme === 'light-theme' ? 'dark-theme' : 'light-theme';
-        document.body.className = newTheme;
-        localStorage.setItem('slide-engine-theme', newTheme);
-        updateThemeUI(newTheme);
-    }
-
-    function updateThemeUI(theme) {
-        const iconName = theme === 'light-theme' ? 'moon' : 'sun';
-        const btnIds = ['btn-theme-toggle-landing', 'btn-theme-toggle-dashboard', 'btn-theme-toggle-editor'];
-        btnIds.forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
-                btn.title = theme === 'light-theme' ? 'Switch to Dark Cyberpunk Theme' : 'Switch to Light Classic Theme';
-            }
-        });
-
-        // Update the prompt tag text dynamically
-        const promptTag = document.getElementById('theme-prompt-tag');
-        if (promptTag) {
-            promptTag.textContent = theme === 'light-theme' ? 'Try dark theme!' : 'Try light theme!';
-        }
-
-        if (window.lucide) lucide.createIcons();
-    }
-
-    // Bind event listeners to theme buttons
-    ['btn-theme-toggle-landing', 'btn-theme-toggle-dashboard', 'btn-theme-toggle-editor'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.onclick = (e) => {
-                e.stopPropagation();
-                toggleTheme();
-            };
-        }
-    });
-
-    initTheme();
 
     // ==========================================
     // VIEW ROUTING
@@ -436,6 +388,206 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-rotate-back').onclick = () => {
         history.back();
     };
+
+    // Slide Showcase Section Intersection Observer
+    function initShowcaseObserver() {
+        const items = document.querySelectorAll('.showcase-item');
+        const layers = document.querySelectorAll('.mockup-layer');
+        let timerInterval = null;
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -20% 0px',
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const targetElement = entry.target.getAttribute('data-element');
+                    
+                    // 1. Toggle active class on text descriptions
+                    items.forEach(item => {
+                        if (item === entry.target) {
+                            item.classList.add('active');
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+
+                    // 2. Toggle active layer on mockup sticky side
+                    layers.forEach(layer => {
+                        const layerElement = layer.getAttribute('data-element');
+                        if (layerElement === targetElement) {
+                            layer.classList.add('active');
+                            // Trigger dynamic behavior
+                            if (layerElement === 'timer') {
+                                startShowcaseTimerSimulation();
+                            } else {
+                                stopShowcaseTimerSimulation();
+                            }
+                        } else {
+                            layer.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        items.forEach(item => observer.observe(item));
+
+        // MCQ Timer Mockup simulation
+        function startShowcaseTimerSimulation() {
+            stopShowcaseTimerSimulation();
+            const timerNumEl = document.getElementById('showcase-timer-num');
+            const progressCircle = document.querySelector('.timer-progress');
+            if (!timerNumEl || !progressCircle) return;
+
+            let countdown = 10;
+            timerNumEl.textContent = countdown;
+            
+            // progress circle styling
+            progressCircle.style.transition = 'none';
+            progressCircle.style.strokeDashoffset = '0';
+            
+            // Force reflow
+            progressCircle.getBoundingClientRect();
+            progressCircle.style.transition = 'stroke-dashoffset 10s linear';
+            progressCircle.style.strokeDashoffset = '283';
+
+            timerInterval = setInterval(() => {
+                countdown--;
+                if (countdown < 0) {
+                    countdown = 10;
+                    progressCircle.style.transition = 'none';
+                    progressCircle.style.strokeDashoffset = '0';
+                    progressCircle.getBoundingClientRect();
+                    progressCircle.style.transition = 'stroke-dashoffset 10s linear';
+                    progressCircle.style.strokeDashoffset = '283';
+                }
+                timerNumEl.textContent = countdown;
+            }, 1000);
+        }
+
+        function stopShowcaseTimerSimulation() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+    }
+
+    // Noteworthy Studio Clock & Interactive Scroll Actions
+    function initClock() {
+        const clockEl = document.getElementById('live-clock');
+        const locationEl = document.querySelector('.location-name');
+        if (!clockEl) return;
+        
+        const tzCountryMap = {
+            'Calcutta': 'India',
+            'Kolkata': 'India',
+            'Bombay': 'India',
+            'Mumbai': 'India',
+            'Zurich': 'Switzerland',
+            'Geneva': 'Switzerland',
+            'London': 'United Kingdom',
+            'New_York': 'United States',
+            'Los_Angeles': 'United States',
+            'Chicago': 'United States',
+            'Denver': 'United States',
+            'Phoenix': 'United States',
+            'Anchorage': 'United States',
+            'Honolulu': 'United States',
+            'Tokyo': 'Japan',
+            'Singapore': 'Singapore',
+            'Paris': 'France',
+            'Berlin': 'Germany',
+            'Rome': 'Italy',
+            'Madrid': 'Spain',
+            'Moscow': 'Russia',
+            'Sydney': 'Australia',
+            'Melbourne': 'Australia',
+            'Toronto': 'Canada',
+            'Vancouver': 'Canada',
+            'Seoul': 'South Korea',
+            'Shanghai': 'China',
+            'Hong_Kong': 'China',
+            'Dubai': 'United Arab Emirates'
+        };
+
+        let resolvedCountry = '';
+        
+        // 1. Resolve offline using timezone dictionary
+        try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (tz && tz.includes('/')) {
+                const parts = tz.split('/');
+                const city = parts[parts.length - 1];
+                if (tzCountryMap[city]) {
+                    resolvedCountry = tzCountryMap[city];
+                } else {
+                    resolvedCountry = city.replace(/_/g, ' ');
+                }
+            } else if (tz) {
+                resolvedCountry = tz;
+            }
+        } catch (err) {
+            console.error("Offline country resolution failed:", err);
+        }
+        
+        if (resolvedCountry && locationEl) {
+            locationEl.textContent = resolvedCountry;
+        }
+        
+        // 2. Fetch from geolocation API to get the exact country name online
+        fetch('https://ipapi.co/json/')
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.country_name && locationEl) {
+                    locationEl.textContent = data.country_name;
+                }
+            })
+            .catch(err => {
+                console.warn("Geo-IP API lookup failed (falling back to offline timezone resolution):", err);
+            });
+
+        function updateClock() {
+            try {
+                const localTime = new Date().toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                clockEl.textContent = localTime;
+            } catch (err) {
+                console.error("Error updating live clock:", err);
+            }
+        }
+        
+        updateClock();
+        setInterval(updateClock, 1000 * 20);
+    }
+
+
+    function initExploreScroll() {
+        const btnExplore = document.getElementById('btn-explore-showcase');
+        if (btnExplore) {
+            btnExplore.onclick = (e) => {
+                e.preventDefault();
+                const showcaseEl = document.querySelector('.elements-showcase-container');
+                if (showcaseEl) {
+                    showcaseEl.scrollIntoView({ behavior: 'smooth' });
+                }
+            };
+        }
+    }
+
+    initClock();
+    initExploreScroll();
+    initShowcaseObserver();
 
     // Intercept browser back button and physical mobile back gesture/button
     window.addEventListener('popstate', (e) => {
