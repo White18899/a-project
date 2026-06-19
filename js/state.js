@@ -14,6 +14,21 @@ function migrateProject(project) {
     project.slides.forEach(slide => {
         if (!slide.elements) return;
         slide.elements.forEach(elem => {
+            if (elem.type === 'video') {
+                if (elem.url && elem.url.includes('https://pixijs.com/assethttp')) {
+                    const match = elem.url.match(/https:\/\/pixijs\.com\/asset(https?:\/\/[^\s]+)s\/video\.mp4/);
+                    if (match && match[1]) {
+                        elem.url = match[1];
+                    } else {
+                        const lastHttpIdx = elem.url.lastIndexOf('http');
+                        if (lastHttpIdx > 0) {
+                            let cleanUrl = elem.url.substring(lastHttpIdx);
+                            cleanUrl = cleanUrl.replace(/s\/video\.mp4$/, '');
+                            elem.url = cleanUrl;
+                        }
+                    }
+                }
+            }
             if (elem.type && elem.type.startsWith('btn-')) {
                 if (elem.useMarkupColor === undefined) {
                     elem.useMarkupColor = false;

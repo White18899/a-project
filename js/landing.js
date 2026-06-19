@@ -393,7 +393,70 @@ document.addEventListener("DOMContentLoaded", () => {
     function initShowcaseObserver() {
         const items = document.querySelectorAll('.showcase-item');
         const layers = document.querySelectorAll('.mockup-layer');
+        const tabs = document.querySelectorAll('.showcase-tab');
         let timerInterval = null;
+
+        let autoplayInterval = null;
+        let activeIndex = 0;
+
+        function selectElement(tab) {
+            const targetElement = tab.getAttribute('data-element');
+            activeIndex = Array.from(tabs).indexOf(tab);
+
+            // Toggle active tab class
+            tabs.forEach(t => t.classList.toggle('active', t === tab));
+            
+            // Auto scroll tab into view center
+            tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            
+            // Toggle active text description class
+            items.forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-element') === targetElement);
+            });
+
+            // Toggle active mockup layer class
+            layers.forEach(layer => {
+                const layerElement = layer.getAttribute('data-element');
+                if (layerElement === targetElement) {
+                    layer.classList.add('active');
+                    if (layerElement === 'timer') {
+                        startShowcaseTimerSimulation();
+                    } else {
+                        stopShowcaseTimerSimulation();
+                    }
+                } else {
+                    layer.classList.remove('active');
+                }
+            });
+        }
+
+        // Mobile tabs click navigation
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                stopAutoplay(); // stop autoplay on manual interaction
+                selectElement(tab);
+            });
+        });
+
+        function startAutoplay() {
+            stopAutoplay();
+            if (window.innerWidth > 768) return;
+
+            autoplayInterval = setInterval(() => {
+                activeIndex = (activeIndex + 1) % tabs.length;
+                const nextTab = tabs[activeIndex];
+                if (nextTab) {
+                    selectElement(nextTab);
+                }
+            }, 3500);
+        }
+
+        function stopAutoplay() {
+            if (autoplayInterval) {
+                clearInterval(autoplayInterval);
+                autoplayInterval = null;
+            }
+        }
 
         const observerOptions = {
             root: null,
@@ -402,6 +465,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const observer = new IntersectionObserver((entries) => {
+            // Do not run on mobile view to avoid conflicts with manual tab clicks
+            if (window.innerWidth <= 768) return;
+
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const targetElement = entry.target.getAttribute('data-element');
@@ -420,7 +486,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         const layerElement = layer.getAttribute('data-element');
                         if (layerElement === targetElement) {
                             layer.classList.add('active');
-                            // Trigger dynamic behavior
                             if (layerElement === 'timer') {
                                 startShowcaseTimerSimulation();
                             } else {
@@ -434,7 +499,50 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }, observerOptions);
 
-        items.forEach(item => observer.observe(item));
+        function setupObserver() {
+            if (window.innerWidth > 768) {
+                stopAutoplay();
+                items.forEach(item => observer.observe(item));
+            } else {
+                items.forEach(item => observer.unobserve(item));
+                
+                // Sync tab state to whatever item is currently active when entering mobile mode
+                const activeItem = document.querySelector('.showcase-item.active');
+                if (activeItem) {
+                    const target = activeItem.getAttribute('data-element');
+                    tabs.forEach(t => {
+                        const isMatch = t.getAttribute('data-element') === target;
+                        t.classList.toggle('active', isMatch);
+                        if (isMatch) {
+                            t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                            activeIndex = Array.from(tabs).indexOf(t);
+                        }
+                    });
+                }
+                startAutoplay();
+            }
+        }
+
+        setupObserver();
+        window.addEventListener('resize', setupObserver);
+
+        // Pause/play autoplay based on whether elements-showcase-container is visible in the viewport
+        const containerObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (window.innerWidth <= 768) {
+                        startAutoplay();
+                    }
+                } else {
+                    stopAutoplay();
+                }
+            });
+        }, { threshold: 0.1 });
+
+        const containerEl = document.querySelector('.elements-showcase-container');
+        if (containerEl) {
+            containerObserver.observe(containerEl);
+        }
 
         // MCQ Timer Mockup simulation
         function startShowcaseTimerSimulation() {

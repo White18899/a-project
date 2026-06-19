@@ -4104,6 +4104,9 @@ select option {
 .showcase-item.active p {
     color: #e2e8f0;
 }
+.showcase-tabs-wrapper {
+    display: none;
+}
 
 /* Showcase Mobile responsiveness styling */
 @media (max-width: 768px) {
@@ -4116,9 +4119,56 @@ select option {
         font-size: 1.75rem;
     }
 
+    .showcase-tabs-wrapper {
+        display: block;
+        width: calc(100% + 40px);
+        margin-left: -20px;
+        margin-right: -20px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .showcase-tabs-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+
+    .showcase-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 4px 20px 8px 20px;
+        width: max-content;
+    }
+
+    .showcase-tab {
+        background-color: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0px;
+        color: var(--text-muted);
+        padding: 8px 16px;
+        font-family: var(--font-ui);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all var(--transition-fast) ease;
+    }
+
+    .showcase-tab:hover {
+        color: var(--text-main);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .showcase-tab.active {
+        background-color: var(--text-main);
+        color: var(--text-inverse);
+        border-color: var(--text-main);
+    }
+
     .elements-showcase {
         flex-direction: column;
-        gap: 30px;
+        gap: 20px;
     }
 
     .showcase-sticky-panel {
@@ -4126,22 +4176,26 @@ select option {
         top: 0;
         width: 100%;
         height: 280px;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
     }
 
     .showcase-scroll-panel {
         width: 100%;
-        padding-bottom: 40px;
+        padding-bottom: 20px;
     }
 
     .showcase-item {
-        margin-bottom: 80px;
-        opacity: 0.6;
-        transform: none;
+        display: none;
+        margin-bottom: 0 !important;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     .showcase-item.active {
-        opacity: 1;
+        display: block !important;
+        opacity: 1 !important;
+        transform: translateY(0) !important;
     }
 }
 

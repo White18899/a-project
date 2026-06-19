@@ -332,15 +332,19 @@ class SlideCanvas {
                 }
                 
                 const sprite = new PIXI.Sprite(texture);
-                sprite.width = contentWidth;
-                sprite.height = contentHeight;
                 container.addChild(sprite);
                 
-                // Redraw on load
-                texture.baseTexture.on('loaded', () => {
+                if (texture.baseTexture.valid) {
                     sprite.width = contentWidth;
                     sprite.height = contentHeight;
-                });
+                } else {
+                    sprite.width = contentWidth;
+                    sprite.height = contentHeight;
+                    texture.baseTexture.on('loaded', () => {
+                        sprite.width = contentWidth;
+                        sprite.height = contentHeight;
+                    });
+                }
                 texture.baseTexture.on('error', () => {
                     // draw error box
                     graphics.beginFill(0x7f1d1d);
@@ -385,17 +389,22 @@ class SlideCanvas {
 
                 const texture = PIXI.Texture.from(videoElement);
                 const sprite = new PIXI.Sprite(texture);
-                sprite.width = contentWidth;
-                sprite.height = contentHeight;
                 container.addChild(sprite);
 
                 container.videoElement = videoElement;
                 container.videoTexture = texture;
 
-                texture.baseTexture.on('loaded', () => {
+                if (texture.baseTexture.valid) {
                     sprite.width = contentWidth;
                     sprite.height = contentHeight;
-                });
+                } else {
+                    sprite.width = contentWidth;
+                    sprite.height = contentHeight;
+                    texture.baseTexture.on('loaded', () => {
+                        sprite.width = contentWidth;
+                        sprite.height = contentHeight;
+                    });
+                }
 
                 texture.baseTexture.on('error', (err) => {
                     console.error("Video load error:", err);
