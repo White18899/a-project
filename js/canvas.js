@@ -768,7 +768,7 @@ class SlideCanvas {
                 const handleGraphics = new PIXI.Graphics();
                 handleGraphics.lineStyle(1.5, goldColor, 1);
                 handleGraphics.beginFill(0xffffff);
-                handleGraphics.drawRect(-4, -4, 8, 8);
+                handleGraphics.drawRect(-7, -7, 14, 14);
                 handleGraphics.endFill();
                 
                 handleGraphics.x = handle.x;

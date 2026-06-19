@@ -405,27 +405,29 @@ function initEditorUI() {
                         }
                         const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
                         mini.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                        const thumbScale = 222 / 1920;
-                        mini.style.borderRadius = `${(elem.borderRadius || 0) * thumbScale}px`;
+                        mini.style.borderRadius = `${(elem.borderRadius || 0) / 1920 * 100}cqw`;
                     }
+
+                    // Enable flex centering to match standard canvas vertical alignment
+                    mini.style.display = 'flex';
+                    mini.style.alignItems = 'center';
                     
                     if (elem.text) {
                         const textSpan = document.createElement('span');
                         textSpan.textContent = elem.text;
                         textSpan.style.color = elem.textColor || '#ffffff';
-                        textSpan.style.fontSize = '4px';
+                        textSpan.style.fontSize = `${(elem.fontSize || 24) / 1920 * 100}cqw`;
                         textSpan.style.fontFamily = isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit');
                         textSpan.style.display = 'block';
                         textSpan.style.overflow = 'hidden';
                         textSpan.style.width = '100%';
-                        textSpan.style.height = '100%';
                         textSpan.style.textAlign = elem.align || 'left';
                         textSpan.style.whiteSpace = 'nowrap';
                         textSpan.style.textOverflow = 'ellipsis';
                         textSpan.style.lineHeight = '1.2';
                         
                         const pad = elem.padding || 0;
-                        textSpan.style.padding = `${(pad / 1080) * 100}%`;
+                        textSpan.style.padding = `${(pad / 1920) * 100}cqw`;
                         mini.appendChild(textSpan);
                     }
                 } else if (elem.type === 'image') {
