@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (view === 'dashboard') {
             document.getElementById('project-search-input').value = '';
             renderProjectsGrid(state.getProjectsForCurrentUser());
-            
+
             // Re-trigger Lucide icons to draw dashboard specific icons
             if (window.lucide) lucide.createIcons();
         }
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (window.editorCanvas) {
                 // Measure the newly visible container and resize canvas
                 window.editorCanvas.resize();
-                
+
                 // Draw slide contents onto the resized canvas
                 const activeSlide = state.getActiveSlide();
                 if (activeSlide) {
@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Close Auth modal
     const closeAuth = () => authModal.classList.remove('active');
     document.getElementById('btn-auth-close').onclick = closeAuth;
-    
+
     // Auth Tabs toggle
     loginTab.onclick = () => setAuthMode('login');
     signupTab.onclick = () => setAuthMode('signup');
@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const meta = document.createElement('div');
             meta.className = 'project-card-meta';
-            
+
             const slideCount = document.createElement('span');
             slideCount.className = 'slide-count';
             slideCount.innerHTML = `<i data-lucide="layers" style="width: 12px; height: 12px; display: inline; vertical-align: text-top; margin-right: 4px;"></i> ${proj.slideCount} slide${proj.slideCount !== 1 ? 's' : ''}`;
@@ -285,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         state.updateSlideSettings({ name: state.project.slides[0].name }); // Dummy trigger to trigger save list
                         state.project.name = newName.trim();
                         state.saveToLocalStorage();
-                        
+
                         // Restore previous view / loaded project pointer
                         if (savedState && savedState !== proj.id) {
                             await state.loadProject(savedState);
@@ -405,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const targetElement = entry.target.getAttribute('data-element');
-                    
+
                     // 1. Toggle active class on text descriptions
                     items.forEach(item => {
                         if (item === entry.target) {
@@ -445,11 +445,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let countdown = 10;
             timerNumEl.textContent = countdown;
-            
+
             // progress circle styling
             progressCircle.style.transition = 'none';
             progressCircle.style.strokeDashoffset = '0';
-            
+
             // Force reflow
             progressCircle.getBoundingClientRect();
             progressCircle.style.transition = 'stroke-dashoffset 10s linear';
@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const clockEl = document.getElementById('live-clock');
         const locationEl = document.querySelector('.location-name');
         if (!clockEl) return;
-        
+
         const tzCountryMap = {
             'Calcutta': 'India',
             'Kolkata': 'India',
@@ -516,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         let resolvedCountry = '';
-        
+
         // 1. Resolve offline using timezone dictionary
         try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -534,11 +534,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
             console.error("Offline country resolution failed:", err);
         }
-        
+
         if (resolvedCountry && locationEl) {
             locationEl.textContent = resolvedCountry;
         }
-        
+
         // 2. Fetch from geolocation API to get the exact country name online
         fetch('https://ipapi.co/json/')
             .then(res => {
@@ -566,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Error updating live clock:", err);
             }
         }
-        
+
         updateClock();
         setInterval(updateClock, 1000 * 20);
     }
@@ -585,8 +585,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function initPasswordToggle() {
+        const wrappers = document.querySelectorAll('.input-icon-wrapper');
+        wrappers.forEach(wrapper => {
+            const input = wrapper.querySelector('input[type="password"], input[type="text"]');
+            const btn = wrapper.querySelector('.btn-toggle-password');
+            if (!input || !btn) return;
+            
+            btn.addEventListener('click', () => {
+                const isPassword = input.getAttribute('type') === 'password';
+                input.setAttribute('type', isPassword ? 'text' : 'password');
+                
+                // Swap icon between eye and eye-off
+                btn.innerHTML = `<i data-lucide="${isPassword ? 'eye-off' : 'eye'}"></i>`;
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            });
+        });
+    }
+
     initClock();
     initExploreScroll();
+    initPasswordToggle();
     initShowcaseObserver();
 
     // Intercept browser back button and physical mobile back gesture/button
