@@ -4440,3 +4440,127 @@ select option {
     color: #000000 !important;
     border-color: #ffffff !important;
 }
+
+/* Custom Glass Cursor Styles */
+#glass-cursor-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 999999;
+    transition: opacity 0.3s ease;
+}
+
+#glass-cursor-container.hidden {
+    opacity: 0;
+}
+
+.glass-cursor-outer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.glass-cursor-blob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    transform: translate(-50%, -50%);
+    border-radius: 55% 45% 50% 50% / 50% 55% 45% 55%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(4px) saturate(120%);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    transition: width 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                height 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                background 0.25s ease, 
+                border-color 0.25s ease, 
+                border-radius 0.25s ease,
+                box-shadow 0.25s ease;
+    animation: morphGlass 8s ease-in-out infinite alternate;
+    will-change: width, height, border-radius;
+}
+
+.glass-cursor-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: #ffffff;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    transition: opacity 0.2s ease;
+    will-change: transform;
+}
+
+.glass-cursor-inner.hidden {
+    opacity: 0;
+}
+
+/* Hover state over links/buttons */
+.glass-cursor-outer.hovered .glass-cursor-blob {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.65);
+    border-radius: 50%;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2), inset 0 1px 3px rgba(255, 255, 255, 0.5);
+}
+
+/* Clicking state */
+.glass-cursor-outer.clicking .glass-cursor-blob {
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+/* Hovering over inputs (Text Mode) */
+.glass-cursor-outer.text-mode .glass-cursor-blob {
+    width: 2px;
+    height: 18px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.85);
+    border: none;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    animation: none;
+}
+
+/* Organic slow morph animation keyframes */
+@keyframes morphGlass {
+    0% {
+        border-radius: 55% 45% 50% 50% / 50% 55% 45% 55%;
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    50% {
+        border-radius: 45% 55% 48% 52% / 55% 48% 52% 45%;
+        transform: translate(-50%, -50%) rotate(180deg);
+    }
+    100% {
+        border-radius: 50% 50% 55% 45% / 48% 52% 45% 55%;
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Hide native pointer when custom cursor active */
+body.custom-cursor-active,
+body.custom-cursor-active * {
+    cursor: none !important;
+}
