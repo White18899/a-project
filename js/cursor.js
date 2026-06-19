@@ -38,6 +38,14 @@
 
     // Track mouse movement
     window.addEventListener('mousemove', (e) => {
+        // If in fullscreen mode, let native cursor show and hide custom cursor
+        if (document.fullscreenElement) {
+            container.classList.add('hidden');
+            document.body.classList.remove('custom-cursor-active');
+            isHidden = true;
+            return;
+        }
+
         mouseX = e.clientX;
         mouseY = e.clientY;
         
@@ -108,6 +116,17 @@
     document.addEventListener('mouseenter', () => {
         container.classList.remove('hidden');
         isHidden = false;
+    });
+
+    // Handle entering/exiting fullscreen to immediately toggle cursor states
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            container.classList.add('hidden');
+            document.body.classList.remove('custom-cursor-active');
+            isHidden = true;
+        } else {
+            isHidden = true;
+        }
     });
 
     // Animation loop (lerp)

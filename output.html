@@ -32,6 +32,11 @@
         body.show-cursor {
             cursor: default;
         }
+        /* Make cursor behave normally in fullscreen mode */
+        :fullscreen,
+        :fullscreen body {
+            cursor: auto;
+        }
         #player-canvas-container {
             position: relative;
             margin: auto;
@@ -39,6 +44,33 @@
         }
         canvas {
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+
+        /* HTML VIDEO OVERLAY SYSTEM */
+        .html-video-overlay {
+            position: absolute;
+            transform-origin: top left;
+            overflow: hidden;
+            background-color: #000000;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            z-index: 5;
+        }
+        .html-video-overlay video,
+        .html-video-overlay iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            pointer-events: auto;
+        }
+        /* Play mode: pointer events active for controls */
+        #player-canvas-container .html-video-overlay {
+            pointer-events: auto !important;
+        }
+        #player-canvas-container .html-video-overlay video,
+        #player-canvas-container .html-video-overlay iframe {
+            pointer-events: auto !important;
         }
     </style>
 </head>

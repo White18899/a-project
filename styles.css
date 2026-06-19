@@ -4598,4 +4598,5 @@ body.custom-cursor-active * {
 #player-canvas-container .html-video-overlay video,
 #player-canvas-container .html-video-overlay iframe {
     pointer-events: auto !important;
-}
+}
+
