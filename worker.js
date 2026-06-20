@@ -7,7 +7,7 @@
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Filename',
 };
 
 // Response helper
@@ -87,6 +87,36 @@ export default {
         }
 
         try {
+            // Serve uploaded files from R2
+            if (pathname.startsWith('/uploads/') && request.method === 'GET') {
+                const R2 = env.SLIDE_ENGINE_R2;
+                if (!R2) {
+                    return sendJson(500, { success: false, message: "Server R2 Binding configuration missing." });
+                }
+
+                const filename = pathname.split('/').pop();
+                const object = await R2.get(`uploads/${filename}`);
+                if (!object) {
+                    return new Response("Object Not Found", { 
+                        status: 404, 
+                        headers: corsHeaders 
+                    });
+                }
+
+                const headers = new Headers();
+                object.writeHttpMetadata(headers);
+                headers.set('etag', object.httpEtag);
+                
+                // Merge corsHeaders into response headers
+                for (const [key, value] of Object.entries(corsHeaders)) {
+                    headers.set(key, value);
+                }
+
+                return new Response(object.body, {
+                    headers
+                });
+            }
+
             // --- AUTHENTICATION API ---
             
             // Sign Up
@@ -151,6 +181,30 @@ export default {
             const currentUser = await getAuthenticatedUser(request, KV);
             if (!currentUser) {
                 return sendJson(401, { success: false, message: 'Unauthorized session.' });
+            }
+
+            // Upload file to R2
+            if (pathname === '/api/upload' && request.method === 'POST') {
+                const R2 = env.SLIDE_ENGINE_R2;
+                if (!R2) {
+                    return sendJson(500, { success: false, message: "Server R2 Binding configuration missing." });
+                }
+
+                const filenameHeader = url.searchParams.get('filename') || request.headers.get('x-filename') || 'upload.mp4';
+                const cleanFilename = filenameHeader.split('/').pop().replace(/[^a-zA-Z0-9\.\-_]/g, '_');
+                const uniqueFilename = `${Date.now()}_${cleanFilename}`;
+
+                const contentType = request.headers.get('content-type') || 'application/octet-stream';
+                
+                // Write file to R2 bucket
+                await R2.put(`uploads/${uniqueFilename}`, request.body, {
+                    httpMetadata: { contentType: contentType }
+                });
+
+                // Return absolute URL of the uploaded resource so client can load it from any origin
+                const absoluteUrl = `${url.origin}/uploads/${uniqueFilename}`;
+
+                return sendJson(200, { success: true, url: absoluteUrl });
             }
 
             // Fetch User Projects List

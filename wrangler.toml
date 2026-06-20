@@ -12,3 +12,9 @@ compatibility_date = "2024-03-01"
 [[kv_namespaces]]
 binding = "SLIDE_ENGINE_KV"
 id = "e55f900cec7d461cbaeab865b114deba"
+
+# Bind an R2 Bucket to persist user file uploads (images, videos).
+[[r2_buckets]]
+binding = "SLIDE_ENGINE_R2"
+bucket_name = "slide-engine-uploads"
+

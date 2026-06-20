@@ -922,11 +922,16 @@ function initEditorUI() {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // If running on a different port (like VS Code Live Server at 5500),
-            // redirect the local upload to our local server on port 3000.
-            const uploadOrigin = window.location.origin.includes(':3000') 
-                ? window.location.origin 
-                : 'http://localhost:3000';
+            // Use SlideEngineAPI's baseUrl if configured, otherwise fall back to local origin or port 3000
+            let uploadOrigin = (window.SlideEngineAPI && window.SlideEngineAPI.baseUrl) || '';
+            if (!uploadOrigin) {
+                uploadOrigin = window.location.origin.includes(':3000') 
+                    ? window.location.origin 
+                    : 'http://localhost:3000';
+            }
+            if (uploadOrigin.endsWith('/')) {
+                uploadOrigin = uploadOrigin.slice(0, -1);
+            }
 
             fetch(`${uploadOrigin}/api/upload?filename=${encodeURIComponent(file.name)}`, {
                 method: 'POST',
