@@ -340,6 +340,12 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, { success: true });
         }
 
+        if (pathname === '/api/debug-log' && req.method === 'POST') {
+            const body = await parseBody(req);
+            debugLog(`[BROWSER ERROR] ${JSON.stringify(body, null, 2)}`);
+            return sendJson(res, 200, { success: true });
+        }
+
         if (pathname === '/api/upload' && req.method === 'POST') {
             debugLog('[Upload API] POST request received');
             const filenameHeader = parsedUrl.query.filename || req.headers['x-filename'] || 'upload.mp4';
@@ -362,8 +368,10 @@ const server = http.createServer(async (req, res) => {
             
             return new Promise((resolve) => {
                 writeStream.on('finish', () => {
-                    debugLog('[Upload API] File successfully written: ' + uniqueFilename);
-                    sendJson(res, 200, { success: true, url: `/uploads/${uniqueFilename}` });
+                    const host = req.headers.host || 'localhost:3000';
+                    const protocol = req.socket.encrypted ? 'https' : 'http';
+                    const absoluteUrl = `${protocol}://${host}/uploads/${uniqueFilename}`;
+                    sendJson(res, 200, { success: true, url: absoluteUrl });
                     resolve();
                 });
                 writeStream.on('error', (err) => {

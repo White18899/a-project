@@ -40,6 +40,69 @@ function initEditorUI() {
     const state = window.EngineState;
     const canvas = window.editorCanvas;
 
+    function uploadFile(file, statusTextEl, successCallback, errorCallback) {
+        if (statusTextEl) {
+            statusTextEl.textContent = "Uploading...";
+            statusTextEl.style.color = "var(--text-muted)";
+        }
+        
+        const token = localStorage.getItem('slide_engine_api_token') || '';
+        const headers = {
+            'X-Filename': file.name
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        let uploadOrigin = (window.SlideEngineAPI && window.SlideEngineAPI.baseUrl) || '';
+        if (!uploadOrigin) {
+            uploadOrigin = window.location.origin.includes(':3000') 
+                ? window.location.origin 
+                : 'http://localhost:3000';
+        }
+        if (uploadOrigin.endsWith('/')) {
+            uploadOrigin = uploadOrigin.slice(0, -1);
+        }
+
+        fetch(`${uploadOrigin}/api/upload?filename=${encodeURIComponent(file.name)}`, {
+            method: 'POST',
+            headers: headers,
+            body: file
+        })
+        .then(async res => {
+            const text = await res.text();
+            if (!res.ok) {
+                throw new Error(`Server returned status ${res.status}: ${text.substring(0, 100)}`);
+            }
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error(`Invalid JSON response: "${text.substring(0, 100)}"`);
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                if (statusTextEl) {
+                    statusTextEl.textContent = "Uploaded successfully";
+                    statusTextEl.style.color = "#10b981";
+                }
+                successCallback(data.url);
+            } else {
+                throw new Error(data.message || 'Upload failed');
+            }
+        })
+        .catch(err => {
+            console.error('[Upload Error] Details:', err);
+            if (statusTextEl) {
+                statusTextEl.textContent = "Failed to upload: " + err.message;
+                statusTextEl.style.color = "#ef4444";
+            }
+            if (errorCallback) {
+                errorCallback(err);
+            }
+        });
+    }
+
     // Active Tab tracking
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
@@ -722,20 +785,30 @@ function initEditorUI() {
     document.getElementById('slide-bg-image-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const dataUrl = evt.target.result;
+            const labelSpan = e.target.parentElement.querySelector('span');
+            uploadFile(file, labelSpan, (url) => {
                 state.updateSlideSettings({
                     background: {
                         ...state.getActiveSlide().background,
                         type: 'image',
-                        imageUrl: dataUrl
+                        imageUrl: url
                     }
                 });
                 document.getElementById('slide-bg-type').value = 'image';
                 toggleBackgroundOptionFields('image');
-            };
-            reader.readAsDataURL(file);
+                
+                // Update the text input field in the sidebar
+                const bgUrlInput = document.getElementById('slide-bg-image-url');
+                if (bgUrlInput) {
+                    bgUrlInput.value = url;
+                }
+                
+                // Force redraw of canvas slide background
+                const activeSlide = state.getActiveSlide();
+                if (activeSlide && window.editorCanvas) {
+                    window.editorCanvas.renderSlide(activeSlide);
+                }
+            });
         }
     });
 
@@ -853,12 +926,16 @@ function initEditorUI() {
     document.getElementById('elem-image-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const dataUrl = evt.target.result;
-                updateActiveElemAndSave({ url: '', fileData: dataUrl });
-            };
-            reader.readAsDataURL(file);
+            const labelSpan = e.target.parentElement.querySelector('span');
+            uploadFile(file, labelSpan, (url) => {
+                updateActiveElemAndSave({ url: url, fileData: null });
+                
+                // Update the text input field in the sidebar
+                const elemUrlInput = document.getElementById('elem-image-url');
+                if (elemUrlInput) {
+                    elemUrlInput.value = url;
+                }
+            });
         }
     });
 
@@ -909,71 +986,13 @@ function initEditorUI() {
         const file = e.target.files[0];
         if (file) {
             const statusText = document.getElementById('video-status-text');
-            if (statusText) {
-                statusText.textContent = "Uploading video file...";
-                statusText.style.color = "var(--text-muted)";
-            }
-            
-            const token = localStorage.getItem('slide_engine_api_token') || '';
-            const headers = {
-                'X-Filename': file.name
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-
-            // Use SlideEngineAPI's baseUrl if configured, otherwise fall back to local origin or port 3000
-            let uploadOrigin = (window.SlideEngineAPI && window.SlideEngineAPI.baseUrl) || '';
-            if (!uploadOrigin) {
-                uploadOrigin = window.location.origin.includes(':3000') 
-                    ? window.location.origin 
-                    : 'http://localhost:3000';
-            }
-            if (uploadOrigin.endsWith('/')) {
-                uploadOrigin = uploadOrigin.slice(0, -1);
-            }
-
-            fetch(`${uploadOrigin}/api/upload?filename=${encodeURIComponent(file.name)}`, {
-                method: 'POST',
-                headers: headers,
-                body: file
-            })
-            .then(async res => {
-                console.log('[Upload Debug] Response status:', res.status, 'OK:', res.ok);
-                console.log('[Upload Debug] Response headers:', [...res.headers.entries()]);
-                const text = await res.text();
-                console.log('[Upload Debug] Response text:', text);
-                
-                if (!res.ok) {
-                    throw new Error(`Server at ${res.url} returned status ${res.status}: ${text.substring(0, 100)}`);
+            uploadFile(file, statusText, (url) => {
+                updateActiveElemAndSave({ url: url, fileData: null });
+                const fileLabel = document.getElementById('video-file-label');
+                if (fileLabel) {
+                    fileLabel.textContent = "Replace video file...";
                 }
-                
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    throw new Error(`Invalid JSON response: "${text.substring(0, 100)}"`);
-                }
-            })
-            .then(data => {
-                if (data.success) {
-                    updateActiveElemAndSave({ url: data.url, fileData: null });
-                    if (statusText) {
-                        statusText.textContent = "Local video file loaded";
-                        statusText.style.color = "#10b981";
-                    }
-                    const fileLabel = document.getElementById('video-file-label');
-                    if (fileLabel) fileLabel.textContent = "Replace video file...";
-                    document.getElementById('elem-video-url').value = data.url;
-                } else {
-                    throw new Error(data.message || 'Upload failed');
-                }
-            })
-            .catch(err => {
-                console.error('[Upload Debug] Error details:', err);
-                if (statusText) {
-                    statusText.textContent = "Failed to upload video: " + err.message;
-                    statusText.style.color = "#ef4444";
-                }
+                document.getElementById('elem-video-url').value = url;
             });
         }
     });

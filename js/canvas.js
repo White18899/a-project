@@ -128,7 +128,6 @@ class SlideCanvas {
         // Clear children
         if (targetContainer === this.slideContainer) {
             this.pauseVideosInContainer(this.slideContainer);
-            this.clearVideoOverlays();
             this.slideContainer.removeChildren();
             if (this.uiContainer) {
                 this.uiContainer.removeChildren();
@@ -240,18 +239,74 @@ class SlideCanvas {
                 sprite.height = this.baseHeight;
                 targetContainer.addChild(sprite);
                 
-                // Redraw on load
-                texture.baseTexture.on('loaded', () => {
-                    sprite.width = this.baseWidth;
-                    sprite.height = this.baseHeight;
-                });
+                if (!texture.baseTexture.valid) {
+                    sprite.visible = false;
+                    
+                    const loadingContainer = new PIXI.Container();
+                    targetContainer.addChild(loadingContainer);
+                    
+                    const loadingBg = new PIXI.Graphics();
+                    loadingBg.beginFill(0x0f172a);
+                    loadingBg.drawRect(0, 0, this.baseWidth, this.baseHeight);
+                    loadingBg.endFill();
+                    loadingContainer.addChild(loadingBg);
+                    
+                    const spinner = new PIXI.Graphics();
+                    spinner.x = this.baseWidth / 2;
+                    spinner.y = this.baseHeight / 2;
+                    loadingContainer.addChild(spinner);
+                    
+                    const textStyle = new PIXI.TextStyle({
+                        fontFamily: 'Outfit',
+                        fontSize: 32,
+                        fill: '#cbd5e1',
+                        align: 'center'
+                    });
+                    const loadingText = new PIXI.Text("Loading Background...", textStyle);
+                    loadingText.anchor.set(0.5);
+                    loadingText.x = this.baseWidth / 2;
+                    loadingText.y = this.baseHeight / 2 + 80;
+                    loadingContainer.addChild(loadingText);
+                    
+                    let angle = 0;
+                    const drawSpinner = () => {
+                        spinner.clear();
+                        spinner.lineStyle(6, 0xf1c40f, 1);
+                        spinner.arc(0, 0, 40, angle, angle + Math.PI * 1.5);
+                    };
+                    
+                    const animate = (delta) => {
+                        angle += 0.1 * delta;
+                        drawSpinner();
+                    };
+                    this.app.ticker.add(animate);
+                    
+                    texture.baseTexture.once('loaded', () => {
+                        this.app.ticker.remove(animate);
+                        sprite.visible = true;
+                        sprite.width = this.baseWidth;
+                        sprite.height = this.baseHeight;
+                        loadingContainer.destroy({ children: true });
+                    });
+                    
+                    texture.baseTexture.once('error', () => {
+                        this.app.ticker.remove(animate);
+                        loadingContainer.destroy({ children: true });
+                    });
+                } else {
+                    texture.baseTexture.on('loaded', () => {
+                        sprite.width = this.baseWidth;
+                        sprite.height = this.baseHeight;
+                    });
+                }
             } catch (e) {
                 console.error("BG Image load failed: ", e);
                 // Fallback
-                bgGraphics.beginFill(0x0f172a);
-                bgGraphics.drawRect(0, 0, this.baseWidth, this.baseHeight);
-                bgGraphics.endFill();
-                targetContainer.addChild(bgGraphics);
+                const fallbackGraphics = new PIXI.Graphics();
+                fallbackGraphics.beginFill(0x0f172a);
+                fallbackGraphics.drawRect(0, 0, this.baseWidth, this.baseHeight);
+                fallbackGraphics.endFill();
+                targetContainer.addChild(fallbackGraphics);
             }
         }
     }
@@ -346,9 +401,58 @@ class SlideCanvas {
                 } else {
                     sprite.width = contentWidth;
                     sprite.height = contentHeight;
-                    texture.baseTexture.on('loaded', () => {
+                    sprite.visible = false;
+                    
+                    const loadingContainer = new PIXI.Container();
+                    container.addChild(loadingContainer);
+                    
+                    const loadingBg = new PIXI.Graphics();
+                    loadingBg.beginFill(0x1e293b, 0.8);
+                    loadingBg.drawRect(0, 0, contentWidth, contentHeight);
+                    loadingBg.endFill();
+                    loadingContainer.addChild(loadingBg);
+                    
+                    const spinner = new PIXI.Graphics();
+                    spinner.x = contentWidth / 2;
+                    spinner.y = contentHeight / 2;
+                    loadingContainer.addChild(spinner);
+                    
+                    const textStyle = new PIXI.TextStyle({
+                        fontFamily: 'Outfit',
+                        fontSize: Math.max(10, Math.min(18, contentHeight * 0.1)),
+                        fill: '#cbd5e1',
+                        align: 'center'
+                    });
+                    const loadingText = new PIXI.Text("Loading Image...", textStyle);
+                    loadingText.anchor.set(0.5);
+                    loadingText.x = contentWidth / 2;
+                    loadingText.y = contentHeight / 2 + Math.max(20, contentHeight * 0.15);
+                    loadingContainer.addChild(loadingText);
+                    
+                    let angle = 0;
+                    const drawSpinner = () => {
+                        spinner.clear();
+                        spinner.lineStyle(3, 0xf1c40f, 1);
+                        spinner.arc(0, 0, Math.min(20, Math.min(contentWidth, contentHeight) * 0.15), angle, angle + Math.PI * 1.5);
+                    };
+                    
+                    const animate = (delta) => {
+                        angle += 0.1 * delta;
+                        drawSpinner();
+                    };
+                    this.app.ticker.add(animate);
+                    
+                    texture.baseTexture.once('loaded', () => {
+                        this.app.ticker.remove(animate);
+                        sprite.visible = true;
                         sprite.width = contentWidth;
                         sprite.height = contentHeight;
+                        loadingContainer.destroy({ children: true });
+                    });
+                    
+                    texture.baseTexture.once('error', () => {
+                        this.app.ticker.remove(animate);
+                        loadingContainer.destroy({ children: true });
                     });
                 }
                 texture.baseTexture.on('error', () => {
@@ -1414,16 +1518,49 @@ class SlideCanvas {
 
     renderVideoOverlays(slide) {
         if (!slide || !this.container) return;
-        this.clearVideoOverlays();
         
+        // Find all active video elements on the slide
+        const activeVideoIds = new Set(
+            slide.elements
+                .filter(elem => elem.type === 'video' && !(this.mode === 'play' && elem.visible === false))
+                .map(elem => elem.id)
+        );
+        
+        // Remove overlays that are no longer active
+        const existingOverlays = this.container.querySelectorAll('.html-video-overlay');
+        existingOverlays.forEach(el => {
+            const id = el.getAttribute('data-element-id');
+            if (!activeVideoIds.has(id)) {
+                const iframe = el.querySelector('iframe');
+                if (iframe) iframe.src = 'about:blank';
+                const video = el.querySelector('video');
+                if (video) {
+                    try {
+                        video.pause();
+                        video.src = '';
+                        video.load();
+                    } catch(e) {}
+                }
+                el.remove();
+            }
+        });
+        
+        // Add or update active video overlays
         slide.elements.forEach(elem => {
             if (elem.type !== 'video') return;
             if (this.mode === 'play' && elem.visible === false) return;
             
-            const overlay = document.createElement('div');
-            overlay.className = 'html-video-overlay';
-            overlay.setAttribute('data-element-id', elem.id);
+            let overlay = this.container.querySelector(`.html-video-overlay[data-element-id="${elem.id}"]`);
+            let isNew = false;
             
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'html-video-overlay';
+                overlay.setAttribute('data-element-id', elem.id);
+                isNew = true;
+            }
+            
+            // Update positioning and z-index styles
             overlay.style.left = `${(elem.x / this.baseWidth) * 100}%`;
             overlay.style.top = `${(elem.y / this.baseHeight) * 100}%`;
             overlay.style.width = `${(elem.width / this.baseWidth) * 100}%`;
@@ -1432,44 +1569,99 @@ class SlideCanvas {
             
             if (this.mode === 'edit') {
                 overlay.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            } else {
+                overlay.style.border = 'none';
             }
             
             const ytId = this.getYouTubeId(elem.fileData ? '' : elem.url);
             if (ytId) {
-                const iframe = document.createElement('iframe');
                 const autoplay = (this.mode === 'play' && elem.autoplay !== false) ? 1 : 0;
                 const loop = (elem.loop !== false) ? 1 : 0;
                 const mute = (this.mode === 'play' && elem.muted === true) ? 1 : 0;
+                const targetSrc = `https://www.youtube.com/embed/${ytId}?autoplay=${autoplay}&loop=${loop}&playlist=${ytId}&mute=${mute}&controls=1&enablejsapi=1`;
                 
-                iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=${autoplay}&loop=${loop}&playlist=${ytId}&mute=${mute}&controls=1&enablejsapi=1`;
-                iframe.allow = "autoplay; encrypted-media";
-                iframe.allowFullscreen = true;
-                overlay.appendChild(iframe);
-            } else {
-                const video = document.createElement('video');
-                video.src = elem.fileData || elem.url || '';
-                video.controls = true;
-                video.loop = elem.loop !== false;
-                video.muted = (this.mode === 'play' && elem.muted === true) || (this.mode === 'edit');
-                
-                if (this.mode === 'play') {
-                    video.autoplay = elem.autoplay !== false;
-                    video.volume = elem.volume !== undefined ? elem.volume : 1.0;
-                    if (video.autoplay) {
-                        video.play().catch(err => {
-                            console.warn("Autoplay blocked, running muted fallback:", err);
-                            video.muted = true;
-                            video.play().catch(e => console.error("Muted playback failed:", e));
-                        });
+                const existingIframe = overlay.querySelector('iframe');
+                if (!existingIframe) {
+                    const oldVideo = overlay.querySelector('video');
+                    if (oldVideo) {
+                        try {
+                            oldVideo.pause();
+                            oldVideo.src = '';
+                            oldVideo.load();
+                        } catch(e) {}
+                        oldVideo.remove();
                     }
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.src = targetSrc;
+                    iframe.allow = "autoplay; encrypted-media";
+                    iframe.allowFullscreen = true;
+                    overlay.appendChild(iframe);
                 } else {
-                    video.autoplay = false;
-                    video.currentTime = 0.1;
+                    const currentSrc = existingIframe.src;
+                    const resolvedTargetSrc = targetSrc ? new URL(targetSrc, window.location.href).href : '';
+                    if (currentSrc !== resolvedTargetSrc) {
+                        existingIframe.src = targetSrc;
+                    }
                 }
-                overlay.appendChild(video);
+            } else {
+                const targetSrc = elem.fileData || elem.url || '';
+                const existingVideo = overlay.querySelector('video');
+                
+                if (!existingVideo) {
+                    const oldIframe = overlay.querySelector('iframe');
+                    if (oldIframe) {
+                        oldIframe.src = 'about:blank';
+                        oldIframe.remove();
+                    }
+                    
+                    const video = document.createElement('video');
+                    video.src = targetSrc;
+                    video.controls = true;
+                    video.loop = elem.loop !== false;
+                    video.muted = (this.mode === 'play' && elem.muted === true) || (this.mode === 'edit');
+                    
+                    if (this.mode === 'play') {
+                        video.autoplay = elem.autoplay !== false;
+                        video.volume = elem.volume !== undefined ? elem.volume : 1.0;
+                        if (video.autoplay) {
+                            video.play().catch(err => {
+                                console.warn("Autoplay blocked, running muted fallback:", err);
+                                video.muted = true;
+                                video.play().catch(e => console.error("Muted playback failed:", e));
+                            });
+                        }
+                    } else {
+                        video.autoplay = false;
+                        video.currentTime = 0.1;
+                    }
+                    overlay.appendChild(video);
+                } else {
+                    const currentSrc = existingVideo.src;
+                    const resolvedTargetSrc = targetSrc ? new URL(targetSrc, window.location.href).href : '';
+                    if (currentSrc !== resolvedTargetSrc) {
+                        existingVideo.src = targetSrc;
+                        existingVideo.load();
+                    }
+                    existingVideo.loop = elem.loop !== false;
+                    existingVideo.muted = (this.mode === 'play' && elem.muted === true) || (this.mode === 'edit');
+                    if (this.mode === 'play') {
+                        existingVideo.volume = elem.volume !== undefined ? elem.volume : 1.0;
+                        const isAutoplay = elem.autoplay !== false;
+                        if (isAutoplay && existingVideo.paused) {
+                            existingVideo.play().catch(() => {});
+                        }
+                    } else {
+                        if (!existingVideo.paused) {
+                            existingVideo.pause();
+                        }
+                    }
+                }
             }
             
-            this.container.appendChild(overlay);
+            if (isNew) {
+                this.container.appendChild(overlay);
+            }
         });
     }
 

@@ -220,8 +220,16 @@ class PlayerController {
             if (this.canvas.slideContainer) {
                 this.canvas.pauseVideosInContainer(this.canvas.slideContainer);
             }
-            this.canvas.app.destroy(true, { children: true, texture: true, baseTexture: true });
+            this.canvas.app.destroy(true, { children: true });
             this.canvas = null;
+        }
+
+        // Re-render editor canvas to restore interactivity and redraw default state
+        if (window.editorCanvas && window.EngineState) {
+            const activeSlide = window.EngineState.getActiveSlide();
+            if (activeSlide) {
+                window.editorCanvas.renderSlide(activeSlide);
+            }
         }
     }
 

@@ -237,7 +237,132 @@ document.addEventListener("DOMContentLoaded", () => {
             // Card banner
             const banner = document.createElement('div');
             banner.className = 'project-card-banner';
-            banner.innerHTML = '<i data-lucide="presentation" class="proj-banner-icon"></i>';
+            banner.style.overflow = 'hidden';
+            
+            let hasPreview = false;
+            try {
+                const projectDataStr = localStorage.getItem(`slide_engine_project_${proj.id}`);
+                if (projectDataStr) {
+                    const projectData = JSON.parse(projectDataStr);
+                    if (projectData && projectData.slides && projectData.slides.length > 0) {
+                        const slide = projectData.slides[0];
+                        
+                        const bgIndicator = document.createElement('div');
+                        bgIndicator.className = 'project-card-bg-indicator';
+                        bgIndicator.style.position = 'absolute';
+                        bgIndicator.style.top = '0';
+                        bgIndicator.style.left = '0';
+                        bgIndicator.style.width = '100%';
+                        bgIndicator.style.height = '100%';
+                        bgIndicator.style.backgroundPosition = 'center';
+                        bgIndicator.style.backgroundSize = 'cover';
+                        
+                        if (slide.background) {
+                            if (slide.background.type === 'color') {
+                                bgIndicator.style.backgroundColor = slide.background.color || '#0f172a';
+                            } else if (slide.background.type === 'gradient') {
+                                bgIndicator.style.background = `linear-gradient(${slide.background.gradientAngle || 135}deg, ${slide.background.gradientStart || '#0f172a'}, ${slide.background.gradientEnd || '#1e293b'})`;
+                            } else if (slide.background.type === 'image' && slide.background.imageUrl) {
+                                bgIndicator.style.backgroundImage = `url(${slide.background.imageUrl})`;
+                            } else {
+                                bgIndicator.style.backgroundColor = '#0f172a';
+                            }
+                        } else {
+                            bgIndicator.style.backgroundColor = '#0f172a';
+                        }
+                        banner.appendChild(bgIndicator);
+
+                        // Render mini elements inside the banner
+                        if (slide.elements && slide.elements.length > 0) {
+                            const sortedElems = [...slide.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+                            sortedElems.forEach(elem => {
+                                const mini = document.createElement('div');
+                                mini.style.position = 'absolute';
+                                mini.style.left = `${(elem.x / 1920) * 100}%`;
+                                mini.style.top = `${(elem.y / 1080) * 100}%`;
+                                mini.style.width = `${(elem.width / 1920) * 100}%`;
+                                mini.style.height = `${(elem.height / 1080) * 100}%`;
+                                mini.style.zIndex = elem.zIndex || 0;
+                                mini.style.pointerEvents = 'none';
+                                
+                                if (elem.type === 'text' || elem.type.startsWith('btn-') || elem.type === 'timer') {
+                                    const isRpg = elem.rpgStyle || slide.rpgTheme;
+                                    if (isRpg) {
+                                        mini.style.backgroundColor = 'rgba(0, 0, 128, 0.9)';
+                                        mini.style.border = '0.5px double #ffffff';
+                                    } else {
+                                        const hex = (elem.bgColor || '#16161a').replace('#', '');
+                                        let r = 0, g = 0, b = 0;
+                                        if (hex.length === 3) {
+                                            r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+                                            g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+                                            b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+                                        } else if (hex.length === 6) {
+                                            r = parseInt(hex.substring(0, 2), 16);
+                                            g = parseInt(hex.substring(2, 4), 16);
+                                            b = parseInt(hex.substring(4, 6), 16);
+                                        }
+                                        const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
+                                        mini.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                                        
+                                        if (elem.borderWidth && elem.borderStyle && elem.borderStyle !== 'none') {
+                                            const miniBorderWidth = (elem.borderWidth / 1920) * 100;
+                                            mini.style.border = `${miniBorderWidth}cqw ${elem.borderStyle} ${elem.borderColor || '#ffffff'}`;
+                                        }
+                                        mini.style.borderRadius = `${(elem.borderRadius || 0) / 1920 * 100}cqw`;
+                                    }
+                                    
+                                    // Enable flex centering to match standard canvas vertical alignment
+                                    mini.style.display = 'flex';
+                                    mini.style.alignItems = 'center';
+                                    
+                                    if (elem.text) {
+                                        const textSpan = document.createElement('span');
+                                        textSpan.textContent = elem.text;
+                                        textSpan.style.color = elem.textColor || '#ffffff';
+                                        textSpan.style.fontSize = `${(elem.fontSize || 24) / 1920 * 100}cqw`;
+                                        textSpan.style.fontFamily = isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit');
+                                        textSpan.style.display = 'block';
+                                        textSpan.style.overflow = 'hidden';
+                                        textSpan.style.width = '100%';
+                                        textSpan.style.textAlign = elem.align || 'left';
+                                        textSpan.style.whiteSpace = 'nowrap';
+                                        textSpan.style.textOverflow = 'ellipsis';
+                                        textSpan.style.lineHeight = '1.2';
+                                        mini.appendChild(textSpan);
+                                    }
+                                } else if (elem.type === 'image') {
+                                    mini.style.backgroundImage = `url(${elem.fileData || elem.url || ''})`;
+                                    mini.style.backgroundPosition = 'center';
+                                    mini.style.backgroundSize = 'cover';
+                                    mini.style.backgroundColor = '#1e293b';
+                                } else if (elem.type === 'video') {
+                                    mini.style.backgroundColor = '#000000';
+                                    const playIndicator = document.createElement('div');
+                                    playIndicator.style.width = '0';
+                                    playIndicator.style.height = '0';
+                                    playIndicator.style.borderTop = '3px solid transparent';
+                                    playIndicator.style.borderBottom = '3px solid transparent';
+                                    playIndicator.style.borderLeft = '5px solid rgba(255, 255, 255, 0.6)';
+                                    playIndicator.style.position = 'absolute';
+                                    playIndicator.style.left = '50%';
+                                    playIndicator.style.top = '50%';
+                                    playIndicator.style.transform = 'translate(-50%, -50%)';
+                                    mini.appendChild(playIndicator);
+                                }
+                                banner.appendChild(mini);
+                            });
+                        }
+                        hasPreview = true;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to render card preview", e);
+            }
+
+            if (!hasPreview) {
+                banner.innerHTML = '<i data-lucide="presentation" class="proj-banner-icon"></i>';
+            }
             card.appendChild(banner);
 
             // Card Info
