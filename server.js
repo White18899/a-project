@@ -23,6 +23,65 @@ if (!fs.existsSync(PROJECTS_DIR)) {
     fs.mkdirSync(PROJECTS_DIR);
 }
 
+// Synchronous debugging logger to avoid stdout buffering in background tasks
+const debugLog = (msg) => {
+    try {
+        fs.appendFileSync(path.join(__dirname, 'server_debug.log'), `[${new Date().toISOString()}] ${msg}\n`);
+    } catch (e) {
+        console.error('debugLog write failed:', e);
+    }
+};
+
+// Automatic garbage collection for uploads folder
+function cleanupUnusedUploads() {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) return;
+
+    const referencedFiles = new Set();
+
+    // 1. Scan all project JSON files for referenced upload filenames
+    if (fs.existsSync(PROJECTS_DIR)) {
+        try {
+            const files = fs.readdirSync(PROJECTS_DIR);
+            for (const file of files) {
+                if (file.endsWith('.json')) {
+                    const filePath = path.join(PROJECTS_DIR, file);
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    
+                    // Match /uploads/filename
+                    const matches = content.match(/\/uploads\/[a-zA-Z0-9\.\-_]+/g);
+                    if (matches) {
+                        for (const match of matches) {
+                            const filename = match.replace('/uploads/', '');
+                            referencedFiles.add(filename);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error scanning projects for cleanup:', e);
+        }
+    }
+
+    // 2. Scan uploads directory and delete unreferenced files older than 5 minutes (to allow saving window)
+    try {
+        const files = fs.readdirSync(uploadsDir);
+        const now = Date.now();
+        for (const file of files) {
+            const filePath = path.join(uploadsDir, file);
+            const stats = fs.statSync(filePath);
+            const isOldEnough = (now - stats.mtimeMs) > 300000; // 5 minutes in ms
+            
+            if (isOldEnough && !referencedFiles.has(file)) {
+                fs.unlinkSync(filePath);
+                debugLog(`[Cleanup] Deleted unreferenced upload file: ${file}`);
+            }
+        }
+    } catch (e) {
+        console.error('Error cleaning up uploads:', e);
+    }
+}
+
 // Memory cache for active sessions (token -> username)
 const activeSessions = new Map();
 
@@ -93,18 +152,23 @@ const MIME_TYPES = {
     '.jpg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon'
+    '.ico': 'image/x-icon',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg'
 };
 
 const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    debugLog(`[Request] ${req.method} ${req.url}`);
+
     // 1. CORS Headers for API requests
     if (pathname.startsWith('/api/')) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Filename');
         
         if (req.method === 'OPTIONS') {
             res.writeHead(204);
@@ -239,6 +303,9 @@ const server = http.createServer(async (req, res) => {
             cleanMeta.push(meta);
             writeJsonFile(metaFile, cleanMeta);
 
+            // Run garbage collection on uploads
+            cleanupUnusedUploads();
+
             return sendJson(res, 200, { success: true });
         }
 
@@ -267,7 +334,44 @@ const server = http.createServer(async (req, res) => {
             const cleanMeta = allMeta.filter(p => p.id !== projectId);
             writeJsonFile(metaFile, cleanMeta);
 
+            // Run garbage collection on uploads
+            cleanupUnusedUploads();
+
             return sendJson(res, 200, { success: true });
+        }
+
+        if (pathname === '/api/upload' && req.method === 'POST') {
+            debugLog('[Upload API] POST request received');
+            const filenameHeader = parsedUrl.query.filename || req.headers['x-filename'] || 'upload.mp4';
+            debugLog('[Upload API] Filename resolved: ' + filenameHeader);
+            const cleanFilename = path.basename(filenameHeader).replace(/[^a-zA-Z0-9\.\-_]/g, '_');
+            const uniqueFilename = `${Date.now()}_${cleanFilename}`;
+            
+            const uploadsDir = path.join(__dirname, 'uploads');
+            debugLog('[Upload API] Uploads directory target: ' + uploadsDir);
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir);
+                debugLog('[Upload API] Created uploads folder');
+            }
+            
+            const destPath = path.join(uploadsDir, uniqueFilename);
+            debugLog('[Upload API] Destination file path: ' + destPath);
+            const writeStream = fs.createWriteStream(destPath);
+            
+            req.pipe(writeStream);
+            
+            return new Promise((resolve) => {
+                writeStream.on('finish', () => {
+                    debugLog('[Upload API] File successfully written: ' + uniqueFilename);
+                    sendJson(res, 200, { success: true, url: `/uploads/${uniqueFilename}` });
+                    resolve();
+                });
+                writeStream.on('error', (err) => {
+                    debugLog('[Upload API] File write error event: ' + err.message);
+                    sendJson(res, 500, { success: false, message: 'Failed to write file.' });
+                    resolve();
+                });
+            });
         }
 
         // Catch unregistered APIs
@@ -316,4 +420,7 @@ server.listen(PORT, () => {
     console.log(`  - Serve workspace files`);
     console.log(`  - Database directory: ${DB_DIR}`);
     console.log(`  - Press Ctrl+C to terminate`);
+    
+    // Clean up any unreferenced uploads on startup
+    cleanupUnusedUploads();
 });

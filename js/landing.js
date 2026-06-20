@@ -399,6 +399,21 @@ document.addEventListener("DOMContentLoaded", () => {
         let autoplayInterval = null;
         let activeIndex = 0;
 
+        function scrollTabIntoView(tab) {
+            const wrapper = tab.closest('.showcase-tabs-wrapper');
+            if (wrapper) {
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const tabRect = tab.getBoundingClientRect();
+                const tabOffsetLeft = tabRect.left - wrapperRect.left + wrapper.scrollLeft;
+                const targetLeft = tabOffsetLeft - (wrapperRect.width / 2) + (tabRect.width / 2);
+                
+                wrapper.scrollTo({
+                    left: targetLeft,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
         function selectElement(tab) {
             const targetElement = tab.getAttribute('data-element');
             activeIndex = Array.from(tabs).indexOf(tab);
@@ -406,8 +421,8 @@ document.addEventListener("DOMContentLoaded", () => {
             // Toggle active tab class
             tabs.forEach(t => t.classList.toggle('active', t === tab));
             
-            // Auto scroll tab into view center
-            tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            // Auto scroll tab into view center (horizontally only)
+            scrollTabIntoView(tab);
             
             // Toggle active text description class
             items.forEach(item => {
@@ -514,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const isMatch = t.getAttribute('data-element') === target;
                         t.classList.toggle('active', isMatch);
                         if (isMatch) {
-                            t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                            scrollTabIntoView(t);
                             activeIndex = Array.from(tabs).indexOf(t);
                         }
                     });

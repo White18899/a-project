@@ -61,6 +61,12 @@ function migrateProject(project) {
                     }
                 }
             }
+            // Border attributes migration
+            if (elem.type === 'text' || elem.type === 'timer' || (elem.type && elem.type.startsWith('btn-'))) {
+                if (elem.borderWidth === undefined) elem.borderWidth = 0;
+                if (elem.borderStyle === undefined) elem.borderStyle = 'none';
+                if (elem.borderColor === undefined) elem.borderColor = '#ffffff';
+            }
         });
     });
 }
@@ -82,7 +88,9 @@ const ElementTemplates = {
         bgColor: '#16161a',
         bgAlpha: 0,
         borderRadius: 0,
-        padding: 0,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         zIndex: 0
@@ -116,7 +124,9 @@ const ElementTemplates = {
         bgColor: '#16161a',
         bgAlpha: 0.8,
         borderRadius: 50,
-        padding: 10,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         zIndex: 0
@@ -137,7 +147,9 @@ const ElementTemplates = {
         bgColor: '#f1c40f',
         bgAlpha: 1,
         borderRadius: 8,
-        padding: 8,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         useMarkupColor: false,
@@ -161,7 +173,9 @@ const ElementTemplates = {
         bgColor: '#16161a',
         bgAlpha: 1,
         borderRadius: 8,
-        padding: 8,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         useMarkupColor: false,
@@ -184,7 +198,9 @@ const ElementTemplates = {
         bgColor: '#b8923a',
         bgAlpha: 1,
         borderRadius: 8,
-        padding: 8,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         useMarkupColor: false,
@@ -207,7 +223,9 @@ const ElementTemplates = {
         bgColor: '#16161a',
         bgAlpha: 1,
         borderRadius: 8,
-        padding: 8,
+        borderWidth: 0,
+        borderStyle: 'none',
+        borderColor: '#ffffff',
         rpgStyle: false,
         visible: true,
         useMarkupColor: false,

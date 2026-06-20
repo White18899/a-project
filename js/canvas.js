@@ -460,6 +460,75 @@ class SlideCanvas {
                 graphics.drawRect(0, 0, w, h);
             }
             graphics.endFill();
+
+            // Draw custom borders
+            if (elem.borderWidth && elem.borderWidth > 0 && elem.borderStyle && elem.borderStyle !== 'none') {
+                const borCol = elem.borderColor || '#ffffff';
+                const borColorHex = parseInt(borCol.replace('#', '0x'));
+                
+                if (elem.borderStyle === 'solid' || radius > 0) {
+                    // Use PIXI native border drawing
+                    // alignment 0 draws inner border
+                    graphics.lineStyle(elem.borderWidth, borColorHex, 1, 0);
+                    if (radius > 0) {
+                        graphics.drawRoundedRect(0, 0, w, h, radius);
+                    } else {
+                        graphics.drawRect(0, 0, w, h);
+                    }
+                } else {
+                    // For dashed/dotted without border radius, draw custom lines inset by width/2
+                    const inset = elem.borderWidth / 2;
+                    const x1 = inset, y1 = inset;
+                    const x2 = w - inset, y2 = h - inset;
+                    
+                    let dashLen = 8;
+                    let gapLen = 6;
+                    if (elem.borderStyle === 'dotted') {
+                        dashLen = Math.max(2, elem.borderWidth);
+                        gapLen = Math.max(3, elem.borderWidth * 1.5);
+                    } else { // dashed
+                        dashLen = Math.max(10, elem.borderWidth * 3);
+                        gapLen = Math.max(6, elem.borderWidth * 2);
+                    }
+                    
+                    const drawDashedLineLocal = (gx, xStart, yStart, xEnd, yEnd) => {
+                        const dx = xEnd - xStart;
+                        const dy = yEnd - yStart;
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        if (len === 0) return;
+                        const nx = dx / len;
+                        const ny = dy / len;
+                        
+                        gx.lineStyle(elem.borderWidth, borColorHex, 1);
+                        
+                        let dist = 0;
+                        let draw = true;
+                        while (dist < len) {
+                            const step = draw ? dashLen : gapLen;
+                            const nextDist = Math.min(len, dist + step);
+                            
+                            const px1 = xStart + nx * dist;
+                            const py1 = yStart + ny * dist;
+                            const px2 = xStart + nx * nextDist;
+                            const py2 = yStart + ny * nextDist;
+                            
+                            if (draw) {
+                                gx.moveTo(px1, py1);
+                                gx.lineTo(px2, py2);
+                            }
+                            
+                            dist = nextDist;
+                            draw = !draw;
+                        }
+                    };
+
+                    // Draw 4 segments
+                    drawDashedLineLocal(graphics, x1, y1, x2, y1);
+                    drawDashedLineLocal(graphics, x2, y1, x2, y2);
+                    drawDashedLineLocal(graphics, x2, y2, x1, y2);
+                    drawDashedLineLocal(graphics, x1, y2, x1, y1);
+                }
+            }
         }
     }
 

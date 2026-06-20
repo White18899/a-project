@@ -61,6 +61,7 @@ body {
     color: var(--text-main);
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
 }
 
@@ -75,12 +76,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--bg-input);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* App Main Container */
@@ -88,6 +89,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
 }
 
@@ -904,6 +906,7 @@ select option {
 
 /* Custom Checkbox */
 .checkbox-label {
+    position: relative;
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -1228,6 +1231,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background-color: rgba(0, 0, 0, 0.75);
     z-index: 100;
     display: none;
@@ -1319,6 +1323,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--bg-main);
     z-index: 1000;
     display: none;
@@ -1524,6 +1529,7 @@ select option {
     display: flex !important;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1533,6 +1539,7 @@ select option {
     display: flex !important;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     overflow: hidden;
 }
@@ -1541,6 +1548,7 @@ select option {
     display: flex !important;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     overflow: hidden;
 }
@@ -1552,6 +1560,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     z-index: 0;
     pointer-events: auto;
     /* Allow interactive particles */
@@ -2373,6 +2382,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background-color: #000000;
     z-index: 99999;
     flex-direction: column;
@@ -2460,6 +2470,12 @@ select option {
     }
 
     .landing-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: rgba(5, 5, 7, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
         padding: 0 20px !important;
         height: 70px !important;
     }
@@ -2498,8 +2514,13 @@ select option {
 
     /* DASHBOARD VIEW */
     .dashboard-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: #000000 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         padding: 0 12px !important;
-        height: 60px;
+        height: 60px !important;
     }
 
     .dashboard-header .logo-text {
@@ -2509,6 +2530,16 @@ select option {
     .dashboard-header .logo-icon {
         width: 18px !important;
         height: 18px !important;
+    }
+
+    .app-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: #000000 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        height: 48px !important;
+        padding: 0 10px !important;
     }
 
     .dashboard-header .view-indicator {
@@ -2702,8 +2733,23 @@ select option {
 
     /* Header Optimization */
     .app-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: #000000 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         height: 44px !important;
         padding: 0 10px !important;
+    }
+
+    .dashboard-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: #000000 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        height: 50px !important;
+        padding: 0 12px !important;
     }
 
     .logo-text {
@@ -3036,6 +3082,7 @@ select option {
     flex-direction: column;
     overflow: hidden;
     max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
     /* Limit picker height dynamically to visible viewport */
 
     /* Default (Dark theme) settings */
@@ -3437,10 +3484,12 @@ select option {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     max-height: calc(100vh - 40px) !important;
+    max-height: calc(100dvh - 40px) !important;
 }
 
 .custom-color-picker.mobile-picker .picker-body {
     max-height: calc(100vh - 90px) !important;
+    max-height: calc(100dvh - 90px) !important;
 }
 
 
@@ -3455,6 +3504,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.55);
     z-index: 9998;
     pointer-events: auto;
@@ -4476,6 +4526,7 @@ select option {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     pointer-events: none;
     z-index: 999999;
     transition: opacity 0.3s ease;

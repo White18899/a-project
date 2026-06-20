@@ -1,0 +1,10 @@
+# Local database data
+db_data/
+
+# User uploads (videos, images, etc.)
+uploads/
+
+# Debug and runtime logs
+*.log
+server_debug.log
+.vscode/

@@ -237,7 +237,13 @@ function initEditorUI() {
                 syncColorSwatchTransparentClass(document.getElementById('elem-bg-color'), bgCol);
                 document.getElementById('elem-bg-alpha').value = element.bgAlpha !== undefined ? element.bgAlpha : 1;
                 document.getElementById('elem-border-radius').value = element.borderRadius || 0;
-                document.getElementById('elem-padding').value = element.padding || 0;
+                document.getElementById('elem-border-width').value = element.borderWidth || 0;
+                document.getElementById('elem-border-style').value = element.borderStyle || 'none';
+                
+                const borCol = element.borderColor || '#ffffff';
+                document.getElementById('elem-border-color').value = borCol === 'transparent' ? '#000000' : borCol;
+                document.getElementById('elem-border-color-hex').value = borCol;
+                syncColorSwatchTransparentClass(document.getElementById('elem-border-color'), borCol);
             }
 
             // Image URL properties
@@ -255,7 +261,8 @@ function initEditorUI() {
                 
                 const statusText = document.getElementById('video-status-text');
                 const fileLabel = document.getElementById('video-file-label');
-                if (element.fileData) {
+                const isLocal = element.fileData || (element.url && element.url.startsWith('/uploads/'));
+                if (isLocal) {
                     if (statusText) {
                         statusText.textContent = "Local video file loaded";
                         statusText.style.color = "#10b981";
@@ -406,6 +413,10 @@ function initEditorUI() {
                         const alpha = elem.bgAlpha !== undefined ? elem.bgAlpha : 1;
                         mini.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
                         mini.style.borderRadius = `${(elem.borderRadius || 0) / 1920 * 100}cqw`;
+                        if (elem.borderWidth && elem.borderStyle && elem.borderStyle !== 'none') {
+                            const miniBorderWidth = (elem.borderWidth / 1920) * 100;
+                            mini.style.border = `${miniBorderWidth}cqw ${elem.borderStyle} ${elem.borderColor || '#ffffff'}`;
+                        }
                     }
 
                     // Enable flex centering to match standard canvas vertical alignment
@@ -425,9 +436,6 @@ function initEditorUI() {
                         textSpan.style.whiteSpace = 'nowrap';
                         textSpan.style.textOverflow = 'ellipsis';
                         textSpan.style.lineHeight = '1.2';
-                        
-                        const pad = elem.padding || 0;
-                        textSpan.style.padding = `${(pad / 1920) * 100}cqw`;
                         mini.appendChild(textSpan);
                     }
                 } else if (elem.type === 'image') {
@@ -825,8 +833,14 @@ function initEditorUI() {
     document.getElementById('elem-border-radius').addEventListener('input', (e) => {
         updateActiveElem({ borderRadius: parseInt(e.target.value) || 0 });
     });
-    document.getElementById('elem-padding').addEventListener('input', (e) => {
-        updateActiveElem({ padding: parseInt(e.target.value) || 0 });
+    document.getElementById('elem-border-width').addEventListener('input', (e) => {
+        updateActiveElem({ borderWidth: parseInt(e.target.value) || 0 });
+    });
+    document.getElementById('elem-border-style').addEventListener('change', (e) => {
+        updateActiveElemAndSave({ borderStyle: e.target.value });
+    });
+    bindColorPickerPair('elem-border-color', 'elem-border-color-hex', (val) => {
+        updateActiveElem({ borderColor: val });
     });
 
     // Image URL elements
@@ -896,30 +910,66 @@ function initEditorUI() {
         if (file) {
             const statusText = document.getElementById('video-status-text');
             if (statusText) {
-                statusText.textContent = "Loading video file...";
+                statusText.textContent = "Uploading video file...";
                 statusText.style.color = "var(--text-muted)";
             }
             
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const dataUrl = evt.target.result;
-                updateActiveElemAndSave({ url: '', fileData: dataUrl });
-                
-                if (statusText) {
-                    statusText.textContent = "Local video file loaded";
-                    statusText.style.color = "#10b981";
-                }
-                const fileLabel = document.getElementById('video-file-label');
-                if (fileLabel) fileLabel.textContent = "Replace video file...";
-                document.getElementById('elem-video-url').value = '';
+            const token = localStorage.getItem('slide_engine_api_token') || '';
+            const headers = {
+                'X-Filename': file.name
             };
-            reader.onerror = () => {
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // If running on a different port (like VS Code Live Server at 5500),
+            // redirect the local upload to our local server on port 3000.
+            const uploadOrigin = window.location.origin.includes(':3000') 
+                ? window.location.origin 
+                : 'http://localhost:3000';
+
+            fetch(`${uploadOrigin}/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                method: 'POST',
+                headers: headers,
+                body: file
+            })
+            .then(async res => {
+                console.log('[Upload Debug] Response status:', res.status, 'OK:', res.ok);
+                console.log('[Upload Debug] Response headers:', [...res.headers.entries()]);
+                const text = await res.text();
+                console.log('[Upload Debug] Response text:', text);
+                
+                if (!res.ok) {
+                    throw new Error(`Server at ${res.url} returned status ${res.status}: ${text.substring(0, 100)}`);
+                }
+                
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: "${text.substring(0, 100)}"`);
+                }
+            })
+            .then(data => {
+                if (data.success) {
+                    updateActiveElemAndSave({ url: data.url, fileData: null });
+                    if (statusText) {
+                        statusText.textContent = "Local video file loaded";
+                        statusText.style.color = "#10b981";
+                    }
+                    const fileLabel = document.getElementById('video-file-label');
+                    if (fileLabel) fileLabel.textContent = "Replace video file...";
+                    document.getElementById('elem-video-url').value = data.url;
+                } else {
+                    throw new Error(data.message || 'Upload failed');
+                }
+            })
+            .catch(err => {
+                console.error('[Upload Debug] Error details:', err);
                 if (statusText) {
-                    statusText.textContent = "Failed to load video file";
+                    statusText.textContent = "Failed to upload video: " + err.message;
                     statusText.style.color = "#ef4444";
                 }
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 
