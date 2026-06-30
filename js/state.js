@@ -61,6 +61,11 @@ function migrateProject(project) {
                     }
                 }
             }
+            if (elem.type === 'btn-option') {
+                if (!elem.actions) {
+                    elem.actions = [];
+                }
+            }
             // Border attributes migration
             if (elem.type === 'text' || elem.type === 'timer' || (elem.type && elem.type.startsWith('btn-'))) {
                 if (elem.borderWidth === undefined) elem.borderWidth = 0;
@@ -162,6 +167,7 @@ const ElementTemplates = {
         text: 'Option Answer',
         isCorrect: false,
         group: 'Q1',
+        actions: [],
         x: 100,
         y: 300,
         width: 350,

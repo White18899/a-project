@@ -300,6 +300,12 @@ class PlayerController {
                     }
                 });
             } else {
+                // Stop the active slide timer when an answer is picked
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+
                 // Highlight all option buttons in the same question group
                 const groupName = elem.group || 'Q1';
                 const groupOptions = this.activeRuntimeSlide.elements.filter(
@@ -343,6 +349,33 @@ class PlayerController {
                     actionData: { 
                         type: 'group-option-reveal', 
                         groupName: groupName
+                    }
+                });
+
+                // Execute click actions for the picked option button
+                const actions = elem.actions || [];
+                actions.forEach(act => {
+                    const targetId = act.targetId;
+                    if (!targetId) return;
+                    const targetContainer = this.canvas.pixiElements.get(targetId);
+                    
+                    if (targetContainer) {
+                        let show = true;
+                        if (act.type === 'toggle') {
+                            show = !targetContainer.visible;
+                        } else if (act.type === 'appear') {
+                            show = true;
+                        } else if (act.type === 'disappear') {
+                            show = false;
+                        }
+                        
+                        this.animateElementVisibility(targetId, show);
+                        
+                        this.syncChannel.postMessage({
+                            type: 'trigger-element',
+                            elementId: elem.id,
+                            actionData: { type: 'toggle-action', targetId: targetId, show: show }
+                        });
                     }
                 });
             }
@@ -453,6 +486,12 @@ class PlayerController {
             this.animateElementVisibility(actionData.targetId, actionData.show);
             
         } else if (actionData.type === 'group-option-reveal') {
+            // Stop the active timer interval on the projector/secondary display
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+
             const groupName = actionData.groupName || 'Q1';
             const groupOptions = this.activeRuntimeSlide.elements.filter(
                 e => e.type === 'btn-option' && (e.group || 'Q1') === groupName

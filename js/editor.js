@@ -363,7 +363,7 @@ function initEditorUI() {
             }
 
             // Toggle / Visibility properties
-            if (element.type === 'btn-toggle') {
+            if (element.type === 'btn-toggle' || element.type === 'btn-option') {
                 renderToggleActions(element);
             }
 
@@ -1047,7 +1047,7 @@ function initEditorUI() {
     });
     document.getElementById('btn-add-toggle-action').onclick = () => {
         const activeElem = state.getActiveElement();
-        if (activeElem && activeElem.type === 'btn-toggle') {
+        if (activeElem && (activeElem.type === 'btn-toggle' || activeElem.type === 'btn-option')) {
             if (!activeElem.actions) activeElem.actions = [];
             activeElem.actions.push({
                 id: 'act-' + Math.random().toString(36).substring(2, 11),
@@ -1725,6 +1725,7 @@ function initEditorUI() {
             document.getElementById('group-text-styles').classList.remove('hidden');
             document.getElementById('group-bg-styles').classList.remove('hidden');
             document.getElementById('group-option-settings').classList.remove('hidden');
+            document.getElementById('group-toggle-settings').classList.remove('hidden');
             document.getElementById('group-button-markup').classList.remove('hidden');
         } else if (type === 'btn-show-ans') {
             document.getElementById('group-text-styles').classList.remove('hidden');
@@ -2012,7 +2013,7 @@ function initEditorUI() {
         if (activeElem) {
             if (activeElem.type === 'btn-show-ans' && showSelect) {
                 showSelect.value = activeElem.targetElementId || '';
-            } else if (activeElem.type === 'btn-toggle') {
+            } else if (activeElem.type === 'btn-toggle' || activeElem.type === 'btn-option') {
                 renderToggleActions(activeElem);
             } else if (activeElem.type === 'timer') {
                 renderTimerActions(activeElem);
