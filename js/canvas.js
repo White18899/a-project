@@ -20,6 +20,7 @@ class SlideCanvas {
         this.baseWidth = 1920;
         this.baseHeight = 1080;
         this.zoom = 1.0;
+        this.isFitMode = true;
         this.snapToGrid = true;
         this.gridSize = 20;
 
@@ -62,11 +63,26 @@ class SlideCanvas {
         
         // Handle resizing
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        if (typeof ResizeObserver !== 'undefined' && this.container && this.container.parentElement) {
+            this.resizeObserver = new ResizeObserver(() => {
+                if (this.isFitMode) {
+                    this.resize();
+                }
+            });
+            this.resizeObserver.observe(this.container.parentElement);
+        } else {
+            window.addEventListener('resize', () => {
+                if (this.isFitMode) {
+                    this.resize();
+                }
+            });
+        }
     }
 
     resize() {
         if (!this.container || !this.app) return;
+        
+        this.isFitMode = true;
         
         const parentW = this.container.parentElement.clientWidth;
         const parentH = this.container.parentElement.clientHeight;
@@ -89,15 +105,22 @@ class SlideCanvas {
         this.app.view.style.height = '100%';
         
         this.zoom = w / this.baseWidth;
+        if (typeof this.onZoomChange === 'function') {
+            this.onZoomChange(this.zoom);
+        }
     }
 
     setZoom(level) {
+        this.isFitMode = false;
         this.zoom = level;
         this.container.style.width = `${this.baseWidth * level}px`;
         this.container.style.height = `${this.baseHeight * level}px`;
         
         this.app.view.style.width = '100%';
         this.app.view.style.height = '100%';
+        if (typeof this.onZoomChange === 'function') {
+            this.onZoomChange(this.zoom);
+        }
     }
 
     pauseVideosInContainer(container) {
@@ -233,7 +256,12 @@ class SlideCanvas {
             targetContainer.addChild(sprite);
         } else if (bg.type === 'image' && bg.imageUrl) {
             try {
-                const texture = PIXI.Texture.from(bg.imageUrl);
+                let loadUrl = bg.imageUrl;
+                if (bg.imageUrl && (bg.imageUrl.startsWith('http://') || bg.imageUrl.startsWith('https://'))) {
+                    const separator = bg.imageUrl.includes('?') ? '&' : '?';
+                    loadUrl = `${bg.imageUrl}${separator}pixi-cors=true`;
+                }
+                const texture = PIXI.Texture.from(loadUrl);
                 const sprite = new PIXI.Sprite(texture);
                 sprite.width = this.baseWidth;
                 sprite.height = this.baseHeight;
@@ -389,7 +417,12 @@ class SlideCanvas {
                 if (elem.fileData) {
                     texture = PIXI.Texture.from(elem.fileData);
                 } else {
-                    texture = PIXI.Texture.from(elem.url);
+                    let loadUrl = elem.url;
+                    if (elem.url && (elem.url.startsWith('http://') || elem.url.startsWith('https://'))) {
+                        const separator = elem.url.includes('?') ? '&' : '?';
+                        loadUrl = `${elem.url}${separator}pixi-cors=true`;
+                    }
+                    texture = PIXI.Texture.from(loadUrl);
                 }
                 
                 const sprite = new PIXI.Sprite(texture);

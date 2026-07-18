@@ -770,8 +770,13 @@ function initEditorUI() {
 
     // BG Image URLs loaders
     document.getElementById('btn-upload-bg-url').onclick = () => {
-        const url = document.getElementById('slide-bg-image-url').value;
+        const url = document.getElementById('slide-bg-image-url').value.trim();
         if (url) {
+            const isImageExtension = /\.(jpg|jpeg|png|webp|gif|svg|bmp)(\?.*)?$/i.test(url) || url.startsWith('data:image/');
+            if (!isImageExtension) {
+                const proceed = confirm("This URL does not appear to end with a standard image file extension (.jpg, .png, .webp, etc.).\n\nWebpage links cannot be displayed as background images. Make sure this is a direct link to a raw image file.\n\nDo you want to use this URL anyway?");
+                if (!proceed) return;
+            }
             state.updateSlideSettings({
                 background: {
                     ...state.getActiveSlide().background,
@@ -918,8 +923,13 @@ function initEditorUI() {
 
     // Image URL elements
     document.getElementById('btn-upload-elem-url').onclick = () => {
-        const url = document.getElementById('elem-image-url').value;
+        const url = document.getElementById('elem-image-url').value.trim();
         if (url) {
+            const isImageExtension = /\.(jpg|jpeg|png|webp|gif|svg|bmp)(\?.*)?$/i.test(url) || url.startsWith('data:image/');
+            if (!isImageExtension) {
+                const proceed = confirm("This URL does not appear to end with a standard image file extension (.jpg, .png, .webp, etc.).\n\nWebpage links cannot be displayed as images. Make sure this is a direct link to a raw image file.\n\nDo you want to use this URL anyway?");
+                if (!proceed) return;
+            }
             updateActiveElemAndSave({ url: url, fileData: null });
         }
     };
@@ -1106,8 +1116,15 @@ function initEditorUI() {
     
     let currentZoom = 1.0;
     
-    const updateZoomDisplay = () => {
+    canvas.onZoomChange = (newZoom) => {
+        currentZoom = newZoom;
         document.getElementById('zoom-percentage').textContent = `${Math.round(currentZoom * 100)}%`;
+    };
+
+    // Initialize display from canvas initial state
+    canvas.onZoomChange(canvas.zoom);
+    
+    const updateZoomDisplay = () => {
         canvas.setZoom(currentZoom);
     };
 
@@ -1122,12 +1139,7 @@ function initEditorUI() {
     };
 
     document.getElementById('btn-zoom-fit').onclick = () => {
-        currentZoom = 1.0;
         canvas.resize();
-        // Recalculate zoom relative to canvas parent box
-        const w = canvas.app.view.clientWidth;
-        currentZoom = w / canvas.baseWidth;
-        updateZoomDisplay();
     };
 
     document.getElementById('btn-toggle-grid').onclick = (e) => {
