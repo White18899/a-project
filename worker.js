@@ -229,6 +229,46 @@ export default {
                 // Log code for testing/development
                 console.log(`[FORGOT PASSWORD] Reset code for ${username} (${cleanEmail}): ${code}`);
 
+                // Send real email via EmailJS API
+                const emailjsServiceId = env.EMAILJS_SERVICE_ID || 'service_6cdxfjj';
+                const emailjsTemplateId = env.EMAILJS_TEMPLATE_ID || 'template_3we2jee';
+                const emailjsPublicKey = env.EMAILJS_PUBLIC_KEY || '4drbxU0P1LUaYFJfL';
+                const emailjsPrivateKey = env.EMAILJS_PRIVATE_KEY || ''; // Optional
+
+                if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
+                    try {
+                        const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                service_id: emailjsServiceId,
+                                template_id: emailjsTemplateId,
+                                user_id: emailjsPublicKey,
+                                ...(emailjsPrivateKey ? { accessToken: emailjsPrivateKey } : {}),
+                                template_params: {
+                                    to_email: cleanEmail,
+                                    email: cleanEmail,
+                                    user_email: cleanEmail,
+                                    user_name: username,
+                                    reset_code: code,
+                                    subject: 'SlideEngine Password Reset Code',
+                                    from_name: 'SlideEngine Auth'
+                                }
+                            })
+                        });
+                        if (!emailRes.ok) {
+                            const errText = await emailRes.text();
+                            console.error('EmailJS sending failed:', errText);
+                        } else {
+                            console.log('EmailJS email sent successfully.');
+                        }
+                    } catch (err) {
+                        console.error('Failed to send email via EmailJS:', err);
+                    }
+                }
+
                 return sendJson(200, { success: true, message: 'Reset code generated successfully.' });
             }
 

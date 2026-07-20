@@ -164,11 +164,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-landing-login').onclick = () => {
         setAuthMode('login');
         authModal.classList.add('active');
+        setTimeout(renderGoogleButton, 50);
     };
 
     document.getElementById('btn-landing-signup').onclick = () => {
         setAuthMode('signup');
         authModal.classList.add('active');
+        setTimeout(renderGoogleButton, 50);
     };
 
     document.getElementById('btn-landing-cta').onclick = () => {
@@ -177,6 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             setAuthMode('signup');
             authModal.classList.add('active');
+            setTimeout(renderGoogleButton, 50);
         }
     };
 
@@ -189,8 +192,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-auth-close').onclick = closeAuth;
 
     // Auth Tabs toggle
-    loginTab.onclick = () => setAuthMode('login');
-    signupTab.onclick = () => setAuthMode('signup');
+    loginTab.onclick = () => { setAuthMode('login'); renderGoogleButton(); };
+    signupTab.onclick = () => { setAuthMode('signup'); renderGoogleButton(); };
 
     // Forgot password trigger in login form
     document.getElementById('btn-auth-forgot').onclick = (e) => {
@@ -279,6 +282,15 @@ document.addEventListener("DOMContentLoaded", () => {
         authErrorBanner.classList.remove('hidden');
     }
 
+    function renderGoogleButton() {
+        if (window.google && window.google.accounts) {
+            google.accounts.id.renderButton(
+                document.getElementById("google-signin-btn"),
+                { theme: "dark", size: "large", width: "100%", type: "standard", shape: "rectangular" }
+            );
+        }
+    }
+
     // Google Sign-In Setup
     function initGoogleSignIn() {
         if (window.google && window.google.accounts) {
@@ -286,10 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 client_id: window.GOOGLE_CLIENT_ID || '1012972539469-3kdp7hnubs4omgeocv0gqsmhrbksss2j.apps.googleusercontent.com',
                 callback: handleGoogleCredentialResponse
             });
-            google.accounts.id.renderButton(
-                document.getElementById("google-signin-btn"),
-                { theme: "dark", size: "large", width: "100%", type: "standard", shape: "rectangular" }
-            );
+            renderGoogleButton();
         } else {
             setTimeout(initGoogleSignIn, 1000);
         }

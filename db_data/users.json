@@ -20,12 +20,6 @@
     "resetExpires": 1784569073249
   },
   {
-    "username": "testapiname",
-    "email": "testapi@example.com",
-    "salt": "79e9c237265c652fd3667b2fdd4dbe75",
-    "hashedPassword": "845f7271d07406e9d99b2fc5d3d9dd604d94aa2b9a0f5c697fa1ace64cfea8e20aedd407383b0d5d20d9f6ce49970efcb736ba37e04e6f20149fb4a617ff1eb5"
-  },
-  {
     "username": "googleuser",
     "email": "googleuser@example.com",
     "googleId": "googleId998877",
@@ -42,9 +36,13 @@
   {
     "username": "hero",
     "email": "herokeller170@gmail.com",
-    "salt": "106c984a2368095d99790e55d194f6f9",
-    "hashedPassword": "888df8006da6004be99f832317cc4f8ed3d607454ba4edd3306ce87f115b39b0f4f02de590528315e463844a17804d6abc292bb634ccfa44ba8132a8f32c09ad",
-    "resetCode": "173025",
-    "resetExpires": 1784570460054
+    "salt": "12f8568f6918808bff4b52ffdd2b2f35",
+    "hashedPassword": "6ff3f6d59258bf4c3f40aabcaa10fe7f88c5d1e903d8d4ed0ce061b1530d8080601934924d7f3ac231e4a1ce4d7697e614af6c7aebff2349f69680999f87f463"
+  },
+  {
+    "username": "testapiname",
+    "email": "testapi@example.com",
+    "salt": "36acb59218bb62363c75ad0288f11efc",
+    "hashedPassword": "3bdc230c038a815aa9c232b6fd98529235399bc07029d5fb6ed5c80a59357d45dc8d65115c2847a96d5898aaa226ee6d2aa2d542e2a484f91b83d6dc1dacd5e3"
   }
 ]
