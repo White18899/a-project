@@ -293,7 +293,7 @@ export default {
 
                 // 2. Try Brevo (Backup 1 - 300 free emails/day, requires custom domain for Gmail DMARC)
                 if (!emailSent) {
-                    const brevoApiKey = env.BREVO_API_KEY || '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';
+                    const brevoApiKey = env.BREVO_API_KEY;
                     const brevoSenderEmail = env.BREVO_SENDER_EMAIL || 'slide.engi@gmail.com';
                     const brevoSenderName = env.BREVO_SENDER_NAME || 'SlideEngine Auth';
 

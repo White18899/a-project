@@ -375,7 +375,7 @@ const server = http.createServer(async (req, res) => {
 
             // 2. Try Brevo (Backup 1 - 300 free emails/day, requires custom domain for Gmail DMARC)
             if (!emailSent) {
-                const brevoApiKey = process.env.BREVO_API_KEY || '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';
+                const brevoApiKey = process.env.BREVO_API_KEY;
                 const brevoSenderEmail = process.env.BREVO_SENDER_EMAIL || 'slide.engi@gmail.com';
                 const brevoSenderName = process.env.BREVO_SENDER_NAME || 'SlideEngine Auth';
 
