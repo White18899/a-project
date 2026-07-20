@@ -6,7 +6,9 @@
 
 window.SlideEngineAPI = {
     // If opened via file://, point to local server. Otherwise, use relative origin.
-    baseUrl: 'https://slide-engine-api.white018899.workers.dev',
+    baseUrl: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+        ? 'http://localhost:3000'
+        : 'https://slide-engine-api.white018899.workers.dev',
     token: localStorage.getItem('slide_engine_api_token') || null,
     username: localStorage.getItem('slide_engine_api_username') || null,
 
@@ -52,10 +54,10 @@ window.SlideEngineAPI = {
     },
 
     // Auth API
-    async signup(username, password) {
+    async signup(username, password, email) {
         const data = await this.request('/api/auth/signup', {
             method: 'POST',
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, email })
         });
         if (data.token) {
             this.setSession(data.token, username);
@@ -72,6 +74,38 @@ window.SlideEngineAPI = {
             this.setSession(data.token, username);
         }
         return data;
+    },
+
+    async forgotPassword(email) {
+        return await this.request('/api/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    },
+
+    async resetPassword(email, code, newPassword) {
+        return await this.request('/api/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, newPassword })
+        });
+    },
+
+    async googleLogin(credential, isMock = false) {
+        const data = await this.request('/api/auth/google', {
+            method: 'POST',
+            body: JSON.stringify({ credential, isMock })
+        });
+        if (data.token) {
+            this.setSession(data.token, data.username);
+        }
+        return data;
+    },
+
+    async updateEmail(email) {
+        return await this.request('/api/auth/update-email', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
     },
 
     logout() {

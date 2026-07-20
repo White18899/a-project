@@ -121,18 +121,28 @@ export default {
             
             // Sign Up
             if (pathname === '/api/auth/signup' && request.method === 'POST') {
-                const { username, password } = await request.json().catch(() => ({}));
+                const { username, password, email } = await request.json().catch(() => ({}));
                 const cleanUser = (username || '').trim().toLowerCase();
+                const cleanEmail = (email || '').trim().toLowerCase();
                 const cleanPass = password || '';
 
                 if (!cleanUser || cleanPass.length < 6) {
                     return sendJson(400, { success: false, message: 'Invalid username or password (min 6 chars).' });
+                }
+                if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+                    return sendJson(400, { success: false, message: 'A valid email address is required.' });
                 }
 
                 // Check if user exists in KV
                 const existingUser = await KV.get(`user:${cleanUser}`);
                 if (existingUser) {
                     return sendJson(400, { success: false, message: 'Username already exists.' });
+                }
+
+                // Check if email already registered in KV
+                const emailOwner = await KV.get(`email:${cleanEmail}`);
+                if (emailOwner) {
+                    return sendJson(400, { success: false, message: 'Email address is already registered.' });
                 }
 
                 const saltBytes = crypto.getRandomValues(new Uint8Array(16));
@@ -142,38 +152,215 @@ export default {
                 // Save credentials to KV
                 await KV.put(`user:${cleanUser}`, JSON.stringify({
                     username: cleanUser,
+                    email: cleanEmail,
                     salt: saltHex,
                     hashedPassword
                 }));
+
+                // Save email lookup index to KV
+                await KV.put(`email:${cleanEmail}`, cleanUser);
 
                 const token = crypto.randomUUID();
                 // Store session, expire in 24 hours (86400 seconds)
                 await KV.put(`session:${token}`, cleanUser, { expirationTtl: 86400 });
 
-                return sendJson(201, { success: true, token, username: cleanUser });
+                return sendJson(201, { success: true, token, username: cleanUser, email: cleanEmail });
             }
 
             // Log In
             if (pathname === '/api/auth/login' && request.method === 'POST') {
                 const { username, password } = await request.json().catch(() => ({}));
-                const cleanUser = (username || '').trim().toLowerCase();
+                const cleanInput = (username || '').trim().toLowerCase();
                 const cleanPass = password || '';
 
-                const userData = await KV.get(`user:${cleanUser}`, 'json');
+                let targetUser = cleanInput;
+                if (cleanInput.includes('@')) {
+                    const mappedUser = await KV.get(`email:${cleanInput}`);
+                    if (!mappedUser) {
+                        return sendJson(401, { success: false, message: 'Invalid username/email or password.' });
+                    }
+                    targetUser = mappedUser;
+                }
+
+                const userData = await KV.get(`user:${targetUser}`, 'json');
                 if (!userData) {
-                    return sendJson(401, { success: false, message: 'Invalid username or password.' });
+                    return sendJson(401, { success: false, message: 'Invalid username/email or password.' });
                 }
 
                 const hashed = await hashPassword(cleanPass, userData.salt);
                 if (hashed !== userData.hashedPassword) {
-                    return sendJson(401, { success: false, message: 'Invalid username or password.' });
+                    return sendJson(401, { success: false, message: 'Invalid username/email or password.' });
                 }
 
                 const token = crypto.randomUUID();
                 // Store session, expire in 24 hours
-                await KV.put(`session:${token}`, cleanUser, { expirationTtl: 86400 });
+                await KV.put(`session:${token}`, targetUser, { expirationTtl: 86400 });
 
-                return sendJson(200, { success: true, token, username: cleanUser });
+                return sendJson(200, { success: true, token, username: targetUser, email: userData.email });
+            }
+
+            // Forgot Password
+            if (pathname === '/api/auth/forgot-password' && request.method === 'POST') {
+                const { email } = await request.json().catch(() => ({}));
+                const cleanEmail = (email || '').trim().toLowerCase();
+
+                if (!cleanEmail) {
+                    return sendJson(400, { success: false, message: 'Email is required.' });
+                }
+
+                const username = await KV.get(`email:${cleanEmail}`);
+                if (!username) {
+                    return sendJson(404, { success: false, message: 'No account found with this email.' });
+                }
+
+                const userData = await KV.get(`user:${username}`, 'json');
+                if (!userData) {
+                    return sendJson(404, { success: false, message: 'No account found with this email.' });
+                }
+
+                // Generate a 6-digit random code
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+                const expires = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+                userData.resetCode = code;
+                userData.resetExpires = expires;
+                await KV.put(`user:${username}`, JSON.stringify(userData));
+
+                // Log code for testing/development
+                console.log(`[FORGOT PASSWORD] Reset code for ${username} (${cleanEmail}): ${code}`);
+
+                return sendJson(200, { success: true, message: 'Reset code generated successfully.' });
+            }
+
+            // Reset Password
+            if (pathname === '/api/auth/reset-password' && request.method === 'POST') {
+                const { email, code, newPassword } = await request.json().catch(() => ({}));
+                const cleanEmail = (email || '').trim().toLowerCase();
+                const cleanCode = (code || '').trim();
+                const cleanPass = newPassword || '';
+
+                if (!cleanEmail || !cleanCode || cleanPass.length < 6) {
+                    return sendJson(400, { success: false, message: 'All fields are required and password must be min 6 chars.' });
+                }
+
+                const username = await KV.get(`email:${cleanEmail}`);
+                if (!username) {
+                    return sendJson(400, { success: false, message: 'Invalid email or reset code.' });
+                }
+
+                const userData = await KV.get(`user:${username}`, 'json');
+                if (!userData || !userData.resetCode || userData.resetCode !== cleanCode || !userData.resetExpires || userData.resetExpires < Date.now()) {
+                    return sendJson(400, { success: false, message: 'Invalid or expired reset code.' });
+                }
+
+                // Update password
+                const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+                const saltHex = bufferToHex(saltBytes);
+                const hashedPassword = await hashPassword(cleanPass, saltHex);
+
+                userData.salt = saltHex;
+                userData.hashedPassword = hashedPassword;
+                delete userData.resetCode;
+                delete userData.resetExpires;
+
+                await KV.put(`user:${username}`, JSON.stringify(userData));
+
+                return sendJson(200, { success: true, message: 'Password reset successful.' });
+            }
+
+            // Google Authentication
+            if (pathname === '/api/auth/google' && request.method === 'POST') {
+                const { credential, isMock } = await request.json().catch(() => ({}));
+                if (!credential) {
+                    return sendJson(400, { success: false, message: 'Google credential ID Token is required.' });
+                }
+
+                let email = '';
+                let name = '';
+                let googleId = '';
+
+                if (isMock) {
+                    // Parse mock credential for local development. format: mock_token_for_<email>_<name>_<id>
+                    const parts = credential.split('_');
+                    email = parts[3] || 'mock@example.com';
+                    name = parts[4] || 'Mock User';
+                    googleId = parts[5] || 'mock-id-12345';
+                } else {
+                    try {
+                        const tokenInfoUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
+                        const googleRes = await fetch(tokenInfoUrl);
+                        const response = await googleRes.json();
+
+                        if (response.error || !response.email) {
+                            return sendJson(401, { success: false, message: response.error_description || 'Invalid Google Token.' });
+                        }
+
+                        email = response.email.toLowerCase();
+                        name = response.name || response.given_name || 'Google User';
+                        googleId = response.sub;
+                    } catch (e) {
+                        console.error('Google verification failed:', e);
+                        return sendJson(500, { success: false, message: 'Google authentication failed.' });
+                    }
+                }
+
+                // Look up user by googleId index
+                let username = await KV.get(`google:${googleId}`);
+                let userData = null;
+
+                if (username) {
+                    userData = await KV.get(`user:${username}`, 'json');
+                }
+
+                // If not found by googleId, check by email
+                if (!userData && email) {
+                    username = await KV.get(`email:${email}`);
+                    if (username) {
+                        userData = await KV.get(`user:${username}`, 'json');
+                        if (userData) {
+                            // Link google ID index
+                            userData.googleId = googleId;
+                            await KV.put(`user:${username}`, JSON.stringify(userData));
+                            await KV.put(`google:${googleId}`, username);
+                        }
+                    }
+                }
+
+                // Create new user if not exists
+                if (!userData) {
+                    const emailPrefix = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+                    username = emailPrefix || 'googleuser';
+                    
+                    // Enforce uniqueness of username
+                    let existing = await KV.get(`user:${username}`);
+                    let suffix = 1;
+                    while (existing) {
+                        username = `${emailPrefix}${suffix++}`;
+                        existing = await KV.get(`user:${username}`);
+                    }
+
+                    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+                    const saltHex = bufferToHex(saltBytes);
+                    // Filler password
+                    const hashedPassword = await hashPassword(crypto.randomUUID(), saltHex);
+
+                    userData = {
+                        username,
+                        email,
+                        googleId,
+                        salt: saltHex,
+                        hashedPassword
+                    };
+
+                    await KV.put(`user:${username}`, JSON.stringify(userData));
+                    await KV.put(`email:${email}`, username);
+                    await KV.put(`google:${googleId}`, username);
+                }
+
+                const token = crypto.randomUUID();
+                await KV.put(`session:${token}`, username, { expirationTtl: 86400 });
+
+                return sendJson(200, { success: true, token, username: username, email: userData.email });
             }
 
             // --- PROJECTS MANAGEMENT API ---
@@ -181,6 +368,34 @@ export default {
             const currentUser = await getAuthenticatedUser(request, KV);
             if (!currentUser) {
                 return sendJson(401, { success: false, message: 'Unauthorized session.' });
+            }
+
+            // Update Email (Migration for legacy users)
+            if (pathname === '/api/auth/update-email' && request.method === 'POST') {
+                const { email } = await request.json().catch(() => ({}));
+                const cleanEmail = (email || '').trim().toLowerCase();
+
+                if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+                    return sendJson(400, { success: false, message: 'A valid email address is required.' });
+                }
+
+                // Check if email already registered to someone else
+                const emailOwner = await KV.get(`email:${cleanEmail}`);
+                if (emailOwner && emailOwner !== currentUser) {
+                    return sendJson(400, { success: false, message: 'Email address is already in use.' });
+                }
+
+                const userData = await KV.get(`user:${currentUser}`, 'json');
+                if (!userData) {
+                    return sendJson(404, { success: false, message: 'User profile not found.' });
+                }
+
+                // Update email and save
+                userData.email = cleanEmail;
+                await KV.put(`user:${currentUser}`, JSON.stringify(userData));
+                await KV.put(`email:${cleanEmail}`, currentUser);
+
+                return sendJson(200, { success: true, message: 'Email address updated successfully.' });
             }
 
             // Upload file to R2

@@ -3,5 +3,48 @@
     "username": "testuser",
     "salt": "88f93dad9cdca21195413dc17cb42804",
     "hashedPassword": "c47469850fe7714036471d86fcefa692abe407f453efa1f32b7f56e26be408ae782be3f497384508950e7e86f942c74c3bea2b31422616325ce1628f1679959d"
+  },
+  {
+    "username": "legacyuser",
+    "salt": "1234567890abcdef1234567890abcdef",
+    "hashedPassword": "a11a04397d229f6f3b15203ebc413e3ee90c5c1348080bfd570db92eff4dfdda050fe666285b96f53cb6c2e7d51b0c5a768c4bbbb285f6aa35ed282e10d7cca3",
+    "email": "legacyuser@example.com"
+  },
+  {
+    "username": "test",
+    "email": "test@example.com",
+    "googleId": "googleId12345",
+    "salt": "a302bd80a4fbb80ffae853cbf24d2882",
+    "hashedPassword": "b41e00a60ca252c4c034e9c7840afc279ab24753fe2e67a3627e987172d577b2",
+    "resetCode": "659837",
+    "resetExpires": 1784569073249
+  },
+  {
+    "username": "testapiname",
+    "email": "testapi@example.com",
+    "salt": "79e9c237265c652fd3667b2fdd4dbe75",
+    "hashedPassword": "845f7271d07406e9d99b2fc5d3d9dd604d94aa2b9a0f5c697fa1ace64cfea8e20aedd407383b0d5d20d9f6ce49970efcb736ba37e04e6f20149fb4a617ff1eb5"
+  },
+  {
+    "username": "googleuser",
+    "email": "googleuser@example.com",
+    "googleId": "googleId998877",
+    "salt": "6e09bdd8872018112dbb9b9b2800c87d",
+    "hashedPassword": "68523544a2cea0ddb200fe4ee1b5f60322c1ffacdced105a10a7994c39c5b7bd"
+  },
+  {
+    "username": "white018899",
+    "email": "white018899@gmail.com",
+    "googleId": "113331509131478658632",
+    "salt": "b91e5dbc2ebee34a0bf3572b2d7106ef",
+    "hashedPassword": "8031977f779f6504b384869b7bdff52f5c592ed4045cfce5140a13d943a46a8c"
+  },
+  {
+    "username": "hero",
+    "email": "herokeller170@gmail.com",
+    "salt": "106c984a2368095d99790e55d194f6f9",
+    "hashedPassword": "888df8006da6004be99f832317cc4f8ed3d607454ba4edd3306ce87f115b39b0f4f02de590528315e463844a17804d6abc292bb634ccfa44ba8132a8f32c09ad",
+    "resetCode": "173025",
+    "resetExpires": 1784570460054
   }
 ]

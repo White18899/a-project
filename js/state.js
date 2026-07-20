@@ -406,6 +406,7 @@ window.EngineState = {
 
     loadActiveSession() {
         this.currentUser = localStorage.getItem('slide_engine_active_user') || null;
+        this.currentUserEmail = localStorage.getItem('slide_engine_active_user_email') || null;
     },
 
     loadProjectsList() {
@@ -428,11 +429,12 @@ window.EngineState = {
         this.emit('view-changed', view);
     },
 
-    async signup(username, password) {
+    async signup(username, password, email) {
         username = username.trim();
         password = password.trim();
-        if (!username || !password) {
-            return { success: false, message: "Username and password are required." };
+        email = (email || '').trim();
+        if (!username || !password || !email) {
+            return { success: false, message: "Username, password and email are required." };
         }
         if (username.length < 3) {
             return { success: false, message: "Username must be at least 3 characters." };
@@ -440,13 +442,18 @@ window.EngineState = {
         if (password.length < 6) {
             return { success: false, message: "Password must be at least 6 characters." };
         }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return { success: false, message: "Please enter a valid email address." };
+        }
 
         if (window.SlideEngineAPI) {
             try {
-                const res = await window.SlideEngineAPI.signup(username, password);
+                const res = await window.SlideEngineAPI.signup(username, password, email);
                 if (res.success) {
                     this.currentUser = username;
+                    this.currentUserEmail = email;
                     localStorage.setItem('slide_engine_active_user', username);
+                    localStorage.setItem('slide_engine_active_user_email', email);
                     this.emit('auth-changed', username);
                     
                     this.project = null;
@@ -472,6 +479,7 @@ window.EngineState = {
                 }
             } catch (e) {
                 console.warn("API signup failed, falling back to LocalStorage:", e);
+                return { success: false, message: e.message || "Signup failed." };
             }
         }
 
@@ -479,7 +487,10 @@ window.EngineState = {
         if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
             return { success: false, message: "Username already exists." };
         }
-        this.users.push({ username, password });
+        if (this.users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase())) {
+            return { success: false, message: "Email address already registered." };
+        }
+        this.users.push({ username, password, email });
         this.saveUsers();
         
         return await this.login(username, password);
@@ -493,9 +504,15 @@ window.EngineState = {
             try {
                 const res = await window.SlideEngineAPI.login(username, password);
                 if (res.success) {
-                    this.currentUser = username;
-                    localStorage.setItem('slide_engine_active_user', username);
-                    this.emit('auth-changed', username);
+                    this.currentUser = res.username || username;
+                    this.currentUserEmail = res.email || null;
+                    localStorage.setItem('slide_engine_active_user', this.currentUser);
+                    if (res.email) {
+                        localStorage.setItem('slide_engine_active_user_email', res.email);
+                    } else {
+                        localStorage.removeItem('slide_engine_active_user_email');
+                    }
+                    this.emit('auth-changed', this.currentUser);
                     
                     this.project = null;
                     this.selectedSlideId = null;
@@ -507,7 +524,7 @@ window.EngineState = {
 
                     try {
                         const cloudProjects = await window.SlideEngineAPI.getProjects();
-                        this.projectsList = this.projectsList.filter(p => p.userId !== username);
+                        this.projectsList = this.projectsList.filter(p => p.userId !== this.currentUser);
                         this.projectsList.push(...cloudProjects);
                         this.saveProjectsList();
                     } catch (e) {
@@ -520,19 +537,30 @@ window.EngineState = {
                 }
             } catch (e) {
                 console.warn("API login failed, checking LocalStorage fallback:", e);
+                return { success: false, message: e.message || "Login failed." };
             }
         }
 
         this.loadUsers();
-        const user = this.users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+        const cleanInput = username.toLowerCase();
+        const user = this.users.find(u => 
+            (u.username.toLowerCase() === cleanInput || (u.email && u.email.toLowerCase() === cleanInput)) && 
+            u.password === password
+        );
         
         if (!user && !(username.toLowerCase() === 'guest' && password === 'guest')) {
-            return { success: false, message: "Invalid username or password." };
+            return { success: false, message: "Invalid username/email or password." };
         }
 
-        this.currentUser = username;
-        localStorage.setItem('slide_engine_active_user', username);
-        this.emit('auth-changed', username);
+        this.currentUser = user ? user.username : username;
+        this.currentUserEmail = user ? user.email : null;
+        localStorage.setItem('slide_engine_active_user', this.currentUser);
+        if (this.currentUserEmail) {
+            localStorage.setItem('slide_engine_active_user_email', this.currentUserEmail);
+        } else {
+            localStorage.removeItem('slide_engine_active_user_email');
+        }
+        this.emit('auth-changed', this.currentUser);
         
         this.project = null;
         this.selectedSlideId = null;
@@ -551,9 +579,194 @@ window.EngineState = {
         return { success: true };
     },
 
+    async forgotPassword(email) {
+        email = (email || '').trim().toLowerCase();
+        if (!email) {
+            return { success: false, message: "Email is required." };
+        }
+
+        if (window.SlideEngineAPI) {
+            try {
+                return await window.SlideEngineAPI.forgotPassword(email);
+            } catch (e) {
+                console.warn("API forgot password failed, falling back to LocalStorage:", e);
+            }
+        }
+
+        this.loadUsers();
+        const user = this.users.find(u => u.email && u.email.toLowerCase() === email);
+        if (!user) {
+            return { success: false, message: "No account found with this email." };
+        }
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        user.resetCode = code;
+        user.resetExpires = Date.now() + 15 * 60 * 1000;
+        this.saveUsers();
+
+        console.log(`[MOCK LOCAL FORGOT PASSWORD] Reset code for ${user.username} (${email}): ${code}`);
+        alert(`[DEV MODE] Password reset code sent: ${code} (Check browser developer console for logs)`);
+        return { success: true, message: "Reset code generated." };
+    },
+
+    async resetPassword(email, code, newPassword) {
+        email = (email || '').trim().toLowerCase();
+        code = (code || '').trim();
+        newPassword = (newPassword || '').trim();
+
+        if (!email || !code || newPassword.length < 6) {
+            return { success: false, message: "All fields are required. Password must be at least 6 characters." };
+        }
+
+        if (window.SlideEngineAPI) {
+            try {
+                return await window.SlideEngineAPI.resetPassword(email, code, newPassword);
+            } catch (e) {
+                console.warn("API reset password failed, falling back to LocalStorage:", e);
+            }
+        }
+
+        this.loadUsers();
+        const user = this.users.find(u => u.email && u.email.toLowerCase() === email);
+        if (!user || !user.resetCode || user.resetCode !== code || !user.resetExpires || user.resetExpires < Date.now()) {
+            return { success: false, message: "Invalid or expired reset code." };
+        }
+
+        user.password = newPassword;
+        delete user.resetCode;
+        delete user.resetExpires;
+        this.saveUsers();
+
+        return { success: true, message: "Password reset successfully." };
+    },
+
+    async googleLogin(credential, isMock = false) {
+        if (window.SlideEngineAPI) {
+            try {
+                const res = await window.SlideEngineAPI.googleLogin(credential, isMock);
+                if (res.success) {
+                    this.currentUser = res.username;
+                    this.currentUserEmail = res.email || null;
+                    localStorage.setItem('slide_engine_active_user', this.currentUser);
+                    if (this.currentUserEmail) {
+                        localStorage.setItem('slide_engine_active_user_email', this.currentUserEmail);
+                    } else {
+                        localStorage.removeItem('slide_engine_active_user_email');
+                    }
+                    this.emit('auth-changed', this.currentUser);
+                    
+                    this.project = null;
+                    this.selectedSlideId = null;
+                    this.selectedElementId = null;
+                    this.selectedElementIds = [];
+                    this.undoStack = [];
+                    this.redoStack = [];
+                    this.updateUndoRedoUI();
+
+                    try {
+                        const cloudProjects = await window.SlideEngineAPI.getProjects();
+                        this.projectsList = this.projectsList.filter(p => p.userId !== this.currentUser);
+                        this.projectsList.push(...cloudProjects);
+                        this.saveProjectsList();
+                    } catch (e) {
+                        console.warn("Could not sync projects list from cloud on google login", e);
+                    }
+
+                    this.setView('dashboard');
+                    this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+                    return { success: true };
+                }
+            } catch (e) {
+                console.warn("API google login failed, falling back to LocalStorage:", e);
+            }
+        }
+
+        // Local fallback
+        let email = 'mock@example.com';
+        let name = 'Mock User';
+        if (isMock) {
+            const parts = credential.split('_');
+            email = parts[3] || 'mock@example.com';
+            name = parts[4] || 'Mock User';
+        }
+
+        this.loadUsers();
+        let user = this.users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        if (!user) {
+            const prefix = email.split('@')[0];
+            let username = prefix;
+            let suffix = 1;
+            while (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                username = `${prefix}${suffix++}`;
+            }
+
+            user = { username, email, password: crypto.randomUUID ? crypto.randomUUID() : 'google-oauth-dummy-pass' };
+            this.users.push(user);
+            this.saveUsers();
+        }
+
+        this.currentUser = user.username;
+        this.currentUserEmail = user.email;
+        localStorage.setItem('slide_engine_active_user', this.currentUser);
+        localStorage.setItem('slide_engine_active_user_email', this.currentUserEmail);
+        this.emit('auth-changed', this.currentUser);
+
+        this.project = null;
+        this.selectedSlideId = null;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
+        this.undoStack = [];
+        this.redoStack = [];
+        this.updateUndoRedoUI();
+
+        this.setView('dashboard');
+        this.emit('projects-list-changed', this.getProjectsForCurrentUser());
+        return { success: true };
+    },
+
+    async updateEmail(email) {
+        email = (email || '').trim().toLowerCase();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return { success: false, message: "A valid email address is required." };
+        }
+
+        if (window.SlideEngineAPI) {
+            try {
+                const res = await window.SlideEngineAPI.updateEmail(email);
+                if (res.success) {
+                    this.currentUserEmail = email;
+                    localStorage.setItem('slide_engine_active_user_email', email);
+                    this.emit('auth-changed', this.currentUser);
+                    return { success: true };
+                }
+            } catch (e) {
+                console.warn("API update email failed, falling back to LocalStorage:", e);
+                return { success: false, message: e.message || "Failed to update email." };
+            }
+        }
+
+        this.loadUsers();
+        if (this.users.some(u => u.email && u.email.toLowerCase() === email && u.username !== this.currentUser)) {
+            return { success: false, message: "Email is already in use by another account." };
+        }
+
+        const userIndex = this.users.findIndex(u => u.username === this.currentUser);
+        if (userIndex !== -1) {
+            this.users[userIndex].email = email;
+            this.saveUsers();
+        }
+
+        this.currentUserEmail = email;
+        localStorage.setItem('slide_engine_active_user_email', email);
+        this.emit('auth-changed', this.currentUser);
+        return { success: true };
+    },
+
     logout() {
         this.currentUser = null;
+        this.currentUserEmail = null;
         localStorage.removeItem('slide_engine_active_user');
+        localStorage.removeItem('slide_engine_active_user_email');
         
         if (window.SlideEngineAPI) {
             window.SlideEngineAPI.logout();

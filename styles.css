@@ -2336,6 +2336,75 @@ select option {
     flex-shrink: 0;
 }
 
+/* EMAIL AUTH & GOOGLE OAUTH STYLING */
+.auth-card .form-group {
+    margin-bottom: 16px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin: 20px 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.auth-divider:not(:empty)::before {
+    margin-right: 1em;
+}
+.auth-divider:not(:empty)::after {
+    margin-left: 1em;
+}
+
+.google-auth-container {
+    margin-top: 10px;
+    margin-bottom: 8px;
+}
+
+.legacy-email-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(230, 95, 0, 0.08) !important;
+    border: 1px solid rgba(230, 95, 0, 0.3) !important;
+    padding: 12px 20px;
+    margin: 16px 24px 0 24px;
+    border-radius: 0px;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-family: var(--font-ui);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.3s ease;
+}
+.legacy-email-banner .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.legacy-email-banner .banner-icon {
+    color: #ff9d00;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+.legacy-email-banner .btn {
+    padding: 6px 12px;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.btn-link-action:hover {
+    color: #ffffff !important;
+}
+
 /* ========================================== */
 /* AESTHETICS & ANIMATIONS                    */
 /* ========================================== */

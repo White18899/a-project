@@ -6,14 +6,28 @@
  */
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const url = require('url');
+const nodemailer = require('nodemailer');
 
 const PORT = 3000;
 const DB_DIR = path.join(__dirname, 'db_data');
 const PROJECTS_DIR = path.join(DB_DIR, 'projects');
+
+// Configure Nodemailer transporter (for real reset password emails)
+// To use, set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS environment variables.
+const mailTransporter = (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) ? nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+    }
+}) : null;
 
 // Ensure database directories exist
 if (!fs.existsSync(DB_DIR)) {
@@ -181,12 +195,16 @@ const server = http.createServer(async (req, res) => {
     try {
         // --- AUTH API ---
         if (pathname === '/api/auth/signup' && req.method === 'POST') {
-            const { username, password } = await parseBody(req);
+            const { username, password, email } = await parseBody(req);
             const cleanUser = (username || '').trim().toLowerCase();
+            const cleanEmail = (email || '').trim().toLowerCase();
             const cleanPass = password || '';
 
             if (!cleanUser || cleanPass.length < 6) {
                 return sendJson(res, 400, { success: false, message: 'Invalid username or password (min 6 chars).' });
+            }
+            if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+                return sendJson(res, 400, { success: false, message: 'A valid email address is required.' });
             }
 
             const usersFile = path.join(DB_DIR, 'users.json');
@@ -195,41 +213,267 @@ const server = http.createServer(async (req, res) => {
             if (users.some(u => u.username === cleanUser)) {
                 return sendJson(res, 400, { success: false, message: 'Username already exists.' });
             }
+            if (users.some(u => u.email === cleanEmail)) {
+                return sendJson(res, 400, { success: false, message: 'Email address is already registered.' });
+            }
 
             const salt = crypto.randomBytes(16).toString('hex');
             const hashedPassword = crypto.pbkdf2Sync(cleanPass, salt, 1000, 64, 'sha256').toString('hex');
 
-            users.push({ username: cleanUser, salt, hashedPassword });
+            users.push({ username: cleanUser, email: cleanEmail, salt, hashedPassword });
             writeJsonFile(usersFile, users);
 
             const token = crypto.randomBytes(32).toString('hex');
             activeSessions.set(token, cleanUser);
 
-            return sendJson(res, 201, { success: true, token, username: cleanUser });
+            return sendJson(res, 201, { success: true, token, username: cleanUser, email: cleanEmail });
         }
 
         if (pathname === '/api/auth/login' && req.method === 'POST') {
             const { username, password } = await parseBody(req);
-            const cleanUser = (username || '').trim().toLowerCase();
+            const cleanInput = (username || '').trim().toLowerCase();
             const cleanPass = password || '';
 
             const usersFile = path.join(DB_DIR, 'users.json');
             const users = readJsonFile(usersFile, []);
 
-            const user = users.find(u => u.username === cleanUser);
+            let user;
+            if (cleanInput.includes('@')) {
+                user = users.find(u => u.email === cleanInput);
+            } else {
+                user = users.find(u => u.username === cleanInput);
+            }
+
             if (!user) {
-                return sendJson(res, 401, { success: false, message: 'Invalid username or password.' });
+                return sendJson(res, 401, { success: false, message: 'Invalid username/email or password.' });
             }
 
             const hashedPassword = crypto.pbkdf2Sync(cleanPass, user.salt, 1000, 64, 'sha256').toString('hex');
             if (hashedPassword !== user.hashedPassword) {
-                return sendJson(res, 401, { success: false, message: 'Invalid username or password.' });
+                return sendJson(res, 401, { success: false, message: 'Invalid username/email or password.' });
             }
 
             const token = crypto.randomBytes(32).toString('hex');
-            activeSessions.set(token, cleanUser);
+            activeSessions.set(token, user.username);
 
-            return sendJson(res, 200, { success: true, token, username: cleanUser });
+            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email });
+        }
+
+        if (pathname === '/api/auth/forgot-password' && req.method === 'POST') {
+            const { email } = await parseBody(req);
+            const cleanEmail = (email || '').trim().toLowerCase();
+
+            if (!cleanEmail) {
+                return sendJson(res, 400, { success: false, message: 'Email is required.' });
+            }
+
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+
+            const userIndex = users.findIndex(u => u.email === cleanEmail);
+            if (userIndex === -1) {
+                return sendJson(res, 404, { success: false, message: 'No account found with this email.' });
+            }
+
+            // Generate a 6-digit random code
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const expires = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+            users[userIndex].resetCode = code;
+            users[userIndex].resetExpires = expires;
+            writeJsonFile(usersFile, users);
+
+            // Log code for testing/development
+            const logMsg = `[FORGOT PASSWORD] Reset code for ${users[userIndex].username} (${cleanEmail}): ${code}`;
+            console.log(`\x1b[33m${logMsg}\x1b[0m`);
+            debugLog(logMsg);
+
+            // Send real email if SMTP transporter is configured
+            if (mailTransporter) {
+                const mailOptions = {
+                    from: `"SlideEngine Auth" <${process.env.SMTP_USER}>`,
+                    to: cleanEmail,
+                    subject: 'SlideEngine Password Reset Code',
+                    text: `Hello ${users[userIndex].username},\n\nYou requested a password reset for your SlideEngine account.\n\nYour 6-digit verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nSlideEngine Team`
+                };
+                
+                mailTransporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        console.error(`\x1b[31m[EMAIL ERROR] Failed to send email to ${cleanEmail}: ${error.message}\x1b[0m`);
+                        debugLog(`[EMAIL ERROR] Failed to send email: ${error.message}`);
+                    } else {
+                        console.log(`\x1b[32m[EMAIL SUCCESS] Email sent to ${cleanEmail}: ${info.response}\x1b[0m`);
+                        debugLog(`[EMAIL SUCCESS] Email sent: ${info.response}`);
+                    }
+                });
+            } else {
+                console.log(`\x1b[35m[SMTP INFO] SMTP configuration not set. Reset code printed to terminal only.\x1b[0m`);
+            }
+
+            return sendJson(res, 200, { success: true, message: 'Reset code generated successfully.' });
+        }
+
+        if (pathname === '/api/auth/reset-password' && req.method === 'POST') {
+            const { email, code, newPassword } = await parseBody(req);
+            const cleanEmail = (email || '').trim().toLowerCase();
+            const cleanCode = (code || '').trim();
+            const cleanPass = newPassword || '';
+
+            if (!cleanEmail || !cleanCode || cleanPass.length < 6) {
+                return sendJson(res, 400, { success: false, message: 'All fields are required and password must be min 6 chars.' });
+            }
+
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+
+            const userIndex = users.findIndex(u => u.email === cleanEmail);
+            if (userIndex === -1) {
+                return sendJson(res, 400, { success: false, message: 'Invalid email or reset code.' });
+            }
+
+            const user = users[userIndex];
+            if (!user.resetCode || user.resetCode !== cleanCode || !user.resetExpires || user.resetExpires < Date.now()) {
+                return sendJson(res, 400, { success: false, message: 'Invalid or expired reset code.' });
+            }
+
+            // Update password
+            const salt = crypto.randomBytes(16).toString('hex');
+            const hashedPassword = crypto.pbkdf2Sync(cleanPass, salt, 1000, 64, 'sha256').toString('hex');
+
+            users[userIndex].salt = salt;
+            users[userIndex].hashedPassword = hashedPassword;
+            delete users[userIndex].resetCode;
+            delete users[userIndex].resetExpires;
+            
+            writeJsonFile(usersFile, users);
+            debugLog(`[PASSWORD RESET] Successfully reset password for ${user.username}`);
+
+            return sendJson(res, 200, { success: true, message: 'Password reset successful.' });
+        }
+
+        if (pathname === '/api/auth/google' && req.method === 'POST') {
+            const { credential, isMock } = await parseBody(req);
+            if (!credential) {
+                return sendJson(res, 400, { success: false, message: 'Google credential ID Token is required.' });
+            }
+
+            let email = '';
+            let name = '';
+            let googleId = '';
+
+            if (isMock) {
+                // Parse mock credential for local development. format: mock_token_for_<email>_<name>_<id>
+                const parts = credential.split('_');
+                email = parts[3] || 'mock@example.com';
+                name = parts[4] || 'Mock User';
+                googleId = parts[5] || 'mock-id-12345';
+            } else {
+                try {
+                    // Call Google token info API to verify JWT safely without external packages
+                    const tokenInfoUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`;
+                    const response = await new Promise((resolve, reject) => {
+                        https.get(tokenInfoUrl, (googleRes) => {
+                            let data = '';
+                            googleRes.on('data', chunk => data += chunk);
+                            googleRes.on('end', () => {
+                                try {
+                                    resolve(JSON.parse(data));
+                                } catch (e) {
+                                    reject(e);
+                                }
+                            });
+                            googleRes.on('error', err => reject(err));
+                        }).on('error', err => reject(err));
+                    });
+
+                    if (response.error || !response.email) {
+                        return sendJson(res, 401, { success: false, message: response.error_description || 'Invalid Google Token.' });
+                    }
+
+                    email = response.email.toLowerCase();
+                    name = response.name || response.given_name || 'Google User';
+                    googleId = response.sub;
+                } catch (e) {
+                    console.error('Google verification failed:', e);
+                    return sendJson(res, 500, { success: false, message: 'Google authentication failed.' });
+                }
+            }
+
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+
+            // Check if user exists by googleId
+            let user = users.find(u => u.googleId === googleId);
+            
+            // If not found by googleId, check by email
+            if (!user && email) {
+                user = users.find(u => u.email === email);
+                if (user) {
+                    // Link googleId to existing account
+                    user.googleId = googleId;
+                    writeJsonFile(usersFile, users);
+                }
+            }
+
+            // If still not found, create new user
+            if (!user) {
+                // Generate a unique username derived from email or name
+                const emailPrefix = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+                let username = emailPrefix || 'googleuser';
+                let suffix = 1;
+                while (users.some(u => u.username === username)) {
+                    username = `${emailPrefix}${suffix++}`;
+                }
+
+                user = {
+                    username,
+                    email,
+                    googleId,
+                    salt: crypto.randomBytes(16).toString('hex'), // filler salt
+                    hashedPassword: crypto.randomBytes(32).toString('hex') // filler password
+                };
+
+                users.push(user);
+                writeJsonFile(usersFile, users);
+            }
+
+            const token = crypto.randomBytes(32).toString('hex');
+            activeSessions.set(token, user.username);
+
+            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email });
+        }
+
+        if (pathname === '/api/auth/update-email' && req.method === 'POST') {
+            const currentUser = getAuthenticatedUser(req);
+            if (!currentUser) {
+                return sendJson(res, 401, { success: false, message: 'Unauthorized.' });
+            }
+
+            const { email } = await parseBody(req);
+            const cleanEmail = (email || '').trim().toLowerCase();
+
+            if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+                return sendJson(res, 400, { success: false, message: 'A valid email address is required.' });
+            }
+
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+
+            // Check if email is already taken by another user
+            if (users.some(u => u.email === cleanEmail && u.username !== currentUser)) {
+                return sendJson(res, 400, { success: false, message: 'Email address is already in use.' });
+            }
+
+            const userIndex = users.findIndex(u => u.username === currentUser);
+            if (userIndex === -1) {
+                return sendJson(res, 404, { success: false, message: 'User not found.' });
+            }
+
+            users[userIndex].email = cleanEmail;
+            writeJsonFile(usersFile, users);
+            debugLog(`[EMAIL UPDATE] User ${currentUser} linked email ${cleanEmail}`);
+
+            return sendJson(res, 200, { success: true, message: 'Email address updated successfully.' });
         }
 
         // --- PROJECTS API (Authenticated) ---

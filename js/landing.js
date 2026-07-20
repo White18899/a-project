@@ -67,38 +67,96 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================
     // AUTHENTICATION MODAL & FORM LOGIC
     // ==========================================
+    // ==========================================
+    // AUTHENTICATION MODAL & FORM LOGIC
+    // ==========================================
     const authModal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
+    const forgotForm = document.getElementById('forgot-form');
+    const resetForm = document.getElementById('reset-form');
     const authTitle = document.getElementById('auth-modal-title');
     const authSubmitBtn = document.getElementById('btn-auth-submit');
     const signupConfirmGroup = document.getElementById('signup-confirm-group');
+    const signupEmailGroup = document.getElementById('signup-email-group');
+    const loginPasswordGroup = document.getElementById('login-password-group');
+    const authUsernameGroup = document.getElementById('auth-username-group');
     const authErrorBanner = document.getElementById('auth-error-banner');
     const authErrorMsg = document.getElementById('auth-error-message');
 
     const loginTab = document.getElementById('tab-auth-login');
     const signupTab = document.getElementById('tab-auth-signup');
+    const authTabs = document.getElementById('auth-tabs-container');
+    const authSocial = document.getElementById('auth-social-section');
 
-    let currentAuthMode = 'login'; // 'login' | 'signup'
+    let currentAuthMode = 'login'; // 'login' | 'signup' | 'forgot-password' | 'reset-password'
 
     function setAuthMode(mode) {
         currentAuthMode = mode;
         authErrorBanner.classList.add('hidden');
         authForm.reset();
+        forgotForm.reset();
+        resetForm.reset();
 
-        if (mode === 'login') {
-            loginTab.classList.add('active');
-            signupTab.classList.remove('active');
-            authTitle.textContent = 'Sign In';
-            authSubmitBtn.textContent = 'Sign In';
-            signupConfirmGroup.classList.add('hidden');
-            document.getElementById('auth-password-confirm').required = false;
-        } else {
-            loginTab.classList.remove('active');
-            signupTab.classList.add('active');
-            authTitle.textContent = 'Create Account';
-            authSubmitBtn.textContent = 'Get Started';
-            signupConfirmGroup.classList.remove('hidden');
-            document.getElementById('auth-password-confirm').required = true;
+        // Show/hide correct forms
+        if (mode === 'login' || mode === 'signup') {
+            authForm.classList.remove('hidden');
+            forgotForm.classList.add('hidden');
+            resetForm.classList.add('hidden');
+            authTabs.classList.remove('hidden');
+            authSocial.classList.remove('hidden');
+            authUsernameGroup.classList.remove('hidden');
+            document.getElementById('auth-username').required = true;
+
+             if (mode === 'login') {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+                authTitle.textContent = 'Sign In';
+                authSubmitBtn.textContent = 'Sign In';
+                signupConfirmGroup.classList.add('hidden');
+                signupEmailGroup.classList.add('hidden');
+                loginPasswordGroup.classList.remove('hidden');
+                document.getElementById('btn-auth-forgot').style.display = 'block';
+                document.getElementById('auth-password-confirm').required = false;
+                document.getElementById('auth-email').required = false;
+                
+                // Change input label/placeholder for dual email/username login
+                document.getElementById('label-auth-username').textContent = 'Username or Email';
+                document.getElementById('auth-username').placeholder = 'Enter username or email...';
+                document.getElementById('icon-auth-username').setAttribute('data-lucide', 'user');
+            } else {
+                loginTab.classList.remove('active');
+                signupTab.classList.add('active');
+                authTitle.textContent = 'Create Account';
+                authSubmitBtn.textContent = 'Get Started';
+                signupConfirmGroup.classList.remove('hidden');
+                signupEmailGroup.classList.remove('hidden');
+                loginPasswordGroup.classList.remove('hidden');
+                document.getElementById('btn-auth-forgot').style.display = 'none';
+                document.getElementById('auth-password-confirm').required = true;
+                document.getElementById('auth-email').required = true;
+                
+                document.getElementById('label-auth-username').textContent = 'Username';
+                document.getElementById('auth-username').placeholder = 'Enter username...';
+            }
+        } else if (mode === 'forgot-password') {
+            authForm.classList.add('hidden');
+            forgotForm.classList.remove('hidden');
+            resetForm.classList.add('hidden');
+            authTabs.classList.add('hidden');
+            authSocial.classList.add('hidden');
+            authTitle.textContent = 'Reset Password';
+        } else if (mode === 'reset-password') {
+            authForm.classList.add('hidden');
+            forgotForm.classList.add('hidden');
+            resetForm.classList.remove('hidden');
+            authTabs.classList.add('hidden');
+            authSocial.classList.add('hidden');
+            authTitle.textContent = 'Set New Password';
+        }
+        
+        // Refresh icons if needed
+        if (window.lucide) {
+            window.lucide.createIcons();
         }
     }
 
@@ -123,14 +181,30 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Close Auth modal
-    const closeAuth = () => authModal.classList.remove('active');
+    const closeAuth = () => {
+        authModal.classList.remove('active');
+        // Reset to default
+        setAuthMode('login');
+    };
     document.getElementById('btn-auth-close').onclick = closeAuth;
 
     // Auth Tabs toggle
     loginTab.onclick = () => setAuthMode('login');
     signupTab.onclick = () => setAuthMode('signup');
 
-    // Submit form handler
+    // Forgot password trigger in login form
+    document.getElementById('btn-auth-forgot').onclick = (e) => {
+        e.preventDefault();
+        setAuthMode('forgot-password');
+    };
+
+    // Back to Login actions
+    document.getElementById('btn-forgot-back').onclick = () => setAuthMode('login');
+    document.getElementById('btn-reset-back').onclick = () => setAuthMode('login');
+
+
+
+    // Native Auth Form Submit
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         authErrorBanner.classList.add('hidden');
@@ -146,13 +220,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 showAuthError(res.message);
             }
         } else {
+            const email = document.getElementById('auth-email').value;
             const confirmPass = document.getElementById('auth-password-confirm').value;
             if (password !== confirmPass) {
                 showAuthError("Passwords do not match.");
                 return;
             }
 
-            const res = await state.signup(username, password);
+            const res = await state.signup(username, password, email);
             if (res.success) {
                 closeAuth();
             } else {
@@ -161,22 +236,128 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // Forgot Password Form Submit
+    forgotForm.onsubmit = async (e) => {
+        e.preventDefault();
+        authErrorBanner.classList.add('hidden');
+        const email = document.getElementById('auth-forgot-email').value;
+
+        const res = await state.forgotPassword(email);
+        if (res.success) {
+            setAuthMode('reset-password');
+            document.getElementById('auth-reset-email').value = email;
+        } else {
+            showAuthError(res.message);
+        }
+    };
+
+    // Reset Password Form Submit
+    resetForm.onsubmit = async (e) => {
+        e.preventDefault();
+        authErrorBanner.classList.add('hidden');
+        const email = document.getElementById('auth-reset-email').value;
+        const code = document.getElementById('auth-reset-code').value;
+        const newPass = document.getElementById('auth-reset-password').value;
+        const confirmPass = document.getElementById('auth-reset-password-confirm').value;
+
+        if (newPass !== confirmPass) {
+            showAuthError("Passwords do not match.");
+            return;
+        }
+
+        const res = await state.resetPassword(email, code, newPass);
+        if (res.success) {
+            alert("Password reset successfully! Please log in with your new password.");
+            setAuthMode('login');
+        } else {
+            showAuthError(res.message);
+        }
+    };
+
     function showAuthError(msg) {
         authErrorMsg.textContent = msg;
         authErrorBanner.classList.remove('hidden');
     }
 
+    // Google Sign-In Setup
+    function initGoogleSignIn() {
+        if (window.google && window.google.accounts) {
+            google.accounts.id.initialize({
+                client_id: window.GOOGLE_CLIENT_ID || '1012972539469-3kdp7hnubs4omgeocv0gqsmhrbksss2j.apps.googleusercontent.com',
+                callback: handleGoogleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("google-signin-btn"),
+                { theme: "dark", size: "large", width: "100%", type: "standard", shape: "rectangular" }
+            );
+        } else {
+            setTimeout(initGoogleSignIn, 1000);
+        }
+    }
+
+    async function handleGoogleCredentialResponse(response) {
+        authErrorBanner.classList.add('hidden');
+        const res = await state.googleLogin(response.credential, false);
+        if (res.success) {
+            closeAuth();
+        } else {
+            showAuthError(res.message || "Google authentication failed.");
+        }
+    }
+
+    // Initialize Google API
+    initGoogleSignIn();
+
+    // Legacy User Migration Modal logic
+    const linkEmailModal = document.getElementById('link-email-modal');
+    const linkEmailForm = document.getElementById('link-email-form');
+    const linkEmailErrorBanner = document.getElementById('link-email-error-banner');
+    const linkEmailErrorMsg = document.getElementById('link-email-error-message');
+
+    document.getElementById('btn-add-legacy-email').onclick = () => {
+        linkEmailErrorBanner.classList.add('hidden');
+        linkEmailForm.reset();
+        linkEmailModal.classList.add('active');
+    };
+
+    document.getElementById('btn-link-email-close').onclick = () => {
+        linkEmailModal.classList.remove('active');
+    };
+
+    linkEmailForm.onsubmit = async (e) => {
+        e.preventDefault();
+        linkEmailErrorBanner.classList.add('hidden');
+        const email = document.getElementById('link-email-input').value;
+        const res = await state.updateEmail(email);
+        if (res.success) {
+            linkEmailModal.classList.remove('active');
+            alert("Email linked successfully! You can now log in using either your username or email address.");
+        } else {
+            linkEmailErrorMsg.textContent = res.message;
+            linkEmailErrorBanner.classList.remove('hidden');
+        }
+    };
+
     // Auth State Listeners
     state.on('auth-changed', (username) => {
         const userBadge = document.getElementById('dashboard-user-badge');
         const displayName = document.getElementById('user-display-name');
+        const legacyBanner = document.getElementById('legacy-user-email-banner');
 
         if (username) {
             displayName.textContent = username;
             userBadge.style.display = 'flex';
+
+            // Show email linkage banner if legacy account has no email
+            if (!state.currentUserEmail && username.toLowerCase() !== 'guest') {
+                legacyBanner.classList.remove('hidden');
+            } else {
+                legacyBanner.classList.add('hidden');
+            }
         } else {
             displayName.textContent = 'Guest';
             userBadge.style.display = 'none';
+            legacyBanner.classList.add('hidden');
         }
     });
 

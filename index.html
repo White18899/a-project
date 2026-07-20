@@ -43,6 +43,8 @@
     <!-- PixiJS WebGL Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
     <link rel="stylesheet" href="styles.css?v=4">
+    <!-- Google Identity Services for Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -291,6 +293,15 @@
                             data-lucide="log-out"></i> Logout</button>
                 </div>
             </header>
+
+            <!-- LEGACY USER EMAIL WARNING BANNER -->
+            <div id="legacy-user-email-banner" class="legacy-email-banner hidden">
+                <div class="banner-content">
+                    <i data-lucide="shield-alert" class="banner-icon"></i>
+                    <span><strong>Secure your account:</strong> Please link an email address to enable password recovery and email login.</span>
+                </div>
+                <button id="btn-add-legacy-email" class="btn btn-accent btn-sm">Link Email</button>
+            </div>
 
             <main class="dashboard-content">
                 <div class="dashboard-action-bar">
@@ -1005,7 +1016,7 @@
                     <h3 id="auth-modal-title">Sign In</h3>
                     <button class="btn-icon" id="btn-auth-close"><i data-lucide="x"></i></button>
                 </div>
-                <div class="auth-tabs">
+                <div class="auth-tabs" id="auth-tabs-container">
                     <button class="auth-tab-btn active" id="tab-auth-login">Login</button>
                     <button class="auth-tab-btn" id="tab-auth-signup">Create Account</button>
                 </div>
@@ -1014,16 +1025,28 @@
                         <i data-lucide="alert-triangle"></i>
                         <span id="auth-error-message">Error details go here</span>
                     </div>
+
+                    <!-- NATIVE LOGIN/SIGNUP FORM -->
                     <form id="auth-form" autocomplete="off">
-                        <div class="form-group">
-                            <label for="auth-username">Username</label>
+                        <div class="form-group" id="auth-username-group">
+                            <label for="auth-username" id="label-auth-username">Username</label>
                             <div class="input-icon-wrapper">
-                                <i data-lucide="user"></i>
+                                <i data-lucide="user" id="icon-auth-username"></i>
                                 <input type="text" id="auth-username" required placeholder="Enter username...">
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="auth-password">Password</label>
+                        <div class="form-group hidden" id="signup-email-group">
+                            <label for="auth-email">Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="mail"></i>
+                                <input type="email" id="auth-email" placeholder="name@example.com">
+                            </div>
+                        </div>
+                        <div class="form-group" id="login-password-group">
+                            <div class="label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <label for="auth-password" style="margin-bottom: 0;">Password</label>
+                                <button type="button" id="btn-auth-forgot" class="btn-link-action" style="font-size: 0.75rem; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0; transition: color var(--transition-fast);">Forgot Password?</button>
+                            </div>
                             <div class="input-icon-wrapper">
                                 <i data-lucide="lock"></i>
                                 <input type="password" id="auth-password" required placeholder="••••••••">
@@ -1043,6 +1066,104 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-accent btn-block" id="btn-auth-submit">Sign In</button>
+                    </form>
+
+                    <!-- FORGOT PASSWORD FORM -->
+                    <form id="forgot-form" autocomplete="off" class="hidden">
+                        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                            Enter your email address and we will generate a password reset code.
+                        </p>
+                        <div class="form-group">
+                            <label for="auth-forgot-email">Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="mail"></i>
+                                <input type="email" id="auth-forgot-email" required placeholder="name@example.com">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-accent btn-block" id="btn-forgot-submit">Send Reset Code</button>
+                        <button type="button" id="btn-forgot-back" class="btn btn-outline btn-block" style="margin-top: 10px;">Back to Login</button>
+                    </form>
+
+                    <!-- RESET PASSWORD FORM -->
+                    <form id="reset-form" autocomplete="off" class="hidden">
+                        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                            Enter the reset code sent to your email and choose a new password.
+                        </p>
+                        <div class="form-group">
+                            <label for="auth-reset-email">Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="mail"></i>
+                                <input type="email" id="auth-reset-email" required readonly>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-reset-code">Verification Code</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="key"></i>
+                                <input type="text" id="auth-reset-code" required placeholder="Enter 6-digit code">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-reset-password">New Password</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="lock"></i>
+                                <input type="password" id="auth-reset-password" required placeholder="••••••••">
+                                <button type="button" class="btn-toggle-password" tabindex="-1">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-reset-password-confirm">Confirm New Password</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="shield-check"></i>
+                                <input type="password" id="auth-reset-password-confirm" required placeholder="••••••••">
+                                <button type="button" class="btn-toggle-password" tabindex="-1">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-accent btn-block" id="btn-reset-submit">Reset Password</button>
+                        <button type="button" id="btn-reset-back" class="btn btn-outline btn-block" style="margin-top: 10px;">Back to Login</button>
+                    </form>
+
+                    <!-- GOOGLE OAUTH SECTION -->
+                    <div id="auth-social-section">
+                        <div class="auth-divider">
+                            <span>or</span>
+                        </div>
+                        <div class="google-auth-container" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div id="google-signin-btn" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LINK EMAIL OVERLAY / MODAL -->
+        <div id="link-email-modal" class="modal-overlay">
+            <div class="modal-card auth-card">
+                <div class="modal-header">
+                    <h3>Link Email Address</h3>
+                    <button class="btn-icon" id="btn-link-email-close"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div id="link-email-error-banner" class="auth-error-banner hidden">
+                        <i data-lucide="alert-triangle"></i>
+                        <span id="link-email-error-message">Error details go here</span>
+                    </div>
+                    <p style="font-size: 0.85rem; margin-bottom: 16px; color: var(--text-muted); line-height: 1.4;">
+                        Add an email address to your account. This will allow you to log in with either your username or email, and reset your password if forgotten.
+                    </p>
+                    <form id="link-email-form" autocomplete="off">
+                        <div class="form-group">
+                            <label for="link-email-input">Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i data-lucide="mail"></i>
+                                <input type="email" id="link-email-input" required placeholder="name@example.com">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-accent btn-block" id="btn-link-email-submit">Save Email</button>
                     </form>
                 </div>
             </div>
