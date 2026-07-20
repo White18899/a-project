@@ -308,80 +308,141 @@ const server = http.createServer(async (req, res) => {
             console.log(`\x1b[33m${logMsg}\x1b[0m`);
             debugLog(logMsg);
 
-            // Send real email if configured (EmailJS takes precedence, then SMTP)
+            // HTML Email Template
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; color: #333333;">
+                    <h2 style="color: #111111; margin-bottom: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 1.3rem; border-bottom: 2px solid #111111; padding-bottom: 10px; display: inline-block;">SlideEngine</h2>
+                    <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 16px;">Hello <strong>${users[userIndex].username}</strong>,</p>
+                    <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 24px;">You requested a password reset for your SlideEngine account. Please use the verification code below to set a new password:</p>
+                    <div style="text-align: center; margin: 25px 0;">
+                        <div style="display: inline-block; padding: 14px 28px; font-size: 1.85rem; font-weight: 700; font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #000000; border-radius: 6px; letter-spacing: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">${code}</div>
+                    </div>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+                        This code is valid for <strong>15 minutes</strong>. If you did not request this password reset, please ignore this email.
+                    </p>
+                    <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 10px;">
+                        Best regards,<br>
+                        <strong>SlideEngine Team</strong>
+                    </p>
+                </div>
+            `;
+
+            let emailSent = false;
+
+            // 1. Try EmailJS (Primary - 200 free emails/month, Gmail-approved)
             const emailjsServiceId = process.env.EMAILJS_SERVICE_ID || 'service_6cdxfjj';
             const emailjsTemplateId = process.env.EMAILJS_TEMPLATE_ID || 'template_3we2jee';
             const emailjsPublicKey = process.env.EMAILJS_PUBLIC_KEY || '4drbxU0P1LUaYFJfL';
             const emailjsPrivateKey = process.env.EMAILJS_PRIVATE_KEY || ''; // Optional
 
             if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
-                fetch('https://api.emailjs.com/api/v1.0/email/send', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        service_id: emailjsServiceId,
-                        template_id: emailjsTemplateId,
-                        user_id: emailjsPublicKey,
-                        ...(emailjsPrivateKey ? { accessToken: emailjsPrivateKey } : {}),
-                        template_params: {
-                            to_email: cleanEmail,
-                            email: cleanEmail,
-                            user_email: cleanEmail,
-                            user_name: users[userIndex].username,
-                            reset_code: code,
-                            subject: 'SlideEngine Password Reset Code',
-                            from_name: 'SlideEngine Auth'
-                        }
-                    })
-                }).then(async emailRes => {
+                try {
+                    const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            service_id: emailjsServiceId,
+                            template_id: emailjsTemplateId,
+                            user_id: emailjsPublicKey,
+                            ...(emailjsPrivateKey ? { accessToken: emailjsPrivateKey } : {}),
+                            template_params: {
+                                to_email: cleanEmail,
+                                email: cleanEmail,
+                                user_email: cleanEmail,
+                                user_name: users[userIndex].username,
+                                reset_code: code,
+                                subject: 'SlideEngine Password Reset Code',
+                                from_name: 'SlideEngine Auth'
+                            }
+                        })
+                    });
+
                     if (emailRes.ok) {
                         console.log(`\x1b[32m[EMAIL SUCCESS] EmailJS sent email to ${cleanEmail}\x1b[0m`);
                         debugLog(`[EMAIL SUCCESS] EmailJS sent to ${cleanEmail}`);
+                        emailSent = true;
                     } else {
                         const errText = await emailRes.text();
-                        console.error(`\x1b[31m[EMAIL ERROR] EmailJS failed: ${errText}\x1b[0m`);
+                        console.error(`\x1b[31m[EMAIL ERROR] EmailJS failed, trying backup... ${errText}\x1b[0m`);
                         debugLog(`[EMAIL ERROR] EmailJS failed: ${errText}`);
                     }
-                }).catch(err => {
-                    console.error(`\x1b[31m[EMAIL ERROR] Failed to fetch EmailJS: ${err.message}\x1b[0m`);
-                });
-            } else if (mailTransporter) {
+                } catch (err) {
+                    console.error(`\x1b[31m[EMAIL ERROR] EmailJS request error, trying backup... ${err.message}\x1b[0m`);
+                }
+            }
+
+            // 2. Try Brevo (Backup 1 - 300 free emails/day, requires custom domain for Gmail DMARC)
+            if (!emailSent) {
+                const brevoApiKey = process.env.BREVO_API_KEY || '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';
+                const brevoSenderEmail = process.env.BREVO_SENDER_EMAIL || 'slide.engi@gmail.com';
+                const brevoSenderName = process.env.BREVO_SENDER_NAME || 'SlideEngine Auth';
+
+                if (brevoApiKey) {
+                    try {
+                        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                            method: 'POST',
+                            headers: {
+                                'api-key': brevoApiKey,
+                                'content-type': 'application/json',
+                                'accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                sender: {
+                                    name: brevoSenderName,
+                                    email: brevoSenderEmail
+                                },
+                                to: [
+                                    {
+                                        email: cleanEmail,
+                                        name: users[userIndex].username
+                                    }
+                                ],
+                                subject: 'SlideEngine Password Reset Code',
+                                htmlContent: htmlContent
+                            })
+                        });
+
+                        if (brevoRes.ok) {
+                            console.log(`\x1b[32m[EMAIL SUCCESS] Brevo sent email to ${cleanEmail}\x1b[0m`);
+                            debugLog(`[EMAIL SUCCESS] Brevo sent to ${cleanEmail}`);
+                            emailSent = true;
+                        } else {
+                            const errText = await brevoRes.text();
+                            console.error(`\x1b[31m[EMAIL ERROR] Brevo failed, trying backup... ${errText}\x1b[0m`);
+                            debugLog(`[EMAIL ERROR] Brevo failed: ${errText}`);
+                        }
+                    } catch (err) {
+                        console.error(`\x1b[31m[EMAIL ERROR] Brevo request error, trying backup... ${err.message}\x1b[0m`);
+                    }
+                }
+            }
+
+            // 3. Try SMTP (Backup 2)
+            if (!emailSent && mailTransporter) {
                 const mailOptions = {
                     from: `"SlideEngine Auth" <${process.env.SMTP_USER}>`,
                     to: cleanEmail,
                     subject: 'SlideEngine Password Reset Code',
                     text: `Hello ${users[userIndex].username},\n\nYou requested a password reset for your SlideEngine account.\n\nYour 6-digit verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nSlideEngine Team`,
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; color: #333333;">
-                            <h2 style="color: #111111; margin-bottom: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 1.3rem; border-bottom: 2px solid #111111; padding-bottom: 10px; display: inline-block;">SlideEngine</h2>
-                            <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 16px;">Hello <strong>${users[userIndex].username}</strong>,</p>
-                            <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 24px;">You requested a password reset for your SlideEngine account. Please use the verification code below to set a new password:</p>
-                            <div style="text-align: center; margin: 25px 0;">
-                                <div style="display: inline-block; padding: 14px 28px; font-size: 1.85rem; font-weight: 700; font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #000000; border-radius: 6px; letter-spacing: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">${code}</div>
-                            </div>
-                            <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 15px;">
-                                This code is valid for <strong>15 minutes</strong>. If you did not request this password reset, please ignore this email.
-                            </p>
-                            <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 10px;">
-                                Best regards,<br>
-                                <strong>SlideEngine Team</strong>
-                            </p>
-                        </div>
-                    `
+                    html: htmlContent
                 };
-                
+
                 mailTransporter.sendMail(mailOptions, (error, info) => {
                     if (error) {
-                        console.error(`\x1b[31m[EMAIL ERROR] Failed to send email to ${cleanEmail}: ${error.message}\x1b[0m`);
-                        debugLog(`[EMAIL ERROR] Failed to send email: ${error.message}`);
+                        console.error(`\x1b[31m[EMAIL ERROR] SMTP failed to send to ${cleanEmail}: ${error.message}\x1b[0m`);
+                        debugLog(`[EMAIL ERROR] SMTP failed: ${error.message}`);
                     } else {
-                        console.log(`\x1b[32m[EMAIL SUCCESS] Email sent to ${cleanEmail}: ${info.response}\x1b[0m`);
-                        debugLog(`[EMAIL SUCCESS] Email sent: ${info.response}`);
+                        console.log(`\x1b[32m[EMAIL SUCCESS] SMTP sent email to ${cleanEmail}: ${info.response}\x1b[0m`);
+                        debugLog(`[EMAIL SUCCESS] SMTP sent: ${info.response}`);
                     }
                 });
-            } else {
+                emailSent = true;
+            }
+
+            // 4. Log to console if no email could be dispatched
+            if (!emailSent) {
                 console.log(`\x1b[35m[SMTP INFO] Email sending not configured. Reset code printed to terminal only.\x1b[0m`);
             }
 

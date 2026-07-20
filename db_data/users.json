@@ -37,12 +37,14 @@
     "username": "hero",
     "email": "herokeller170@gmail.com",
     "salt": "12f8568f6918808bff4b52ffdd2b2f35",
-    "hashedPassword": "6ff3f6d59258bf4c3f40aabcaa10fe7f88c5d1e903d8d4ed0ce061b1530d8080601934924d7f3ac231e4a1ce4d7697e614af6c7aebff2349f69680999f87f463"
+    "hashedPassword": "6ff3f6d59258bf4c3f40aabcaa10fe7f88c5d1e903d8d4ed0ce061b1530d8080601934924d7f3ac231e4a1ce4d7697e614af6c7aebff2349f69680999f87f463",
+    "resetCode": "111835",
+    "resetExpires": 1784576690411
   },
   {
     "username": "testapiname",
     "email": "testapi@example.com",
-    "salt": "36acb59218bb62363c75ad0288f11efc",
-    "hashedPassword": "3bdc230c038a815aa9c232b6fd98529235399bc07029d5fb6ed5c80a59357d45dc8d65115c2847a96d5898aaa226ee6d2aa2d542e2a484f91b83d6dc1dacd5e3"
+    "salt": "36b1e7f666711a1debac002345aa39f3",
+    "hashedPassword": "833c8157351026c75c8105e4641642ed17ab3edc9425e4a7befcf51eb96056066f5a0462bb07b6e36b93a75a681cf7b42a29ce453ced80f2d8a8b0bc88874a57"
   }
 ]

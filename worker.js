@@ -229,7 +229,28 @@ export default {
                 // Log code for testing/development
                 console.log(`[FORGOT PASSWORD] Reset code for ${username} (${cleanEmail}): ${code}`);
 
-                // Send real email via EmailJS API
+                // HTML Email Template
+                const htmlContent = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; color: #333333;">
+                        <h2 style="color: #111111; margin-bottom: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 1.3rem; border-bottom: 2px solid #111111; padding-bottom: 10px; display: inline-block;">SlideEngine</h2>
+                        <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 16px;">Hello <strong>${username}</strong>,</p>
+                        <p style="font-size: 1rem; line-height: 1.5; color: #444444; margin-bottom: 24px;">You requested a password reset for your SlideEngine account. Please use the verification code below to set a new password:</p>
+                        <div style="text-align: center; margin: 25px 0;">
+                            <div style="display: inline-block; padding: 14px 28px; font-size: 1.85rem; font-weight: 700; font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #000000; border-radius: 6px; letter-spacing: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">${code}</div>
+                        </div>
+                        <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+                            This code is valid for <strong>15 minutes</strong>. If you did not request this password reset, please ignore this email.
+                        </p>
+                        <p style="font-size: 0.85rem; line-height: 1.5; color: #777777; margin-top: 10px;">
+                            Best regards,<br>
+                            <strong>SlideEngine Team</strong>
+                        </p>
+                    </div>
+                `;
+
+                let emailSent = false;
+
+                // 1. Try EmailJS (Primary - 200 free emails/month, Gmail-approved)
                 const emailjsServiceId = env.EMAILJS_SERVICE_ID || 'service_6cdxfjj';
                 const emailjsTemplateId = env.EMAILJS_TEMPLATE_ID || 'template_3we2jee';
                 const emailjsPublicKey = env.EMAILJS_PUBLIC_KEY || '4drbxU0P1LUaYFJfL';
@@ -260,12 +281,57 @@ export default {
                         });
                         if (!emailRes.ok) {
                             const errText = await emailRes.text();
-                            console.error('EmailJS sending failed:', errText);
+                            console.error('EmailJS sending failed, trying backup...', errText);
                         } else {
                             console.log('EmailJS email sent successfully.');
+                            emailSent = true;
                         }
                     } catch (err) {
-                        console.error('Failed to send email via EmailJS:', err);
+                        console.error('Failed to send email via EmailJS, trying backup...', err);
+                    }
+                }
+
+                // 2. Try Brevo (Backup 1 - 300 free emails/day, requires custom domain for Gmail DMARC)
+                if (!emailSent) {
+                    const brevoApiKey = env.BREVO_API_KEY || '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';
+                    const brevoSenderEmail = env.BREVO_SENDER_EMAIL || 'slide.engi@gmail.com';
+                    const brevoSenderName = env.BREVO_SENDER_NAME || 'SlideEngine Auth';
+
+                    if (brevoApiKey) {
+                        try {
+                            const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                                method: 'POST',
+                                headers: {
+                                    'api-key': brevoApiKey,
+                                    'content-type': 'application/json',
+                                    'accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    sender: {
+                                        name: brevoSenderName,
+                                        email: brevoSenderEmail
+                                    },
+                                    to: [
+                                        {
+                                            email: cleanEmail,
+                                            name: username
+                                        }
+                                    ],
+                                    subject: 'SlideEngine Password Reset Code',
+                                    htmlContent: htmlContent
+                                })
+                            });
+
+                            if (brevoRes.ok) {
+                                console.log('Brevo email sent successfully.');
+                                emailSent = true;
+                            } else {
+                                const errText = await brevoRes.text();
+                                console.error('Brevo sending failed:', errText);
+                            }
+                        } catch (err) {
+                            console.error('Failed to send email via Brevo:', err);
+                        }
                     }
                 }
 
