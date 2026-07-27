@@ -246,7 +246,7 @@ const server = http.createServer(async (req, res) => {
             const token = crypto.randomBytes(32).toString('hex');
             activeSessions.set(token, cleanUser);
 
-            return sendJson(res, 201, { success: true, token, username: cleanUser, email: cleanEmail });
+            return sendJson(res, 201, { success: true, token, username: cleanUser, email: cleanEmail, hasGeminiKey: false });
         }
 
         if (pathname === '/api/auth/login' && req.method === 'POST') {
@@ -276,7 +276,7 @@ const server = http.createServer(async (req, res) => {
             const token = crypto.randomBytes(32).toString('hex');
             activeSessions.set(token, user.username);
 
-            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email });
+            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email, hasGeminiKey: !!user.geminiApiKey });
         }
 
         if (pathname === '/api/auth/forgot-password' && req.method === 'POST') {
@@ -576,7 +576,7 @@ const server = http.createServer(async (req, res) => {
             const token = crypto.randomBytes(32).toString('hex');
             activeSessions.set(token, user.username);
 
-            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email });
+            return sendJson(res, 200, { success: true, token, username: user.username, email: user.email, hasGeminiKey: !!user.geminiApiKey });
         }
 
         if (pathname === '/api/auth/update-email' && req.method === 'POST') {
@@ -610,6 +610,34 @@ const server = http.createServer(async (req, res) => {
             debugLog(`[EMAIL UPDATE] User ${currentUser} linked email ${cleanEmail}`);
 
             return sendJson(res, 200, { success: true, message: 'Email address updated successfully.' });
+        }
+
+        if (pathname === '/api/auth/update-gemini-key' && req.method === 'POST') {
+            const currentUser = getAuthenticatedUser(req);
+            if (!currentUser) {
+                return sendJson(res, 401, { success: false, message: 'Unauthorized.' });
+            }
+
+            const { geminiApiKey } = await parseBody(req);
+            const cleanKey = (geminiApiKey || '').trim();
+
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+
+            const userIndex = users.findIndex(u => u.username === currentUser);
+            if (userIndex === -1) {
+                return sendJson(res, 404, { success: false, message: 'User not found.' });
+            }
+
+            if (cleanKey) {
+                users[userIndex].geminiApiKey = cleanKey;
+            } else {
+                delete users[userIndex].geminiApiKey;
+            }
+            writeJsonFile(usersFile, users);
+            debugLog(`[GEMINI KEY UPDATE] User ${currentUser} updated their Gemini API Key`);
+
+            return sendJson(res, 200, { success: true, message: 'Gemini API Key updated successfully.' });
         }
 
         // --- PROJECTS API (Authenticated) ---
@@ -720,6 +748,279 @@ const server = http.createServer(async (req, res) => {
             return sendJson(res, 200, { success: true });
         }
 
+        if (pathname === '/api/ai/generate' && req.method === 'POST') {
+            const currentUser = getAuthenticatedUser(req);
+            if (!currentUser) {
+                return sendJson(res, 401, { success: false, message: 'Unauthorized.' });
+            }
+
+            const { prompt, mode, theme, slideCount } = await parseBody(req);
+            
+            // 1. Get user API Key
+            const usersFile = path.join(DB_DIR, 'users.json');
+            const users = readJsonFile(usersFile, []);
+            const user = users.find(u => u.username === currentUser);
+            
+            let apiKey = (user && user.geminiApiKey) || process.env.GEMINI_API_KEY;
+            
+            if (!apiKey) {
+                return sendJson(res, 400, { 
+                    success: false, 
+                    message: 'No Google Gemini API Key configured. Please enter your Gemini API Key in the settings panel.' 
+                });
+            }
+
+            const cleanPrompt = (prompt || '').trim();
+            if (!cleanPrompt) {
+                return sendJson(res, 400, { success: false, message: 'Prompt is required.' });
+            }
+
+            const count = parseInt(slideCount) || 3;
+            const maxCount = Math.min(10, Math.max(1, count));
+
+            const systemInstruction = `You are a professional WebGL slide layout designer. Your goal is to generate visually rich, premium-looking vector presentations and interactive quizzes.
+The standard canvas dimensions are 1920x1080 (16:9 aspect ratio). All coordinates and sizes must fit inside this resolution without clipping.
+
+Design Requirements:
+1. BACKGROUNDS: Use premium gradient color palettes matching the theme. Set "type" to "gradient", and provide distinct, harmonious colors for "gradientStart" and "gradientEnd". Set "gradientAngle" to 135.
+2. SLIDE VARIETY (AI Presentation Mode):
+   - Slide 1: Title/Hero layout. Large centered title (fontSize 64-80) and a smaller subtitle below it.
+   - Slide 2: Two-column card comparison or split-screen content.
+   - Slide 3: Three-column timeline, steps, or feature list.
+   - Subsequent slides: Alternating layout (e.g., image placeholders, quotes, or cards).
+3. CARD LAYOUTS: To create structured cards, generate text elements with:
+   - "bgAlpha": 0.85 or 1 (solid or semi-transparent background).
+   - "bgColor": A contrasting dark or light shade matching the theme.
+   - "borderRadius": 12.
+   - "padding": 20.
+   - "textColor": High contrast text color.
+4. FONT PAIRING & THEMES:
+   - "Obsidian Dark": Dark slate/indigo gradient (e.g., #0b0f19 to #1e293b). Text color #ffffff. Heading font "Outfit", body font "Inter". Accent buttons #3b82f6 (blue).
+   - "Neon Cyberpunk": Deep violet/indigo gradient (e.g., #09090e to #250a3a). Neon highlights (cyan #00ffff, pink #ff007f). Heading font "Space Grotesk" or "VT323", body font "Fira Code". Accent buttons #ff007f.
+   - "Classic Serif": Warm cream gradient (e.g., #faf6ee to #e8e2d5). Text color #1c1917. Heading font "Playfair Display" or "Cinzel", body font "Cardo". Accent buttons #8b5cf6 (violet).
+   - "Minimalist Light": Soft gray/slate gradient (e.g., #f8fafc to #cbd5e1). Text color #0f172a. Heading font "Unbounded" or "Outfit", body font "Inter". Accent buttons #10b981 (emerald).
+   - "Retro Game": Dark green/black gradient (e.g., #070f0a to #121e16). Pixelated fonts ("Press Start 2P" or "Silkscreen" or "VT323"). Text color #f1c40f (yellow) or #2ecc71. Accent buttons #f1c40f.
+5. QUIZ SLIDES:
+   - Centered question header at y: 150, width: 1500.
+   - Arranged 4 answer option buttons ("btn-option") in a neat 2x2 grid (e.g. Option A at x: 200, y: 350; Option B at x: 1000, y: 350; Option C at x: 200, y: 500; Option D at x: 1000, y: 500; all width: 720, height: 100) or stacked vertically.
+   - One correct answer (isCorrect: true). All sharing the same "group" string (e.g., "group-1").
+   - A timer element at x: 910, y: 40, width: 100, height: 80, duration: 30.
+   - A btn-show-ans element at x: 860, y: 750, width: 200, height: 60, targeting the correct option element ID.
+
+JSON Output Format:
+Return your output STRICTLY as a JSON object matching this schema. Do NOT include markdown code blocks (e.g., \`\`\`json).
+{
+  "slides": [
+    {
+      "id": "slide_unique_id",
+      "name": "Slide Name",
+      "rpgTheme": false,
+      "transition": "none",
+      "background": {
+        "type": "gradient",
+        "color": "#050507",
+        "gradientStart": "#0b0f19",
+        "gradientEnd": "#1e293b",
+        "gradientAngle": 135,
+        "imageUrl": ""
+      },
+      "elements": [
+        // Each element must have: id (unique e.g. text-1, opt-1), type, x, y, width, height, visible: true, zIndex: integer.
+        // Elements can be:
+        // 1. type "text": text, fontFamily, fontSize (e.g. 24-48), align ("left", "center", "right"), textColor (hex), bgColor (hex), bgAlpha (0 to 1), borderRadius, borderWidth, borderColor.
+        // 2. type "btn-nav": text, targetSlideId (must match another slide's id to link slides), textColor, bgColor, bgAlpha, borderRadius.
+        // 3. type "btn-option": text, isCorrect (boolean), group (string), textColor, bgColor, bgAlpha, borderRadius.
+        // 4. type "btn-show-ans": text, targetElementId (id of correct btn-option element), textColor, bgColor, bgAlpha, borderRadius.
+        // 5. type "timer": text (initial e.g. "30"), duration (integer), textColor, bgColor, bgAlpha, borderRadius.
+      ]
+    }
+  ]
+}`;
+
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `Generate a presentation deck or quiz in "${mode}" mode on the topic: "${cleanPrompt}". Apply theme: "${theme}". Number of slides: ${maxCount}.`
+                            }]
+                        }],
+                        systemInstruction: {
+                            parts: [{
+                                text: systemInstruction
+                            }]
+                        },
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Gemini API error: ${errorText}`);
+                }
+
+                const result = await response.json();
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!textResponse) {
+                    throw new Error('Empty response from Gemini.');
+                }
+
+                const parsedData = JSON.parse(textResponse);
+                return sendJson(res, 200, parsedData);
+            } catch (err) {
+                console.error('[AI Generation Error]:', err);
+                return sendJson(res, 500, { success: false, message: `AI generation failed: ${err.message}` });
+            }
+        }
+
+        if (pathname === '/api/ai/refine-layout' && req.method === 'POST') {
+            try {
+                const currentUser = getAuthenticatedUser(req);
+                if (!currentUser) {
+                    return sendJson(res, 401, { success: false, message: 'Unauthorized. Please log in first.' });
+                }
+
+                const body = await parseBody(req);
+                const { elements, prompt } = body;
+
+                if (!elements || !Array.isArray(elements) || elements.length === 0) {
+                    return sendJson(res, 400, { success: false, message: 'No elements selected for refinement.' });
+                }
+
+                const usersFile = path.join(DB_DIR, 'users.json');
+                const users = readJsonFile(usersFile, []);
+                const user = users.find(u => u.username === currentUser);
+                
+                let apiKey = (user && user.geminiApiKey) || process.env.GEMINI_API_KEY;
+                
+                if (!apiKey) {
+                    return sendJson(res, 400, { 
+                        success: false, 
+                        message: 'No Google Gemini API Key configured. Please enter your Gemini API Key in the settings panel.' 
+                    });
+                }
+
+                const refinementPrompt = (prompt || '').trim();
+
+                const systemInstruction = `You are a professional slide design alignment agent. Your task is to auto-align, space, and layout a set of slide elements to look modern, clean, and balanced.
+The slide canvas dimensions are 1920x1080.
+You will receive a list of selected elements with their current x, y, width, height, type, text, align, etc.
+Based on the alignment prompt or instructions, you must rearrange their positions (x, y), sizes (width, height), and text alignments (align) to form a neat grid, multi-column stack, vertical stack, or another requested structure.
+Keep the exact same IDs, types, and text content for the elements. Only adjust layout properties: x, y, width, height, and align.
+Ensure elements do not overlap unless requested, are spaced evenly, and fit nicely within 1920x1080 resolution.
+
+Return the modified elements STRICTLY as a JSON object containing an "elements" array. Do NOT include markdown formatting or backticks.
+{
+  "elements": [
+    {
+      "id": "element_id",
+      "type": "text",
+      "text": "original_text",
+      "x": 100,
+      "y": 200,
+      "width": 500,
+      "height": 150,
+      "align": "center"
+    }
+  ]
+}`;
+
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `Align/refine these elements based on this instruction: "${refinementPrompt}".
+Elements list:
+${JSON.stringify(elements, null, 2)}`
+                            }]
+                        }],
+                        systemInstruction: {
+                            parts: [{
+                                text: systemInstruction
+                            }]
+                        },
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Gemini API error: ${errorText}`);
+                }
+
+                const result = await response.json();
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!textResponse) {
+                    throw new Error('Empty response from Gemini.');
+                }
+
+                const parsedData = JSON.parse(textResponse);
+                return sendJson(res, 200, parsedData);
+            } catch (err) {
+                console.error('[AI Refinement Error]:', err);
+                return sendJson(res, 500, { success: false, message: `AI refinement failed: ${err.message}` });
+            }
+        }
+
+        if (pathname === '/api/ai/generate-asset' && req.method === 'POST') {
+            try {
+                const currentUser = getAuthenticatedUser(req);
+                if (!currentUser) {
+                    return sendJson(res, 401, { success: false, message: 'Unauthorized. Please log in first.' });
+                }
+
+                const body = await parseBody(req);
+                const { prompt } = body;
+
+                const cleanPrompt = (prompt || '').trim();
+                if (!cleanPrompt) {
+                    return sendJson(res, 400, { success: false, message: 'Prompt is required.' });
+                }
+
+                const cleanEncodedPrompt = encodeURIComponent(cleanPrompt);
+                const seed = Math.floor(Math.random() * 1000000);
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanEncodedPrompt}?width=1024&height=1024&nologo=true&private=true&seed=${seed}`;
+
+                const response = await fetch(pollinationsUrl);
+                if (!response.ok) {
+                    throw new Error(`Image generation source error: ${response.statusText}`);
+                }
+
+                const buffer = await response.arrayBuffer();
+
+                const uploadsDir = path.join(__dirname, 'uploads');
+                if (!fs.existsSync(uploadsDir)) {
+                    fs.mkdirSync(uploadsDir);
+                }
+
+                const uniqueFilename = `ai-asset-${Date.now()}.png`;
+                const destPath = path.join(uploadsDir, uniqueFilename);
+                
+                await fs.promises.writeFile(destPath, Buffer.from(buffer));
+
+                const host = req.headers.host || 'localhost:3000';
+                const protocol = req.socket.encrypted ? 'https' : 'http';
+                const absoluteUrl = `${protocol}://${host}/uploads/${uniqueFilename}`;
+
+                return sendJson(res, 200, { success: true, url: absoluteUrl });
+            } catch (err) {
+                console.error('[AI Asset Generation Error]:', err);
+                return sendJson(res, 500, { success: false, message: `AI asset generation failed: ${err.message}` });
+            }
+        }
+
         if (pathname === '/api/debug-log' && req.method === 'POST') {
             const body = await parseBody(req);
             debugLog(`[BROWSER ERROR] ${JSON.stringify(body, null, 2)}`);
@@ -797,7 +1098,10 @@ const server = http.createServer(async (req, res) => {
         const ext = path.extname(filePath).toLowerCase();
         const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-        res.writeHead(200, { 'Content-Type': contentType });
+        res.writeHead(200, { 
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*'
+        });
         const stream = fs.createReadStream(filePath);
         stream.pipe(res);
     });

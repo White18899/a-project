@@ -45,6 +45,8 @@
     <link rel="stylesheet" href="styles.css?v=4">
     <!-- Google Identity Services for Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' stroke='%23a855f7' stroke-width='2'/><path d='M12 6c-2 0-3.5 1.5-3.5 3s1.5 2.5 3.5 3s3.5 1.5 3.5 3s-1.5 3-3.5 3' stroke='%23a855f7' stroke-width='2.5' fill='none'/></svg>">
 </head>
 
 <body>
@@ -57,7 +59,10 @@
             <header class="landing-header">
                 <div class="header-logo">
                     <div class="logo-box">
-                        <i data-lucide="presentation" class="logo-icon"></i>
+                        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                            <path d="M12 6c-2 0-3.5 1.5-3.5 3s1.5 2.5 3.5 3s3.5 1.5 3.5 3s-1.5 3-3.5 3" stroke="currentColor" stroke-width="2.5" fill="none" />
+                        </svg>
                     </div>
                     <span class="logo-text">Slide<span>Engine</span></span>
                 </div>
@@ -280,7 +285,10 @@
         <section id="dashboard-view">
             <header class="dashboard-header">
                 <div class="header-logo">
-                    <i data-lucide="presentation" class="logo-icon"></i>
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                        <path d="M12 6c-2 0-3.5 1.5-3.5 3s1.5 2.5 3.5 3s3.5 1.5 3.5 3s-1.5 3-3.5 3" stroke="currentColor" stroke-width="2.5" fill="none" />
+                    </svg>
                     <span class="logo-text">Slide<span>Engine</span></span>
                     <span class="view-indicator">Dashboard</span>
                 </div>
@@ -339,7 +347,10 @@
             <header class="app-header">
                 <div class="header-logo-group">
                     <div class="header-logo">
-                        <i data-lucide="presentation" class="logo-icon"></i>
+                        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                            <path d="M12 6c-2 0-3.5 1.5-3.5 3s1.5 2.5 3.5 3s3.5 1.5 3.5 3s-1.5 3-3.5 3" stroke="currentColor" stroke-width="2.5" fill="none" />
+                        </svg>
                         <span class="logo-text">Slide<span>Engine</span></span>
                     </div>
                     <button id="btn-editor-back" class="btn btn-secondary" title="Back to Dashboard"><i
@@ -439,6 +450,8 @@
                             Elements</button>
                         <button class="tab-btn" data-tab="properties-tab"><i data-lucide="sliders"></i>
                             Inspector</button>
+                        <button class="tab-btn" data-tab="ai-tab" style="position: relative;"><i data-lucide="sparkles"></i>
+                            AI Creator <span style="font-size: 0.65rem; font-weight: normal; margin-left: 4px; padding: 1px 4px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle;">Soon</span></button>
                     </div>
 
                     <div class="tabs-content">
@@ -480,6 +493,30 @@
                                         <i data-lucide="video"></i>
                                         <span>Video Field</span>
                                     </button>
+                                    <button class="btn-element-add" data-type="shape" title="Add Shape Element">
+                                        <i data-lucide="shapes"></i>
+                                        <span>Shape Field</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- AI ASSET GENERATOR SECTION -->
+                            <div class="inspector-section" id="section-ai-asset" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                                <h4>AI Asset Generator <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                <div class="form-group" style="margin-bottom: 8px;">
+                                    <label for="ai-asset-prompt" style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;">Illustration prompt / icon details</label>
+                                    <textarea id="ai-asset-prompt" disabled rows="2" placeholder="e.g. minimalist neon rocket icon, 3d crystal sphere..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 50px; font-family: inherit; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;"></textarea>
+                                </div>
+                                <button type="button" id="btn-ai-generate-asset" class="btn btn-accent btn-glow" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
+                                    <i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert (Coming Soon)
+                                </button>
+                                <div id="ai-asset-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+                                    <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <span id="ai-asset-progress-text">Generating visual asset...</span>
+                                </div>
+                                <div id="ai-asset-error" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: #f87171;">
+                                    <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+                                    <span id="ai-asset-error-text">Failed to generate image.</span>
                                 </div>
                             </div>
 
@@ -631,6 +668,23 @@
                                         <textarea id="elem-text" rows="3"></textarea>
                                     </div>
 
+                                    <!-- Shape settings (conditional) -->
+                                    <div class="inspector-field hidden" id="group-shape-settings">
+                                        <div class="form-group" style="width: 100%;">
+                                            <label>Shape Type</label>
+                                            <div class="custom-select-wrapper" id="shape-select-wrapper">
+                                                <div class="custom-select-trigger" id="shape-select-trigger">
+                                                    <span class="selected-shape-preview"></span>
+                                                    <span class="selected-shape-name">Rectangle</span>
+                                                    <i data-lucide="chevron-down" class="select-chevron"></i>
+                                                </div>
+                                                <div class="custom-options" id="shape-options-dropdown">
+                                                    <!-- Options populated dynamically -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Position & Size -->
                                     <div class="row-fields">
                                         <div class="form-group">
@@ -650,6 +704,15 @@
                                         <div class="form-group">
                                             <label for="elem-h">Height</label>
                                             <input type="number" id="elem-h">
+                                        </div>
+                                    </div>
+                                    <div class="row-fields" style="margin-top: 10px;">
+                                        <div class="form-group" style="width: 100%;">
+                                            <label for="elem-rotation">Rotation (Degrees)</label>
+                                            <div style="display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px;">
+                                                <input type="range" id="elem-rotation-slider" min="0" max="360" value="0" style="flex: 1; accent-color: #3b82f6; cursor: pointer; height: 6px;">
+                                                <input type="number" id="elem-rotation" min="0" max="360" value="0" style="width: 65px; text-align: center; padding: 4px; border-radius: 4px; background: var(--input-bg); border: 1px solid var(--border-color); color: #fff;">
+                                            </div>
                                         </div>
                                     </div>
 
@@ -875,6 +938,14 @@
                                             style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 12px; line-height: 1.3;">
                                             * Unused local videos are auto-deleted from the server (5-min safety window for unsaved uploads).
                                         </div>
+                                        <div class="form-group" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                            <button type="button" id="btn-video-preview-play" class="btn btn-accent btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);">
+                                                <i data-lucide="play" style="width: 14px; height: 14px;"></i> Play Preview
+                                            </button>
+                                            <button type="button" id="btn-video-preview-pause" class="btn btn-secondary btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px;">
+                                                <i data-lucide="pause" style="width: 14px; height: 14px;"></i> Pause
+                                            </button>
+                                        </div>
                                         <div class="form-group">
                                             <label class="checkbox-label">
                                                 <input type="checkbox" id="elem-video-autoplay">
@@ -979,6 +1050,91 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- AI LAYOUT REFINER SECTION -->
+                                    <div class="inspector-section" id="section-ai-refine" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                                        <h4>AI Design Agent <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                        <div class="form-group" style="margin-bottom: 8px;">
+                                            <label for="ai-refine-prompt" style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;">Alignment / Refinement instructions</label>
+                                            <input type="text" id="ai-refine-prompt" disabled placeholder="e.g. 2 equal columns, center all, vertical list..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;">
+                                        </div>
+                                        <button type="button" id="btn-ai-refine-layout" class="btn btn-accent btn-glow" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
+                                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Clean & Align Layout (Coming Soon)
+                                        </button>
+                                        <div id="ai-refine-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+                                            <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                            <span>Aligning selected elements...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI TAB -->
+                        <div id="ai-tab" class="tab-panel">
+                            <!-- API KEY SECTION -->
+                            <div class="inspector-section">
+                                <h4>Gemini API Configuration <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                <div class="ai-key-status-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; opacity: 0.6;">
+                                    <span class="status-label" style="font-size: 0.85rem; color: var(--text-muted);">Key Status:</span>
+                                    <span id="ai-key-status-badge" class="badge badge-error" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; background-color: #ef4444; color: #ffffff;">Not Configured</span>
+                                </div>
+                                <div class="form-group" id="ai-key-input-wrapper">
+                                    <label for="ai-gemini-key-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Enter Gemini API Key</label>
+                                    <input type="password" id="ai-gemini-key-input" disabled placeholder="AIzaSy..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                    <button id="btn-ai-save-key" class="btn btn-accent btn-sm" disabled style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.6; cursor: not-allowed;">
+                                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key (Coming Soon)
+                                    </button>
+                                </div>
+                                <div id="ai-key-configured-wrapper" class="hidden">
+                                    <p class="status-msg" style="font-size: 0.78rem; color: #10b981; margin-bottom: 10px; line-height: 1.4;">
+                                        ✓ Your API key is securely saved in your account.
+                                    </p>
+                                    <button id="btn-ai-change-key" class="btn btn-secondary btn-sm" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.6; cursor: not-allowed;">
+                                        Change API Key
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- SLIDE GENERATOR SECTION -->
+                            <div class="inspector-section" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                                <h4>Generate with AI <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <label for="ai-prompt-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Topic or Prompt</label>
+                                    <textarea id="ai-prompt-input" disabled rows="3" placeholder="e.g. History of Space Travel, Quantum Computing for Beginners, Ancient Rome Quiz..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;"></textarea>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <label for="ai-mode-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Generation Mode</label>
+                                    <select id="ai-mode-select" disabled style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                        <option value="quiz">AI Quiz Slide (Single MCQ)</option>
+                                        <option value="presentation">AI Presentation (Multi-slide Deck)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="ai-slide-count-group" style="display: none; margin-bottom: 12px;">
+                                    <label for="ai-slide-count" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Number of Slides</label>
+                                    <input type="number" id="ai-slide-count" disabled min="1" max="10" value="3" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <label for="ai-theme-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Design Theme</label>
+                                    <select id="ai-theme-select" disabled style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                        <option value="Obsidian Dark">Obsidian Dark (Sleek Dark Slate)</option>
+                                        <option value="Neon Cyberpunk">Neon Cyberpunk (Futuristic Purple/Pink)</option>
+                                        <option value="Classic Serif">Classic Serif (Warm Cream & Garamond)</option>
+                                        <option value="Minimalist Light">Minimalist Light (Clean White & Inter)</option>
+                                        <option value="Retro Game">Retro Game (Arcade Pixel Vibe)</option>
+                                    </select>
+                                </div>
+                                <button id="btn-ai-generate" class="btn btn-accent btn-glow" disabled style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
+                                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides (Coming Soon)
+                                </button>
+
+                                <div id="ai-progress-container" class="ai-progress-panel hidden" style="display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px; border-radius: 6px; background-color: rgba(255,255,255,0.05); font-size: 0.8rem;">
+                                    <div class="spinner-small" style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <span id="ai-progress-text">Contacting Gemini...</span>
+                                </div>
+                                <div id="ai-error-banner" class="ai-error-panel hidden" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px; border-radius: 6px; background-color: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); font-size: 0.8rem; color: #f87171;">
+                                    <i data-lucide="alert-circle" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                                    <span id="ai-error-text">Failed to generate.</span>
                                 </div>
                             </div>
                         </div>

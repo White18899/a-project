@@ -4754,4 +4754,188 @@ body.custom-cursor-active * {
 #player-canvas-container .html-video-overlay iframe {
     pointer-events: auto !important;
 }
+
+/* ========================================================== */
+/* AI CREATOR PANEL STYLES                                   */
+/* ========================================================== */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.btn-glow {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+.btn-glow:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.7);
+    transform: translateY(-1px);
+}
+.btn-glow:active {
+    transform: translateY(0);
+}
+
+.ai-key-status-group .badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.ai-key-status-group .badge-success {
+    background-color: #10b981 !important;
+}
+
+.ai-key-status-group .badge-error {
+    background-color: #ef4444 !important;
+}
+
+.ai-progress-panel {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-error-panel {
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+#section-ai-refine, #section-ai-asset {
+    transition: all 0.3s ease;
+}
+
+#ai-refine-prompt:focus, #ai-asset-prompt:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    outline: none;
+}
+
+/* Custom Shapes Select Dropdown Component */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-select-trigger:hover {
+    border-color: #3b82f6;
+}
+
+.selected-shape-preview {
+    display: flex;
+    align-items: center;
+}
+
+.selected-shape-preview svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #3b82f6;
+    stroke-width: 2;
+    margin-right: 8px;
+    display: block;
+}
+
+.selected-shape-name {
+    flex: 1;
+}
+
+.select-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.custom-select-wrapper.open .select-chevron {
+    transform: rotate(180deg);
+}
+
+.custom-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background-color: #1e293b;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+    z-index: 999;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+}
+
+.custom-select-wrapper.open .custom-options {
+    display: flex;
+}
+
+.custom-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.custom-option:hover {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #ffffff;
+}
+
+.custom-option svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #3b82f6;
+    stroke-width: 2;
+    margin-right: 10px;
+    display: block;
+}
+
+/* Custom scrollbar for dropdown */
+.custom-options::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-options::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+.custom-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 

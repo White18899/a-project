@@ -108,6 +108,34 @@ window.SlideEngineAPI = {
         });
     },
 
+    async updateGeminiKey(geminiApiKey) {
+        return await this.request('/api/auth/update-gemini-key', {
+            method: 'POST',
+            body: JSON.stringify({ geminiApiKey })
+        });
+    },
+
+    async generateAI(prompt, mode, theme, slideCount) {
+        return await this.request('/api/ai/generate', {
+            method: 'POST',
+            body: JSON.stringify({ prompt, mode, theme, slideCount })
+        });
+    },
+
+    async refineLayout(elements, prompt) {
+        return await this.request('/api/ai/refine-layout', {
+            method: 'POST',
+            body: JSON.stringify({ elements, prompt })
+        });
+    },
+
+    async generateAsset(prompt) {
+        return await this.request('/api/ai/generate-asset', {
+            method: 'POST',
+            body: JSON.stringify({ prompt })
+        });
+    },
+
     logout() {
         this.setSession(null, null);
     },

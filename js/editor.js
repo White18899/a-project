@@ -1,8 +1,27 @@
-/**
- * SlideEngine Editor controller
- * Manages editor UI interactions, sidebar panels, input syncing,
- * file readers, z-index layers panel, and initializes editor WebGL canvas.
- */
+const SHAPES_LIST = [
+    { id: 'rectangle', name: 'Rectangle', svg: `<rect x="2" y="2" width="12" height="12" rx="1"></rect>` },
+    { id: 'circle', name: 'Circle', svg: `<circle cx="8" cy="8" r="6"></circle>` },
+    { id: 'triangle', name: 'Triangle', svg: `<polygon points="8,2 14,14 2,14"></polygon>` },
+    { id: 'star', name: 'Star', svg: `<polygon points="8,2 10,6 14.5,6.5 11,9.5 12,14 8,11.5 4,14 5,9.5 1.5,6.5 6,6"></polygon>` },
+    { id: 'pentagon', name: 'Pentagon', svg: `<polygon points="8,1.5 14.5,6.5 12,14.5 4,14.5 1.5,6.5"></polygon>` },
+    { id: 'hexagon', name: 'Hexagon', svg: `<polygon points="8,1.5 14,5 14,11 8,14.5 2,11 2,5"></polygon>` },
+    { id: 'octagon', name: 'Octagon', svg: `<polygon points="5.5,1.5 10.5,1.5 14.5,5.5 14.5,10.5 10.5,14.5 5.5,14.5 1.5,10.5 1.5,5.5"></polygon>` },
+    { id: 'diamond', name: 'Diamond', svg: `<polygon points="8,1.5 14.5,8 8,14.5 1.5,8"></polygon>` },
+    { id: 'right-triangle', name: 'Right Triangle', svg: `<polygon points="2,2 14,14 2,14"></polygon>` },
+    { id: 'arrow-right', name: 'Arrow Right', svg: `<path d="M2,8 H11 M11,8 L7,4 M11,8 L7,12"></path>` },
+    { id: 'heart', name: 'Heart', svg: `<path d="M8,14.5 C-2,8 3,1.5 8,5.5 C13,1.5 18,8 8,14.5 Z"></path>` },
+    { id: 'line', name: 'Line', svg: `<line x1="2" y1="8" x2="14" y2="8"></line>` },
+    { id: 'oval', name: 'Oval', svg: `<ellipse cx="8" cy="8" rx="6" ry="4"></ellipse>` },
+    { id: 'parallelogram', name: 'Parallelogram', svg: `<polygon points="5,2 14,2 11,14 2,14"></polygon>` },
+    { id: 'trapezoid', name: 'Trapezoid', svg: `<polygon points="5,2 11,2 14,14 2,14"></polygon>` },
+    { id: 'cross', name: 'Cross', svg: `<path d="M6.5,2 H9.5 V6.5 H14 V9.5 H9.5 V14 H6.5 V9.5 H2 V6.5 H6.5 Z"></path>` },
+    { id: 'shield', name: 'Shield', svg: `<path d="M2,2 H14 V6.5 C14,10.5 8,14.5 8,14.5 C8,14.5 2,10.5 2,6.5 Z"></path>` },
+    { id: 'speech-bubble', name: 'Speech Bubble', svg: `<path d="M2,2 H14 V10 H8 L4,14 V10 H2 Z"></path>` },
+    { id: 'arrow-left', name: 'Arrow Left', svg: `<path d="M14,8 H5 M5,8 L9,4 M5,8 L9,12"></path>` },
+    { id: 'arrow-up', name: 'Arrow Up', svg: `<path d="M8,14 V5 M8,5 L4,9 M8,5 L12,9"></path>` },
+    { id: 'arrow-down', name: 'Arrow Down', svg: `<path d="M8,2 V11 M8,11 L4,7 M8,11 L12,7"></path>` },
+    { id: 'double-arrow', name: 'Double Arrow', svg: `<path d="M2,8 H14 M2,8 L5,5 M2,8 L5,11 M14,8 L11,5 M14,8 L11,11"></path>` }
+];
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Initialize canvas instance
@@ -277,15 +296,30 @@ function initEditorUI() {
             document.getElementById('elem-y').value = element.y;
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
+            const rotVal = element.rotation || 0;
+            document.getElementById('elem-rotation').value = rotVal;
+            document.getElementById('elem-rotation-slider').value = rotVal;
+            if (element.shapeType) {
+                const shape = SHAPES_LIST.find(s => s.id === element.shapeType) || SHAPES_LIST[0];
+                const trigger = document.getElementById('shape-select-trigger');
+                if (trigger) {
+                    const preview = trigger.querySelector('.selected-shape-preview');
+                    const name = trigger.querySelector('.selected-shape-name');
+                    if (preview) preview.innerHTML = `<svg viewBox="0 0 16 16">${shape.svg}</svg>`;
+                    if (name) name.textContent = shape.name;
+                }
+            }
 
             // Conditional rendering logic based on type
             toggleInspectorFieldsForType(element.type);
             
             // Bind font formatting inputs
-            if (element.fontFamily !== undefined) {
-                document.getElementById('elem-font-family').value = element.fontFamily;
-                document.getElementById('elem-font-size').value = element.fontSize;
-                document.getElementById('elem-align').value = element.align;
+            const isTextOrBtnOrTimer = element.fontFamily !== undefined || element.type === 'text' || element.type.startsWith('btn-') || element.type === 'timer';
+            if (isTextOrBtnOrTimer) {
+                const defaultAlign = (element.type.startsWith('btn-') || element.type === 'timer') ? 'center' : 'left';
+                document.getElementById('elem-font-family').value = element.fontFamily || 'Outfit';
+                document.getElementById('elem-font-size').value = element.fontSize || 24;
+                document.getElementById('elem-align').value = element.align || defaultAlign;
                 const txtCol = element.textColor || '#ffffff';
                 document.getElementById('elem-text-color').value = txtCol === 'transparent' ? '#000000' : txtCol;
                 document.getElementById('elem-text-color-hex').value = txtCol;
@@ -408,6 +442,18 @@ function initEditorUI() {
             document.getElementById('elem-y').value = element.y;
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
+            document.getElementById('elem-rotation').value = element.rotation || 0;
+            document.getElementById('elem-rotation-slider').value = element.rotation || 0;
+            if (element.shapeType) {
+                const shape = SHAPES_LIST.find(s => s.id === element.shapeType) || SHAPES_LIST[0];
+                const trigger = document.getElementById('shape-select-trigger');
+                if (trigger) {
+                    const preview = trigger.querySelector('.selected-shape-preview');
+                    const name = trigger.querySelector('.selected-shape-name');
+                    if (preview) preview.innerHTML = `<svg viewBox="0 0 16 16">${shape.svg}</svg>`;
+                    if (name) name.textContent = shape.name;
+                }
+            }
         }
     });
 
@@ -520,6 +566,33 @@ function initEditorUI() {
                     playIcon.style.top = '50%';
                     playIcon.style.transform = 'translate(-50%, -50%)';
                     mini.appendChild(playIcon);
+                } else if (elem.type === 'shape') {
+                    const shapeDef = SHAPES_LIST.find(s => s.id === elem.shapeType) || SHAPES_LIST[0];
+                    const fillCol = elem.bgColor || '#3b82f6';
+                    const strokeCol = elem.borderColor || '#ffffff';
+                    
+                    const fillAlpha = elem.bgColor === 'transparent' ? 0 : (elem.bgAlpha !== undefined ? elem.bgAlpha : 1);
+                    const strokeW = (elem.borderWidth && elem.borderStyle && elem.borderStyle !== 'none') ? elem.borderWidth : 0;
+                    const calculatedStrokeW = strokeW * 16 / Math.max(1, elem.width);
+                    
+                    const svgElem = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svgElem.setAttribute('viewBox', '0 0 16 16');
+                    svgElem.setAttribute('width', '100%');
+                    svgElem.setAttribute('height', '100%');
+                    svgElem.setAttribute('preserveAspectRatio', 'none');
+                    svgElem.style.display = 'block';
+                    svgElem.style.overflow = 'visible';
+                    
+                    svgElem.innerHTML = `
+                        <g fill="${fillCol}" fill-opacity="${fillAlpha}" stroke="${strokeCol}" stroke-width="${calculatedStrokeW}">
+                            ${shapeDef.svg}
+                        </g>
+                    `;
+                    mini.appendChild(svgElem);
+                }
+                
+                if (elem.rotation) {
+                    mini.style.transform = `rotate(${elem.rotation}deg)`;
                 }
                 
                 if (elem.visible === false) {
@@ -843,8 +916,17 @@ function initEditorUI() {
                 const elem = slide.elements.find(e => e.id === id);
                 if (elem) {
                     const filteredProps = {};
+                    const textAndBoxKeys = [
+                        'text', 'fontFamily', 'fontSize', 'align', 'textColor', 
+                        'bgColor', 'bgAlpha', 'borderRadius', 'borderWidth', 
+                        'borderStyle', 'borderColor', 'useMarkupColor', 'markupColor'
+                    ];
+                    
                     for (const key in props) {
-                        if (elem[key] !== undefined || (elem.type && elem.type.startsWith('btn-') && (key === 'useMarkupColor' || key === 'markupColor'))) {
+                        const isStyleableElement = elem.type === 'text' || elem.type.startsWith('btn-') || elem.type === 'timer' || elem.type === 'shape';
+                        const isAllowedTextKey = isStyleableElement && textAndBoxKeys.includes(key);
+                        
+                        if (elem[key] !== undefined || isAllowedTextKey || key === 'rotation' || key === 'shapeType') {
                             filteredProps[key] = props[key];
                         }
                     }
@@ -878,6 +960,16 @@ function initEditorUI() {
     document.getElementById('elem-h').addEventListener('input', (e) => {
         updateActiveElem({ height: parseInt(e.target.value) || 30 });
     });
+    document.getElementById('elem-rotation').addEventListener('input', (e) => {
+        const val = Math.min(360, Math.max(0, parseInt(e.target.value) || 0));
+        document.getElementById('elem-rotation-slider').value = val;
+        updateActiveElem({ rotation: val });
+    });
+    document.getElementById('elem-rotation-slider').addEventListener('input', (e) => {
+        const val = parseInt(e.target.value) || 0;
+        document.getElementById('elem-rotation').value = val;
+        updateActiveElem({ rotation: val });
+    });
     document.getElementById('elem-visible').addEventListener('change', (e) => {
         state.pushHistory();
         updateActiveElemAndSave({ visible: e.target.checked });
@@ -886,6 +978,57 @@ function initEditorUI() {
             canvas.renderSlide(activeSlide);
         }
     });
+
+    // Populate Custom Shape Select Dropdown options
+    const shapeOptionsDropdown = document.getElementById('shape-options-dropdown');
+    const shapeSelectTrigger = document.getElementById('shape-select-trigger');
+    const shapeSelectWrapper = document.getElementById('shape-select-wrapper');
+    if (shapeOptionsDropdown && shapeSelectTrigger) {
+        const selectedShapePreview = shapeSelectTrigger.querySelector('.selected-shape-preview');
+        const selectedShapeName = shapeSelectTrigger.querySelector('.selected-shape-name');
+
+        // Build items
+        shapeOptionsDropdown.innerHTML = '';
+        SHAPES_LIST.forEach(shape => {
+            const opt = document.createElement('div');
+            opt.className = 'custom-option';
+            opt.dataset.value = shape.id;
+            opt.innerHTML = `
+                <svg viewBox="0 0 16 16">${shape.svg}</svg>
+                <span>${shape.name}</span>
+            `;
+            opt.onclick = (e) => {
+                e.stopPropagation();
+                // Update trigger visual state
+                selectedShapePreview.innerHTML = `<svg viewBox="0 0 16 16">${shape.svg}</svg>`;
+                selectedShapeName.textContent = shape.name;
+                
+                // Close dropdown
+                shapeSelectWrapper.classList.remove('open');
+                
+                // Trigger property update
+                state.pushHistory();
+                updateActiveElemAndSave({ shapeType: shape.id });
+                
+                const activeSlide = state.getActiveSlide();
+                if (activeSlide) {
+                    canvas.renderSlide(activeSlide);
+                }
+            };
+            shapeOptionsDropdown.appendChild(opt);
+        });
+
+        // Toggle open/close
+        shapeSelectTrigger.onclick = (e) => {
+            e.stopPropagation();
+            shapeSelectWrapper.classList.toggle('open');
+        };
+
+        // Close on click outside
+        window.addEventListener('click', () => {
+            shapeSelectWrapper.classList.remove('open');
+        });
+    }
 
     // Font family dropdowns
     document.getElementById('elem-font-family').addEventListener('change', (e) => {
@@ -1018,6 +1161,40 @@ function initEditorUI() {
     });
     document.getElementById('elem-video-volume').addEventListener('input', (e) => {
         updateActiveElem({ volume: parseFloat(e.target.value) });
+    });
+
+    document.getElementById('btn-video-preview-play').addEventListener('click', () => {
+        const selectedId = state.selectedElementId;
+        if (!selectedId) return;
+        
+        // Target YouTube iframe
+        const iframe = document.querySelector(`.html-video-overlay[data-element-id="${selectedId}"] iframe`);
+        if (iframe) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo' }), '*');
+        }
+        
+        // Target HTML5 video
+        const video = document.querySelector(`.html-video-overlay[data-element-id="${selectedId}"] video`);
+        if (video) {
+            video.play().catch(e => console.error("Video play failed:", e));
+        }
+    });
+
+    document.getElementById('btn-video-preview-pause').addEventListener('click', () => {
+        const selectedId = state.selectedElementId;
+        if (!selectedId) return;
+        
+        // Target YouTube iframe
+        const iframe = document.querySelector(`.html-video-overlay[data-element-id="${selectedId}"] iframe`);
+        if (iframe) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo' }), '*');
+        }
+        
+        // Target HTML5 video
+        const video = document.querySelector(`.html-video-overlay[data-element-id="${selectedId}"] video`);
+        if (video) {
+            video.pause();
+        }
     });
 
 
@@ -1716,6 +1893,8 @@ function initEditorUI() {
         document.getElementById('group-show-ans-settings').classList.add('hidden');
         document.getElementById('group-toggle-settings').classList.add('hidden');
         document.getElementById('group-button-markup').classList.add('hidden');
+        const shapeGroup = document.getElementById('group-shape-settings');
+        if (shapeGroup) shapeGroup.classList.add('hidden');
 
         if (type === 'text') {
             document.getElementById('group-text-styles').classList.remove('hidden');
@@ -1749,6 +1928,9 @@ function initEditorUI() {
             document.getElementById('group-bg-styles').classList.remove('hidden');
             document.getElementById('group-toggle-settings').classList.remove('hidden');
             document.getElementById('group-button-markup').classList.remove('hidden');
+        } else if (type === 'shape') {
+            if (shapeGroup) shapeGroup.classList.remove('hidden');
+            document.getElementById('group-bg-styles').classList.remove('hidden');
         }
     }
 
@@ -2519,6 +2701,442 @@ function initEditorUI() {
             }
         }
     });
+
+    // ==========================================
+    // AI GENERATOR CONTROL BINDINGS
+    // ==========================================
+    function syncAIKeyUI() {
+        const badge = document.getElementById('ai-key-status-badge');
+        const inputWrapper = document.getElementById('ai-key-input-wrapper');
+        const configWrapper = document.getElementById('ai-key-configured-wrapper');
+        
+        if (state.hasGeminiKey) {
+            if (badge) {
+                badge.textContent = "Configured";
+                badge.className = "badge badge-success";
+                badge.style.backgroundColor = "#10b981";
+            }
+            if (inputWrapper) inputWrapper.classList.add('hidden');
+            if (configWrapper) configWrapper.classList.remove('hidden');
+        } else {
+            if (badge) {
+                badge.textContent = "Not Configured";
+                badge.className = "badge badge-error";
+                badge.style.backgroundColor = "#ef4444";
+            }
+            if (inputWrapper) inputWrapper.classList.remove('hidden');
+            if (configWrapper) configWrapper.classList.add('hidden');
+        }
+    }
+
+    state.on('gemini-key-changed', (hasKey) => {
+        syncAIKeyUI();
+    });
+
+    state.on('auth-changed', () => {
+        syncAIKeyUI();
+    });
+
+    // Run sync initially
+    syncAIKeyUI();
+
+    const saveKeyBtn = document.getElementById('btn-ai-save-key');
+    const changeKeyBtn = document.getElementById('btn-ai-change-key');
+    const keyInput = document.getElementById('ai-gemini-key-input');
+
+    if (saveKeyBtn) {
+        saveKeyBtn.onclick = async () => {
+            const keyVal = (keyInput.value || '').trim();
+            if (!keyVal) {
+                alert("Please enter a valid Gemini API Key.");
+                return;
+            }
+            saveKeyBtn.disabled = true;
+            saveKeyBtn.textContent = "Saving...";
+            
+            try {
+                const res = await window.SlideEngineAPI.updateGeminiKey(keyVal);
+                if (res.success) {
+                    state.hasGeminiKey = true;
+                    localStorage.setItem('slide_engine_active_has_gemini_key', 'true');
+                    state.emit('gemini-key-changed', true);
+                    keyInput.value = '';
+                } else {
+                    alert("Failed to save key: " + res.message);
+                }
+            } catch (err) {
+                alert("Error saving API Key: " + err.message);
+            } finally {
+                saveKeyBtn.disabled = false;
+                saveKeyBtn.innerHTML = '<i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key';
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+
+    if (changeKeyBtn) {
+        changeKeyBtn.onclick = async () => {
+            if (!confirm("Are you sure you want to clear/change the saved Gemini API Key?")) return;
+            changeKeyBtn.disabled = true;
+            try {
+                const res = await window.SlideEngineAPI.updateGeminiKey('');
+                if (res.success) {
+                    state.hasGeminiKey = false;
+                    localStorage.setItem('slide_engine_active_has_gemini_key', 'false');
+                    state.emit('gemini-key-changed', false);
+                } else {
+                    alert("Failed to clear key: " + res.message);
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                changeKeyBtn.disabled = false;
+            }
+        };
+    }
+
+    const modeSelect = document.getElementById('ai-mode-select');
+    const slideCountGroup = document.getElementById('ai-slide-count-group');
+    if (modeSelect && slideCountGroup) {
+        modeSelect.onchange = () => {
+            if (modeSelect.value === 'presentation') {
+                slideCountGroup.style.display = 'block';
+            } else {
+                slideCountGroup.style.display = 'none';
+            }
+        };
+    }
+
+    const generateBtn = document.getElementById('btn-ai-generate');
+    const promptInput = document.getElementById('ai-prompt-input');
+    const themeSelect = document.getElementById('ai-theme-select');
+    const slideCountInput = document.getElementById('ai-slide-count');
+    const progressContainer = document.getElementById('ai-progress-container');
+    const progressText = document.getElementById('ai-progress-text');
+    const errorBanner = document.getElementById('ai-error-banner');
+    const errorText = document.getElementById('ai-error-text');
+
+    if (generateBtn) {
+        generateBtn.onclick = async () => {
+            const promptVal = (promptInput.value || '').trim();
+            if (!promptVal) {
+                alert("Please enter a topic or prompt for slide generation.");
+                return;
+            }
+
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.textContent = "Generating...";
+            if (progressContainer) progressContainer.classList.remove('hidden');
+            if (errorBanner) errorBanner.classList.add('hidden');
+            if (progressText) progressText.textContent = "Connecting to Gemini API...";
+
+            const modeVal = modeSelect.value;
+            const themeVal = themeSelect.value;
+            const countVal = parseInt(slideCountInput.value) || 3;
+
+            try {
+                if (progressText) progressText.textContent = "Generating layout and quiz options...";
+                const res = await window.SlideEngineAPI.generateAI(promptVal, modeVal, themeVal, countVal);
+                
+                if (res.slides && res.slides.length > 0) {
+                    if (progressText) progressText.textContent = "Injecting slides into project...";
+                    
+                    // Generate unique IDs for all items to prevent conflicts
+                    res.slides.forEach(slide => {
+                        const newSlideId = 'id-' + Math.random().toString(36).substring(2, 11);
+                        const oldSlideId = slide.id;
+                        slide.id = newSlideId;
+
+                        slide.elements.forEach(el => {
+                            const newElId = 'id-' + Math.random().toString(36).substring(2, 11);
+                            const oldElId = el.id;
+                            el.id = newElId;
+
+                            if (el.targetElementId === oldElId) {
+                                el.targetElementId = newElId;
+                            }
+                        });
+                    });
+
+                    if (modeVal === 'presentation') {
+                        const idMap = {};
+                        const slidesData = res.slides;
+                        
+                        const mappedSlides = slidesData.map((slide, idx) => {
+                            const newSlideId = 'slide-' + Math.random().toString(36).substring(2, 11);
+                            const oldSlideId = slide.id || `old-slide-${idx}`;
+                            idMap[oldSlideId] = newSlideId;
+                            slide.id = newSlideId;
+                            return { slide, oldSlideId };
+                        });
+
+                        mappedSlides.forEach(({ slide }) => {
+                            const elIdMap = {};
+                            slide.elements.forEach(el => {
+                                const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
+                                const oldElId = el.id || `old-el-${Math.random()}`;
+                                elIdMap[oldElId] = newElId;
+                                el.id = newElId;
+                            });
+
+                            slide.elements.forEach(el => {
+                                if (el.type === 'btn-nav' && el.targetSlideId) {
+                                    if (idMap[el.targetSlideId]) {
+                                        el.targetSlideId = idMap[el.targetSlideId];
+                                    }
+                                }
+                                if (el.type === 'btn-show-ans' && el.targetElementId) {
+                                    if (elIdMap[el.targetElementId]) {
+                                        el.targetElementId = elIdMap[el.targetElementId];
+                                    }
+                                }
+                                if (el.type === 'btn-toggle' && el.actions) {
+                                    el.actions.forEach(act => {
+                                        if (elIdMap[act.targetId]) {
+                                            act.targetId = elIdMap[act.targetId];
+                                        }
+                                    });
+                                }
+                            });
+                        });
+
+                        if (!state.project) {
+                            state.project = {
+                                id: 'proj-' + Math.random().toString(36).substring(2, 11),
+                                name: promptVal || "AI Presentation",
+                                slides: []
+                            };
+                        }
+                        
+                        state.project.slides = slidesData;
+                        state.project.name = promptVal;
+                        state.selectedSlideId = slidesData[0].id;
+                        state.selectedElementId = null;
+                        state.selectedElementIds = [];
+                        
+                        state.markUnsaved();
+                        state.emit('project-loaded', state.project);
+                        state.emit('slide-list-changed', state.project.slides);
+                        state.emit('slide-changed', state.getActiveSlide());
+                    } else {
+                        const quizSlide = res.slides[0];
+                        if (quizSlide) {
+                            const elIdMap = {};
+                            quizSlide.elements.forEach(el => {
+                                const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
+                                const oldElId = el.id || `old-el-${Math.random()}`;
+                                elIdMap[oldElId] = newElId;
+                                el.id = newElId;
+                            });
+
+                            quizSlide.elements.forEach(el => {
+                                if (el.type === 'btn-show-ans' && el.targetElementId) {
+                                    if (elIdMap[el.targetElementId]) {
+                                        el.targetElementId = elIdMap[el.targetElementId];
+                                    }
+                                }
+                                if (el.type === 'btn-toggle' && el.actions) {
+                                    el.actions.forEach(act => {
+                                        if (elIdMap[act.targetId]) {
+                                            act.targetId = elIdMap[act.targetId];
+                                        }
+                                    });
+                                }
+                            });
+
+                            quizSlide.id = 'slide-' + Math.random().toString(36).substring(2, 11);
+                            
+                            if (!state.project) {
+                                state.project = {
+                                    id: 'proj-' + Math.random().toString(36).substring(2, 11),
+                                    name: "AI Quiz Project",
+                                    slides: []
+                                };
+                            }
+                            
+                            state.project.slides.push(quizSlide);
+                            state.selectedSlideId = quizSlide.id;
+                            state.selectedElementId = null;
+                            state.selectedElementIds = [];
+
+                            state.markUnsaved();
+                            state.emit('slide-list-changed', state.project.slides);
+                            state.emit('slide-changed', state.getActiveSlide());
+                        }
+                    }
+
+                    if (progressText) progressText.textContent = "Slides rendered successfully!";
+                    setTimeout(() => {
+                        if (progressContainer) progressContainer.classList.add('hidden');
+                    }, 1000);
+
+                    promptInput.value = '';
+                } else {
+                    throw new Error("Invalid response format. Missing slides array.");
+                }
+            } catch (err) {
+                console.error('[AI Generate Error]:', err);
+                if (errorText) errorText.textContent = err.message || "Failed to generate slides.";
+                if (errorBanner) errorBanner.classList.remove('hidden');
+                if (progressContainer) progressContainer.classList.add('hidden');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides';
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+
+    // ==========================================
+    // AI LAYOUT REFINEMENT BINDINGS
+    // ==========================================
+    const refineBtn = document.getElementById('btn-ai-refine-layout');
+    const refinePromptInput = document.getElementById('ai-refine-prompt');
+    const refineProgress = document.getElementById('ai-refine-progress');
+
+    if (refineBtn) {
+        refineBtn.onclick = async () => {
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length === 0) {
+                alert("Please select at least one element on the canvas to refine.");
+                return;
+            }
+
+            const activeSlide = state.getActiveSlide();
+            if (!activeSlide) return;
+
+            const selectedElements = activeSlide.elements.filter(el => selectedIds.includes(el.id));
+            if (selectedElements.length === 0) return;
+
+            const promptVal = (refinePromptInput.value || '').trim();
+            if (!promptVal) {
+                alert("Please enter refinement instructions (e.g. 'align in 2 columns', 'stack vertically').");
+                return;
+            }
+
+            refineBtn.disabled = true;
+            refineBtn.textContent = "Refining...";
+            if (refineProgress) refineProgress.classList.remove('hidden');
+
+            try {
+                const res = await window.SlideEngineAPI.refineLayout(selectedElements, promptVal);
+                if (res.elements && Array.isArray(res.elements)) {
+                    state.pushHistory();
+
+                    res.elements.forEach(updatedEl => {
+                        const originalEl = activeSlide.elements.find(el => el.id === updatedEl.id);
+                        if (originalEl) {
+                            const propsToUpdate = {};
+                            if (updatedEl.x !== undefined) propsToUpdate.x = parseInt(updatedEl.x);
+                            if (updatedEl.y !== undefined) propsToUpdate.y = parseInt(updatedEl.y);
+                            if (updatedEl.width !== undefined) propsToUpdate.width = parseInt(updatedEl.width);
+                            if (updatedEl.height !== undefined) propsToUpdate.height = parseInt(updatedEl.height);
+                            if (updatedEl.align !== undefined) propsToUpdate.align = updatedEl.align;
+
+                            state.updateElement(originalEl.id, propsToUpdate);
+                        }
+                    });
+
+                    if (window.editorCanvas) {
+                        window.editorCanvas.renderSlide(state.getActiveSlide());
+                    }
+                    
+                    refinePromptInput.value = '';
+                } else {
+                    throw new Error(res.message || "Failed to parse refinement response.");
+                }
+            } catch (err) {
+                console.error('[AI Refine Error]:', err);
+                alert("Layout Refinement failed: " + err.message);
+            } finally {
+                refineBtn.disabled = false;
+                refineBtn.innerHTML = '<i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Clean & Align Layout';
+                if (refineProgress) refineProgress.classList.add('hidden');
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+
+    // ==========================================
+    // AI ASSET GENERATOR BINDINGS
+    // ==========================================
+    const generateAssetBtn = document.getElementById('btn-ai-generate-asset');
+    const assetPromptInput = document.getElementById('ai-asset-prompt');
+    const assetProgress = document.getElementById('ai-asset-progress');
+    const assetProgressText = document.getElementById('ai-asset-progress-text');
+    const assetError = document.getElementById('ai-asset-error');
+    const assetErrorText = document.getElementById('ai-asset-error-text');
+
+    if (generateAssetBtn) {
+        generateAssetBtn.onclick = async () => {
+            const promptVal = (assetPromptInput.value || '').trim();
+            if (!promptVal) {
+                alert("Please enter a description for the illustration to generate.");
+                return;
+            }
+
+            const activeSlide = state.getActiveSlide();
+            if (!activeSlide) {
+                alert("Please select or add a slide first.");
+                return;
+            }
+
+            generateAssetBtn.disabled = true;
+            generateAssetBtn.textContent = "Generating...";
+            if (assetProgress) assetProgress.classList.remove('hidden');
+            if (assetError) assetError.classList.add('hidden');
+            if (assetProgressText) assetProgressText.textContent = "Generating visual asset (usually takes 5-10s)...";
+
+            try {
+                const res = await window.SlideEngineAPI.generateAsset(promptVal);
+                if (res.success && res.url) {
+                    if (assetProgressText) assetProgressText.textContent = "Inserting asset into canvas...";
+
+                    state.pushHistory();
+
+                    const newElId = 'ai-image-' + Math.random().toString(36).substring(2, 9);
+                    const newElement = {
+                        id: newElId,
+                        type: 'image',
+                        x: 460,
+                        y: 190,
+                        width: 1000,
+                        height: 700,
+                        visible: true,
+                        zIndex: activeSlide.elements.length + 1,
+                        url: res.url,
+                        fileData: null
+                    };
+
+                    activeSlide.elements.push(newElement);
+                    state.selectedElementId = newElId;
+                    state.selectedElementIds = [newElId];
+                    state.markUnsaved();
+
+                    state.emit('selection-changed', newElement);
+                    state.emit('slide-changed', activeSlide);
+
+                    if (window.editorCanvas) {
+                        window.editorCanvas.renderSlide(activeSlide);
+                    }
+
+                    assetPromptInput.value = '';
+                } else {
+                    throw new Error(res.message || "Failed to generate visual asset.");
+                }
+            } catch (err) {
+                console.error('[AI Asset Error]:', err);
+                if (assetErrorText) assetErrorText.textContent = err.message || "Failed to generate image.";
+                if (assetError) assetError.classList.remove('hidden');
+            } finally {
+                generateAssetBtn.disabled = false;
+                generateAssetBtn.innerHTML = '<i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert';
+                if (assetProgress) assetProgress.classList.add('hidden');
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
 }
 
 function updateTransitionIcon(val) {

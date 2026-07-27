@@ -43,11 +43,15 @@ class SlideCanvas {
             width: this.baseWidth,
             height: this.baseHeight,
             antialias: true,
-            transparent: false,
+            backgroundAlpha: 0,
             resolution: window.devicePixelRatio || 1,
-            autoDensity: true,
-            backgroundColor: 0x1e293b
+            autoDensity: true
         });
+        
+        this.app.view.style.position = 'absolute';
+        this.app.view.style.left = '0';
+        this.app.view.style.top = '0';
+        this.app.view.style.zIndex = '2';
         
         this.container.appendChild(this.app.view);
         
@@ -70,10 +74,34 @@ class SlideCanvas {
                 }
             });
             this.resizeObserver.observe(this.container.parentElement);
-        } else {
-            window.addEventListener('resize', () => {
-                if (this.isFitMode) {
-                    this.resize();
+        }
+        
+        // In play mode, enable pointer event pass-through on empty canvas areas to allow clicking background videos
+        if (this.mode === 'play') {
+            this.container.addEventListener('pointermove', (e) => {
+                if (!this.app || !this.app.renderer) return;
+                
+                const rect = this.container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * this.baseWidth;
+                const y = ((e.clientY - rect.top) / rect.height) * this.baseHeight;
+                
+                let hit = null;
+                // PIXI v7 EventSystem hitTest
+                if (this.app.renderer.events) {
+                    hit = this.app.renderer.events.hitTest(new PIXI.Point(x, y));
+                }
+                
+                // Determine if we hit an interactive element
+                const isInteractive = hit && hit !== this.app.stage && (
+                    hit.interactive === true || 
+                    hit.buttonMode === true || 
+                    hit.cursor === 'pointer'
+                );
+                
+                if (isInteractive) {
+                    this.app.view.style.pointerEvents = 'auto';
+                } else {
+                    this.app.view.style.pointerEvents = 'none';
                 }
             });
         }
@@ -218,8 +246,46 @@ class SlideCanvas {
     }
 
     renderBackground(slide, targetContainer = this.slideContainer) {
-        const bgGraphics = new PIXI.Graphics();
         const bg = slide.background || { type: 'color', color: '#1e293b' };
+        
+        // Check if we need to render the background in DOM instead of PIXI
+        const nonVideoElements = slide.elements.filter(e => e.type !== 'video');
+        const minNonVideoZ = nonVideoElements.length > 0 
+            ? Math.min(...nonVideoElements.map(e => e.zIndex || 0)) 
+            : 0;
+        const hasVideoBehind = slide.elements.some(elem => {
+            if (elem.type !== 'video') return false;
+            if (this.mode === 'play' && elem.visible === false) return false;
+            return (elem.zIndex || 0) < minNonVideoZ;
+        });
+
+        if (hasVideoBehind && targetContainer === this.slideContainer) {
+            // Apply background to DOM container
+            if (bg.type === 'color') {
+                this.container.style.backgroundColor = bg.color || '#1e293b';
+                this.container.style.backgroundImage = 'none';
+            } else if (bg.type === 'gradient') {
+                this.container.style.backgroundColor = 'transparent';
+                this.container.style.backgroundImage = `linear-gradient(${bg.gradientAngle !== undefined ? bg.gradientAngle : 135}deg, ${bg.gradientStart || '#0f172a'}, ${bg.gradientEnd || '#1e293b'})`;
+            } else if (bg.type === 'image' && bg.imageUrl) {
+                this.container.style.backgroundColor = 'transparent';
+                this.container.style.backgroundImage = `url(${bg.imageUrl})`;
+                this.container.style.backgroundSize = 'cover';
+                this.container.style.backgroundPosition = 'center';
+            } else {
+                this.container.style.backgroundColor = '#1e293b';
+                this.container.style.backgroundImage = 'none';
+            }
+            return; // Skip rendering background in PIXI
+        }
+
+        // Otherwise, render in PIXI and clear DOM background
+        if (targetContainer === this.slideContainer) {
+            this.container.style.backgroundColor = '';
+            this.container.style.backgroundImage = '';
+        }
+
+        const bgGraphics = new PIXI.Graphics();
         
         if (bg.type === 'color') {
             const colorStr = bg.color || '#1e293b';
@@ -340,9 +406,26 @@ class SlideCanvas {
     }
 
     renderElement(elem, slideRpgTheme = false, targetContainer = this.slideContainer) {
+        const existing = this.pixiElements.get(elem.id);
+        if (existing) {
+            if (existing.parent) {
+                existing.parent.removeChild(existing);
+            }
+            existing.destroy({ children: true });
+        }
+
         const container = new PIXI.Container();
-        container.x = elem.x;
-        container.y = elem.y;
+        if (elem.rotation) {
+            container.pivot.set(elem.width / 2, elem.height / 2);
+            container.x = elem.x + elem.width / 2;
+            container.y = elem.y + elem.height / 2;
+            container.rotation = elem.rotation * Math.PI / 180;
+        } else {
+            container.pivot.set(0, 0);
+            container.x = elem.x;
+            container.y = elem.y;
+            container.rotation = 0;
+        }
         container.zIndex = elem.zIndex || 0;
         container.elementId = elem.id;
         
@@ -383,11 +466,14 @@ class SlideCanvas {
             
             // Render text
             const padding = isRpg ? 16 : (elem.padding || 0);
+            const defaultAlign = (elem.type.startsWith('btn-') || elem.type === 'timer') ? 'center' : 'left';
+            const resolvedAlign = elem.align || defaultAlign;
+
             const textStyle = new PIXI.TextStyle({
                 fontFamily: isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit'),
                 fontSize: isRpg ? Math.max(elem.fontSize - 8, 12) : (elem.fontSize || 24),
                 fill: elem.textColor || '#ffffff',
-                align: elem.align || 'left',
+                align: resolvedAlign,
                 wordWrap: true,
                 wordWrapWidth: contentWidth - (padding * 2)
             });
@@ -396,10 +482,10 @@ class SlideCanvas {
             
             // Alignments
             pixiText.x = padding;
-            if (elem.align === 'center') {
+            if (resolvedAlign === 'center') {
                 pixiText.x = contentWidth / 2;
                 pixiText.anchor.x = 0.5;
-            } else if (elem.align === 'right') {
+            } else if (resolvedAlign === 'right') {
                 pixiText.x = contentWidth - padding;
                 pixiText.anchor.x = 1;
             }
@@ -410,6 +496,219 @@ class SlideCanvas {
             
             container.addChild(pixiText);
             container.textNode = pixiText; // Ref for runtime update
+            
+        } else if (elem.type === 'shape') {
+            const shapeType = elem.shapeType || 'rectangle';
+            const w = contentWidth;
+            const h = contentHeight;
+            const r = elem.borderRadius || 0;
+            
+            const parseColor = (colStr) => {
+                if (!colStr || colStr === 'transparent') return 0x000000;
+                return parseInt(colStr.replace('#', '0x'));
+            };
+            
+            const fillColor = parseColor(elem.bgColor);
+            const fillAlpha = elem.bgColor === 'transparent' ? 0 : (elem.bgAlpha !== undefined ? elem.bgAlpha : 1);
+            
+            const borderW = elem.borderWidth || 0;
+            const borderCol = parseColor(elem.borderColor);
+            
+            if (borderW > 0 && elem.borderStyle !== 'none') {
+                graphics.lineStyle(borderW, borderCol, 1);
+            } else {
+                graphics.lineStyle(0);
+            }
+            
+            if (fillAlpha > 0) {
+                graphics.beginFill(fillColor, fillAlpha);
+            }
+            
+            if (shapeType === 'rectangle') {
+                if (r > 0) {
+                    graphics.drawRoundedRect(0, 0, w, h, r);
+                } else {
+                    graphics.drawRect(0, 0, w, h);
+                }
+            } else if (shapeType === 'circle') {
+                graphics.drawCircle(w / 2, h / 2, Math.min(w, h) / 2);
+            } else if (shapeType === 'triangle') {
+                graphics.drawPolygon([w / 2, 0, w, h, 0, h]);
+            } else if (shapeType === 'star') {
+                const cx = w / 2;
+                const cy = h / 2;
+                const outerRadius = Math.min(w, h) / 2;
+                const innerRadius = outerRadius * 0.4;
+                const spikes = 5;
+                let rot = (Math.PI / 2) * 3;
+                let x = cx;
+                let y = cy;
+                const step = Math.PI / spikes;
+
+                graphics.moveTo(cx, cy - outerRadius);
+                for (let i = 0; i < spikes; i++) {
+                    x = cx + Math.cos(rot) * outerRadius;
+                    y = cy + Math.sin(rot) * outerRadius;
+                    graphics.lineTo(x, y);
+                    rot += step;
+
+                    x = cx + Math.cos(rot) * innerRadius;
+                    y = cy + Math.sin(rot) * innerRadius;
+                    graphics.lineTo(x, y);
+                    rot += step;
+                }
+                graphics.closePath();
+            } else if (shapeType === 'pentagon') {
+                const cx = w / 2;
+                const cy = h / 2;
+                const rx = w / 2;
+                const ry = h / 2;
+                graphics.moveTo(cx + rx * Math.cos(-Math.PI / 2), cy + ry * Math.sin(-Math.PI / 2));
+                for (let i = 1; i <= 5; i++) {
+                    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+                    graphics.lineTo(cx + rx * Math.cos(angle), cy + ry * Math.sin(angle));
+                }
+                graphics.closePath();
+            } else if (shapeType === 'hexagon') {
+                const cx = w / 2;
+                const cy = h / 2;
+                const rx = w / 2;
+                const ry = h / 2;
+                graphics.moveTo(cx + rx * Math.cos(0), cy + ry * Math.sin(0));
+                for (let i = 1; i <= 6; i++) {
+                    const angle = (i * 2 * Math.PI) / 6;
+                    graphics.lineTo(cx + rx * Math.cos(angle), cy + ry * Math.sin(angle));
+                }
+                graphics.closePath();
+            } else if (shapeType === 'octagon') {
+                const cx = w / 2;
+                const cy = h / 2;
+                const rx = w / 2;
+                const ry = h / 2;
+                graphics.moveTo(cx + rx * Math.cos(Math.PI / 8), cy + ry * Math.sin(Math.PI / 8));
+                for (let i = 1; i <= 8; i++) {
+                    const angle = Math.PI / 8 + (i * 2 * Math.PI) / 8;
+                    graphics.lineTo(cx + rx * Math.cos(angle), cy + ry * Math.sin(angle));
+                }
+                graphics.closePath();
+            } else if (shapeType === 'diamond') {
+                graphics.moveTo(w / 2, 0);
+                graphics.lineTo(w, h / 2);
+                graphics.lineTo(w / 2, h);
+                graphics.lineTo(0, h / 2);
+                graphics.closePath();
+            } else if (shapeType === 'right-triangle') {
+                graphics.moveTo(0, 0);
+                graphics.lineTo(w, h);
+                graphics.lineTo(0, h);
+                graphics.closePath();
+            } else if (shapeType === 'arrow-right') {
+                graphics.moveTo(0, h * 0.3);
+                graphics.lineTo(w * 0.6, h * 0.3);
+                graphics.lineTo(w * 0.6, 0);
+                graphics.lineTo(w, h * 0.5);
+                graphics.lineTo(w * 0.6, h);
+                graphics.lineTo(w * 0.6, h * 0.7);
+                graphics.lineTo(0, h * 0.7);
+                graphics.closePath();
+            } else if (shapeType === 'heart') {
+                const cx = w / 2;
+                graphics.moveTo(cx, h * 0.3);
+                graphics.bezierCurveTo(w * 0.25, 0, 0, h * 0.25, 0, h * 0.5);
+                graphics.bezierCurveTo(0, h * 0.75, w * 0.3, h * 0.9, cx, h);
+                graphics.bezierCurveTo(w * 0.7, h * 0.9, w, h * 0.75, w, h * 0.5);
+                graphics.bezierCurveTo(w, h * 0.25, w * 0.75, 0, cx, h * 0.3);
+                graphics.closePath();
+            } else if (shapeType === 'line') {
+                graphics.moveTo(0, h / 2);
+                graphics.lineTo(w, h / 2);
+            } else if (shapeType === 'oval') {
+                graphics.drawEllipse(w / 2, h / 2, w / 2, h / 2);
+            } else if (shapeType === 'parallelogram') {
+                graphics.moveTo(w * 0.2, 0);
+                graphics.lineTo(w, 0);
+                graphics.lineTo(w * 0.8, h);
+                graphics.lineTo(0, h);
+                graphics.closePath();
+            } else if (shapeType === 'trapezoid') {
+                graphics.moveTo(w * 0.2, 0);
+                graphics.lineTo(w * 0.8, 0);
+                graphics.lineTo(w, h);
+                graphics.lineTo(0, h);
+                graphics.closePath();
+            } else if (shapeType === 'cross') {
+                graphics.moveTo(w * 0.35, 0);
+                graphics.lineTo(w * 0.65, 0);
+                graphics.lineTo(w * 0.65, h * 0.35);
+                graphics.lineTo(w, h * 0.35);
+                graphics.lineTo(w, h * 0.65);
+                graphics.lineTo(w * 0.65, h * 0.65);
+                graphics.lineTo(w * 0.65, h);
+                graphics.lineTo(w * 0.35, h);
+                graphics.lineTo(w * 0.35, h * 0.65);
+                graphics.lineTo(0, h * 0.65);
+                graphics.lineTo(0, h * 0.35);
+                graphics.lineTo(w * 0.35, h * 0.35);
+                graphics.closePath();
+            } else if (shapeType === 'shield') {
+                graphics.moveTo(0, 0);
+                graphics.lineTo(w, 0);
+                graphics.lineTo(w, h * 0.4);
+                graphics.quadraticCurveTo(w, h * 0.75, w / 2, h);
+                graphics.quadraticCurveTo(0, h * 0.75, 0, h * 0.4);
+                graphics.closePath();
+            } else if (shapeType === 'speech-bubble') {
+                const rectH = h * 0.8;
+                const bubbleRadius = Math.min(w, rectH) * 0.1;
+                graphics.drawRoundedRect(0, 0, w, rectH, bubbleRadius);
+                graphics.moveTo(w * 0.2, rectH);
+                graphics.lineTo(w * 0.1, h);
+                graphics.lineTo(w * 0.35, rectH);
+                graphics.closePath();
+            } else if (shapeType === 'arrow-left') {
+                graphics.moveTo(w, h * 0.3);
+                graphics.lineTo(w * 0.4, h * 0.3);
+                graphics.lineTo(w * 0.4, 0);
+                graphics.lineTo(0, h * 0.5);
+                graphics.lineTo(w * 0.4, h);
+                graphics.lineTo(w * 0.4, h * 0.7);
+                graphics.lineTo(w, h * 0.7);
+                graphics.closePath();
+            } else if (shapeType === 'arrow-up') {
+                graphics.moveTo(w * 0.3, h);
+                graphics.lineTo(w * 0.3, h * 0.4);
+                graphics.lineTo(0, h * 0.4);
+                graphics.lineTo(w * 0.5, 0);
+                graphics.lineTo(w, h * 0.4);
+                graphics.lineTo(w * 0.7, h * 0.4);
+                graphics.lineTo(w * 0.7, h);
+                graphics.closePath();
+            } else if (shapeType === 'arrow-down') {
+                graphics.moveTo(w * 0.3, 0);
+                graphics.lineTo(w * 0.3, h * 0.6);
+                graphics.lineTo(0, h * 0.6);
+                graphics.lineTo(w * 0.5, h);
+                graphics.lineTo(w, h * 0.6);
+                graphics.lineTo(w * 0.7, h * 0.6);
+                graphics.lineTo(w * 0.7, 0);
+                graphics.closePath();
+            } else if (shapeType === 'double-arrow') {
+                graphics.moveTo(w * 0.2, h * 0.3);
+                graphics.lineTo(w * 0.8, h * 0.3);
+                graphics.lineTo(w * 0.8, 0);
+                graphics.lineTo(w, h * 0.5);
+                graphics.lineTo(w * 0.8, h);
+                graphics.lineTo(w * 0.8, h * 0.7);
+                graphics.lineTo(w * 0.2, h * 0.7);
+                graphics.lineTo(w * 0.2, h);
+                graphics.lineTo(0, h * 0.5);
+                graphics.lineTo(w * 0.2, 0);
+                graphics.closePath();
+            }
+            
+            if (fillAlpha > 0) {
+                graphics.endFill();
+            }
             
         } else if (elem.type === 'image') {
             try {
@@ -506,35 +805,42 @@ class SlideCanvas {
                 graphics.endFill();
             }
         } else if (elem.type === 'video') {
-            // Draw visual editor placeholder for mapping selection/dragging
-            graphics.beginFill(0x0f172a, 0.95);
-            graphics.lineStyle(1.5, 0x334155, 1);
-            graphics.drawRect(0, 0, contentWidth, contentHeight);
-            graphics.endFill();
+            if (this.mode === 'edit') {
+                // Draw visual editor placeholder for mapping selection/dragging
+                graphics.beginFill(0x0f172a, 0.95);
+                graphics.lineStyle(1.5, 0x334155, 1);
+                graphics.drawRect(0, 0, contentWidth, contentHeight);
+                graphics.endFill();
 
-            // Centered white play button icon
-            const playIcon = new PIXI.Graphics();
-            playIcon.beginFill(0xffffff, 0.45);
-            playIcon.moveTo(-10, -15);
-            playIcon.lineTo(15, 0);
-            playIcon.lineTo(-10, 15);
-            playIcon.closePath();
-            playIcon.endFill();
-            playIcon.x = contentWidth / 2;
-            playIcon.y = contentHeight / 2;
-            container.addChild(playIcon);
+                // Centered white play button icon
+                const playIcon = new PIXI.Graphics();
+                playIcon.beginFill(0xffffff, 0.45);
+                playIcon.moveTo(-10, -15);
+                playIcon.lineTo(15, 0);
+                playIcon.lineTo(-10, 15);
+                playIcon.closePath();
+                playIcon.endFill();
+                playIcon.x = contentWidth / 2;
+                playIcon.y = contentHeight / 2;
+                container.addChild(playIcon);
 
-            // Add indicator text
-            const typeText = new PIXI.Text(elem.fileData ? "Local Video" : (elem.url && elem.url.includes("youtu") ? "YouTube Video" : "Video URL"), new PIXI.TextStyle({
-                fontFamily: 'Outfit',
-                fontSize: 14,
-                fill: 0x9ca3af,
-                align: 'center'
-            }));
-            typeText.anchor.set(0.5, 0);
-            typeText.x = contentWidth / 2;
-            typeText.y = contentHeight / 2 + 25;
-            container.addChild(typeText);
+                // Add indicator text
+                const typeText = new PIXI.Text(elem.fileData ? "Local Video" : (elem.url && elem.url.includes("youtu") ? "YouTube Video" : "Video URL"), new PIXI.TextStyle({
+                    fontFamily: 'Outfit',
+                    fontSize: 14,
+                    fill: 0x9ca3af,
+                    align: 'center'
+                }));
+                typeText.anchor.set(0.5, 0);
+                typeText.x = contentWidth / 2;
+                typeText.y = contentHeight / 2 + 25;
+                container.addChild(typeText);
+            } else {
+                // In play mode, draw a transparent box so the video underneath is visible
+                graphics.beginFill(0x000000, 0);
+                graphics.drawRect(0, 0, contentWidth, contentHeight);
+                graphics.endFill();
+            }
         }
 
         
@@ -773,8 +1079,13 @@ class SlideCanvas {
                 window.EngineState.updateElement(elem.id, { x: newX, y: newY });
                 
                 // Local visual update to keep it responsive (no lag)
-                container.x = newX;
-                container.y = newY;
+                if (elem.rotation) {
+                    container.x = newX + elem.width / 2;
+                    container.y = newY + elem.height / 2;
+                } else {
+                    container.x = newX;
+                    container.y = newY;
+                }
 
                 // Sync HTML overlay position
                 const overlay = this.container.querySelector(`.html-video-overlay[data-element-id="${elem.id}"]`);
@@ -838,9 +1149,8 @@ class SlideCanvas {
             });
             
             // Visual redraws
-            this.draggedContainer.x = newX;
-            this.draggedContainer.y = newY;
             this.renderElement(this.draggedElement, window.EngineState.getActiveSlide().rpgTheme);
+            this.draggedContainer = this.pixiElements.get(this.draggedElement.id);
             this.drawSelectionUI();
 
             // Sync HTML overlay position & size
@@ -906,112 +1216,120 @@ class SlideCanvas {
         const activeSlide = window.EngineState.getActiveSlide();
         if (!activeSlide) return;
         
-        const uiGraphics = new PIXI.Graphics();
-        this.uiContainer.addChild(uiGraphics);
-        
-        // 1. Draw dashed selection box (gold color for all selected elements)
         const goldColor = 0xf1c40f;
-        uiGraphics.lineStyle(1.5, goldColor, 1);
-        
         const dashLen = 6;
         const gapLen = 4;
         
-        const drawDashedLine = (x1, y1, x2, y2) => {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            const normalX = dx / len;
-            const normalY = dy / len;
+        const drawDashedBox = (graphics, w, h) => {
+            const padding = 2;
+            const x1 = -padding;
+            const y1 = -padding;
+            const x2 = w + padding;
+            const y2 = h + padding;
             
-            let curLen = 0;
-            let draw = true;
-            while(curLen < len) {
-                const step = draw ? dashLen : gapLen;
-                const nextLen = Math.min(len, curLen + step);
-                if (draw) {
-                    uiGraphics.moveTo(x1 + normalX * curLen, y1 + normalY * curLen);
-                    uiGraphics.lineTo(x1 + normalX * nextLen, y1 + normalY * nextLen);
+            const drawDashedLineLocal = (xStart, yStart, xEnd, yEnd) => {
+                const dx = xEnd - xStart;
+                const dy = yEnd - yStart;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const normalX = dx / len;
+                const normalY = dy / len;
+                
+                let curLen = 0;
+                let draw = true;
+                while(curLen < len) {
+                    const step = draw ? dashLen : gapLen;
+                    const nextLen = Math.min(len, curLen + step);
+                    if (draw) {
+                        graphics.moveTo(xStart + normalX * curLen, yStart + normalY * curLen);
+                        graphics.lineTo(xStart + normalX * nextLen, yStart + normalY * nextLen);
+                    }
+                    curLen = nextLen;
+                    draw = !draw;
                 }
-                curLen = nextLen;
-                draw = !draw;
-            }
+            };
+            
+            drawDashedLineLocal(x1, y1, x2, y1);
+            drawDashedLineLocal(x2, y1, x2, y2);
+            drawDashedLineLocal(x2, y2, x1, y2);
+            drawDashedLineLocal(x1, y2, x1, y1);
         };
         
         selectedIds.forEach(id => {
             const el = activeSlide.elements.find(e => e.id === id);
             if (!el) return;
             
-            const padding = 2;
-            const x = el.x - padding;
-            const y = el.y - padding;
-            const w = el.width + (padding * 2);
-            const h = el.height + (padding * 2);
+            // Create a selection container that mirrors the element's container properties
+            const selectionBoxContainer = new PIXI.Container();
+            if (el.rotation) {
+                selectionBoxContainer.pivot.set(el.width / 2, el.height / 2);
+                selectionBoxContainer.position.set(el.x + el.width / 2, el.y + el.height / 2);
+                selectionBoxContainer.rotation = el.rotation * Math.PI / 180;
+            } else {
+                selectionBoxContainer.pivot.set(0, 0);
+                selectionBoxContainer.position.set(el.x, el.y);
+                selectionBoxContainer.rotation = 0;
+            }
+            this.uiContainer.addChild(selectionBoxContainer);
             
-            drawDashedLine(x, y, x + w, y);
-            drawDashedLine(x + w, y, x + w, y + h);
-            drawDashedLine(x + w, y + h, x, y + h);
-            drawDashedLine(x, y + h, x, y);
-        });
-        
-        // 2. Add resize handles at corners ONLY for the primary active selection
-        const primaryId = window.EngineState.selectedElementId;
-        const primaryElem = activeSlide.elements.find(e => e.id === primaryId);
-        if (primaryElem) {
-            const padding = 2;
-            const x = primaryElem.x - padding;
-            const y = primaryElem.y - padding;
-            const w = primaryElem.width + (padding * 2);
-            const h = primaryElem.height + (padding * 2);
+            const outlineGraphics = new PIXI.Graphics();
+            outlineGraphics.lineStyle(1.5, goldColor, 1);
+            drawDashedBox(outlineGraphics, el.width, el.height);
+            selectionBoxContainer.addChild(outlineGraphics);
             
-            const handles = [
-                { x: x, y: y, cursor: 'nwse-resize' }, // TL
-                { x: x + w, y: y, cursor: 'nesw-resize' }, // TR
-                { x: x + w, y: y + h, cursor: 'nwse-resize' }, // BR
-                { x: x, y: y + h, cursor: 'nesw-resize' } // BL
-            ];
-            
-            handles.forEach((handle, index) => {
-                const handleGraphics = new PIXI.Graphics();
-                handleGraphics.lineStyle(1.5, goldColor, 1);
-                handleGraphics.beginFill(0xffffff);
-                handleGraphics.drawRect(-7, -7, 14, 14);
-                handleGraphics.endFill();
+            // 2. Add resize handles at corners ONLY for the primary active selection
+            const primaryId = window.EngineState.selectedElementId;
+            if (id === primaryId) {
+                const padding = 2;
+                const handles = [
+                    { x: -padding, y: -padding, cursor: 'nwse-resize' }, // TL
+                    { x: el.width + padding, y: -padding, cursor: 'nesw-resize' }, // TR
+                    { x: el.width + padding, y: el.height + padding, cursor: 'nwse-resize' }, // BR
+                    { x: -padding, y: el.height + padding, cursor: 'nesw-resize' } // BL
+                ];
                 
-                handleGraphics.x = handle.x;
-                handleGraphics.y = handle.y;
-                handleGraphics.interactive = true;
-                handleGraphics.cursor = handle.cursor;
-                
-                handleGraphics.on('pointerdown', (e) => {
-                    e.stopPropagation();
+                handles.forEach((handle, index) => {
+                    const handleGraphics = new PIXI.Graphics();
+                    handleGraphics.lineStyle(1.5, goldColor, 1);
+                    handleGraphics.beginFill(0xffffff);
+                    handleGraphics.drawRect(-7, -7, 14, 14);
+                    handleGraphics.endFill();
                     
-                    window.EngineState.pushHistory();
+                    handleGraphics.x = handle.x;
+                    handleGraphics.y = handle.y;
+                    handleGraphics.interactive = true;
+                    handleGraphics.cursor = handle.cursor;
                     
-                    this.draggedElement = primaryElem;
-                    const container = this.pixiElements.get(primaryElem.id);
-                    this.draggedContainer = container;
-                    this.activeAction = 'resize';
-                    this.resizeHandleIndex = index;
+                    handleGraphics.on('pointerdown', (e) => {
+                        e.stopPropagation();
+                        
+                        window.EngineState.pushHistory();
+                        
+                        this.draggedElement = el;
+                        const container = this.pixiElements.get(el.id);
+                        this.draggedContainer = container;
+                        this.activeAction = 'resize';
+                        this.resizeHandleIndex = index;
+                        
+                        const localPos = e.data.getLocalPosition(this.app.stage);
+                        this.dragData = {
+                            startX: localPos.x,
+                            startY: localPos.y,
+                            elemStartX: el.x,
+                            elemStartY: el.y,
+                            elemStartW: el.width,
+                            elemStartH: el.height
+                        };
+                        
+                        this.app.stage.interactive = true;
+                        this.app.stage.on('pointermove', this.onStagePointerMove, this);
+                        this.app.stage.on('pointerup', this.onStagePointerUp, this);
+                        this.app.stage.on('pointerupoutside', this.onStagePointerUp, this);
+                    });
                     
-                    const localPos = e.data.getLocalPosition(this.app.stage);
-                    this.dragData = {
-                        startX: localPos.x,
-                        startY: localPos.y,
-                        elemStartX: primaryElem.x,
-                        elemStartY: primaryElem.y,
-                        elemStartW: primaryElem.width,
-                        elemStartH: primaryElem.height
-                    };
-                    
-                    this.app.stage.interactive = true;
-                    this.app.stage.on('pointermove', this.onStagePointerMove, this);
-                    this.app.stage.on('pointerup', this.onStagePointerUp, this);
-                    this.app.stage.on('pointerupoutside', this.onStagePointerUp, this);
+                    selectionBoxContainer.addChild(handleGraphics);
                 });
-                
-                this.uiContainer.addChild(handleGraphics);
-            });
-        }
+            }
+        });
     }
 
     startMarqueeSelection(event) {
@@ -1598,7 +1916,18 @@ class SlideCanvas {
             overlay.style.top = `${(elem.y / this.baseHeight) * 100}%`;
             overlay.style.width = `${(elem.width / this.baseWidth) * 100}%`;
             overlay.style.height = `${(elem.height / this.baseHeight) * 100}%`;
-            overlay.style.zIndex = elem.zIndex || 0;
+            
+            // Layer ordering: compare with min zIndex of non-video elements
+            const nonVideoElements = slide.elements.filter(e => e.type !== 'video');
+            const minNonVideoZ = nonVideoElements.length > 0 
+                ? Math.min(...nonVideoElements.map(e => e.zIndex || 0)) 
+                : 0;
+            
+            if ((elem.zIndex || 0) < minNonVideoZ) {
+                overlay.style.zIndex = '1';
+            } else {
+                overlay.style.zIndex = '3';
+            }
             
             if (this.mode === 'edit') {
                 overlay.style.border = '1px solid rgba(255, 255, 255, 0.2)';

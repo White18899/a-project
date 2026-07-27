@@ -31,7 +31,8 @@
     "email": "white018899@gmail.com",
     "googleId": "113331509131478658632",
     "salt": "b91e5dbc2ebee34a0bf3572b2d7106ef",
-    "hashedPassword": "8031977f779f6504b384869b7bdff52f5c592ed4045cfce5140a13d943a46a8c"
+    "hashedPassword": "8031977f779f6504b384869b7bdff52f5c592ed4045cfce5140a13d943a46a8c",
+    "geminiApiKey": "AIzaSyAK2k6CwZyWmWbszMfU0Wv67l90Vl6Hgp4"
   },
   {
     "username": "hero",

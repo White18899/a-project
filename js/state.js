@@ -86,6 +86,7 @@ const ElementTemplates = {
         y: 100,
         width: 400,
         height: 100,
+        rotation: 0,
         fontFamily: 'Outfit',
         fontSize: 28,
         align: 'left',
@@ -109,6 +110,7 @@ const ElementTemplates = {
         y: 150,
         width: 300,
         height: 200,
+        rotation: 0,
         visible: true,
         zIndex: 0
     }),
@@ -120,6 +122,7 @@ const ElementTemplates = {
         y: 50,
         width: 100,
         height: 80,
+        rotation: 0,
         duration: 30,
         actions: [], // Dynamic timeout actions: { id, type, targetId }
         fontFamily: 'Outfit',
@@ -145,6 +148,7 @@ const ElementTemplates = {
         y: 400,
         width: 200,
         height: 50,
+        rotation: 0,
         fontFamily: 'Outfit',
         fontSize: 18,
         align: 'center',
@@ -172,6 +176,7 @@ const ElementTemplates = {
         y: 300,
         width: 350,
         height: 60,
+        rotation: 0,
         fontFamily: 'Outfit',
         fontSize: 18,
         align: 'center',
@@ -197,6 +202,7 @@ const ElementTemplates = {
         y: 470,
         width: 200,
         height: 50,
+        rotation: 0,
         fontFamily: 'Outfit',
         fontSize: 18,
         align: 'center',
@@ -222,6 +228,7 @@ const ElementTemplates = {
         y: 400,
         width: 220,
         height: 50,
+        rotation: 0,
         fontFamily: 'Outfit',
         fontSize: 16,
         align: 'center',
@@ -250,6 +257,25 @@ const ElementTemplates = {
         y: 150,
         width: 400,
         height: 225,
+        rotation: 0,
+        visible: true,
+        zIndex: 0
+    }),
+    shape: (slideId) => ({
+        id: generateUUID(),
+        type: 'shape',
+        shapeType: 'rectangle',
+        x: 400,
+        y: 300,
+        width: 200,
+        height: 200,
+        rotation: 0,
+        bgColor: '#3b82f6',
+        bgAlpha: 1.0,
+        borderWidth: 2,
+        borderStyle: 'solid',
+        borderColor: '#ffffff',
+        borderRadius: 0,
         visible: true,
         zIndex: 0
     })
@@ -278,6 +304,7 @@ window.EngineState = {
     currentView: 'landing',
     projectsList: [],
     users: [],
+    hasGeminiKey: false,
     
     // Event listeners
     listeners: {
@@ -289,7 +316,8 @@ window.EngineState = {
         'clipboard-changed': [],
         'view-changed': [],
         'projects-list-changed': [],
-        'auth-changed': []
+        'auth-changed': [],
+        'gemini-key-changed': []
     },
 
     // Subscribe to state changes
@@ -407,6 +435,7 @@ window.EngineState = {
     loadActiveSession() {
         this.currentUser = localStorage.getItem('slide_engine_active_user') || null;
         this.currentUserEmail = localStorage.getItem('slide_engine_active_user_email') || null;
+        this.hasGeminiKey = localStorage.getItem('slide_engine_active_has_gemini_key') === 'true';
     },
 
     loadProjectsList() {
@@ -452,9 +481,12 @@ window.EngineState = {
                 if (res.success) {
                     this.currentUser = username;
                     this.currentUserEmail = email;
+                    this.hasGeminiKey = false;
                     localStorage.setItem('slide_engine_active_user', username);
                     localStorage.setItem('slide_engine_active_user_email', email);
+                    localStorage.setItem('slide_engine_active_has_gemini_key', 'false');
                     this.emit('auth-changed', username);
+                    this.emit('gemini-key-changed', false);
                     
                     this.project = null;
                     this.selectedSlideId = null;
@@ -506,13 +538,16 @@ window.EngineState = {
                 if (res.success) {
                     this.currentUser = res.username || username;
                     this.currentUserEmail = res.email || null;
+                    this.hasGeminiKey = !!res.hasGeminiKey;
                     localStorage.setItem('slide_engine_active_user', this.currentUser);
+                    localStorage.setItem('slide_engine_active_has_gemini_key', this.hasGeminiKey ? 'true' : 'false');
                     if (res.email) {
                         localStorage.setItem('slide_engine_active_user_email', res.email);
                     } else {
                         localStorage.removeItem('slide_engine_active_user_email');
                     }
                     this.emit('auth-changed', this.currentUser);
+                    this.emit('gemini-key-changed', this.hasGeminiKey);
                     
                     this.project = null;
                     this.selectedSlideId = null;
@@ -647,13 +682,16 @@ window.EngineState = {
                 if (res.success) {
                     this.currentUser = res.username;
                     this.currentUserEmail = res.email || null;
+                    this.hasGeminiKey = !!res.hasGeminiKey;
                     localStorage.setItem('slide_engine_active_user', this.currentUser);
+                    localStorage.setItem('slide_engine_active_has_gemini_key', this.hasGeminiKey ? 'true' : 'false');
                     if (this.currentUserEmail) {
                         localStorage.setItem('slide_engine_active_user_email', this.currentUserEmail);
                     } else {
                         localStorage.removeItem('slide_engine_active_user_email');
                     }
                     this.emit('auth-changed', this.currentUser);
+                    this.emit('gemini-key-changed', this.hasGeminiKey);
                     
                     this.project = null;
                     this.selectedSlideId = null;
@@ -765,14 +803,17 @@ window.EngineState = {
     logout() {
         this.currentUser = null;
         this.currentUserEmail = null;
+        this.hasGeminiKey = false;
         localStorage.removeItem('slide_engine_active_user');
         localStorage.removeItem('slide_engine_active_user_email');
+        localStorage.removeItem('slide_engine_active_has_gemini_key');
         
         if (window.SlideEngineAPI) {
             window.SlideEngineAPI.logout();
         }
 
         this.emit('auth-changed', null);
+        this.emit('gemini-key-changed', false);
         
         this.project = null;
         this.selectedSlideId = null;
