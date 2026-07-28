@@ -8,7 +8,7 @@ window.SlideEngineAPI = {
     // If opened via file://, point to local server. Otherwise, use relative origin.
     baseUrl: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
         ? 'http://localhost:3000'
-        : 'https://slide-engine-api.white018899.workers.dev',
+        : 'https://slidee-api.akao.in',
     token: localStorage.getItem('slide_engine_api_token') || null,
     username: localStorage.getItem('slide_engine_api_username') || null,
 

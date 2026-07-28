@@ -3,6 +3,11 @@
 
 <head>
     <script>
+    // Redirect old pages.dev domain to new custom domain
+    if (window.location.hostname.endsWith('.pages.dev') && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+        window.location.replace('https://slidee.akao.in' + window.location.pathname + window.location.search + window.location.hash);
+    }
+
     window.addEventListener('error', function(e) {
         fetch('http://localhost:3000/api/debug-log', {
             method: 'POST',
@@ -32,6 +37,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SlideEngine - Interactive WebGL Presentation Workspace</title>
+    <link rel="canonical" href="https://slidee.akao.in/" />
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,8 +51,17 @@
     <link rel="stylesheet" href="styles.css?v=4">
     <!-- Google Identity Services for Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- SVG Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' stroke='%23a855f7' stroke-width='2'/><path d='M12 6c-2 0-3.5 1.5-3.5 3s1.5 2.5 3.5 3s3.5 1.5 3.5 3s-1.5 3-3.5 3' stroke='%23a855f7' stroke-width='2.5' fill='none'/></svg>">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- Google Site Name Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SlideEngine",
+      "url": "https://slidee.akao.in/"
+    }
+    </script>
 </head>
 
 <body>

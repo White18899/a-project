@@ -18,3 +18,9 @@ id = "e55f900cec7d461cbaeab865b114deba"
 binding = "SLIDE_ENGINE_R2"
 bucket_name = "slide-engine-uploads"
 
+# Configure custom domain route for API
+[[routes]]
+pattern = "slidee-api.akao.in"
+custom_domain = true
+
+
