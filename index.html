@@ -520,184 +520,264 @@
                     <div class="tabs-content">
                         <!-- ELEMENTS TAB -->
                         <div id="elements-tab" class="tab-panel active">
-                            <div class="inspector-section">
-                                <h4>Add Elements</h4>
-                                <div class="element-grid">
+                            <!-- CATEGORY 1: CORE CANVAS ELEMENTS (2x2 Grid) -->
+                            <div class="inspector-section elements-category-section">
+                                <div class="elements-category-header">
+                                    <span class="elements-category-title"><i data-lucide="layers"></i> Canvas Elements</span>
+                                    <span class="elements-category-count">4</span>
+                                </div>
+                                <div class="element-grid element-grid-2x2">
                                     <button class="btn-element-add" data-type="text" title="Text Box">
-                                        <i data-lucide="type"></i>
-                                        <span>Text Field</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="image" title="Image Box">
-                                        <i data-lucide="image"></i>
-                                        <span>Img Field</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="timer" title="MCQ Timer">
-                                        <i data-lucide="timer"></i>
-                                        <span>Timer Field</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="btn-nav" title="Navigation Button">
-                                        <i data-lucide="navigation"></i>
-                                        <span>Nav Button</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="btn-option"
-                                        title="MCQ Answer Option Button">
-                                        <i data-lucide="check-square"></i>
-                                        <span>4-Option Btn</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="btn-show-ans" title="Show Answer Button">
-                                        <i data-lucide="eye"></i>
-                                        <span>Show Ans Btn</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="btn-toggle" title="Action Button">
-                                        <i data-lucide="sparkles"></i>
-                                        <span>Action Button</span>
-                                    </button>
-                                    <button class="btn-element-add" data-type="video" title="Video Box">
-                                        <i data-lucide="video"></i>
-                                        <span>Video Field</span>
+                                        <div class="element-icon-wrap"><i data-lucide="type"></i></div>
+                                        <span class="element-label">Text Field</span>
+                                        <span class="element-sub">Headlines & body</span>
                                     </button>
                                     <button class="btn-element-add" data-type="shape" title="Add Shape Element">
-                                        <i data-lucide="shapes"></i>
-                                        <span>Shape Field</span>
+                                        <div class="element-icon-wrap"><i data-lucide="shapes"></i></div>
+                                        <span class="element-label">Shape Field</span>
+                                        <span class="element-sub">Vector shapes</span>
+                                    </button>
+                                    <button class="btn-element-add" data-type="image" title="Image Box">
+                                        <div class="element-icon-wrap"><i data-lucide="image"></i></div>
+                                        <span class="element-label">Img Field</span>
+                                        <span class="element-sub">Photos & graphics</span>
+                                    </button>
+                                    <button class="btn-element-add" data-type="video" title="Video Box">
+                                        <div class="element-icon-wrap"><i data-lucide="video"></i></div>
+                                        <span class="element-label">Video Field</span>
+                                        <span class="element-sub">Media stream</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- AI ASSET GENERATOR SECTION -->
-                            <div class="inspector-section" id="section-ai-asset" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
-                                <h4>AI Asset Generator</h4>
-                                <div class="form-group" style="margin-bottom: 8px;">
-                                    <label for="ai-asset-prompt" style="font-size: 0.8rem; color: var(--text-muted);">Illustration prompt / icon details</label>
-                                    <textarea id="ai-asset-prompt" rows="2" placeholder="e.g. minimalist neon rocket icon, 3d crystal sphere..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 50px; font-family: inherit; font-size: 0.85rem;"></textarea>
+                            <!-- CATEGORY 2: INTERACTIVITY & CONTROLS (3-col Grid) -->
+                            <div class="inspector-section elements-category-section">
+                                <div class="elements-category-header">
+                                    <span class="elements-category-title"><i data-lucide="mouse-pointer-click"></i> Interaction & Flow</span>
+                                    <span class="elements-category-count">3</span>
                                 </div>
-                                <button type="button" id="btn-ai-generate-asset" class="btn btn-accent btn-glow" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert
-                                </button>
-                                <div id="ai-asset-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
-                                    <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                    <span id="ai-asset-progress-text">Generating visual asset...</span>
-                                </div>
-                                <div id="ai-asset-error" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: #f87171;">
-                                    <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
-                                    <span id="ai-asset-error-text">Failed to generate image.</span>
+                                <div class="element-grid element-grid-3col">
+                                    <button class="btn-element-add btn-element-compact" data-type="btn-nav" title="Navigation Button">
+                                        <div class="element-icon-wrap"><i data-lucide="navigation"></i></div>
+                                        <span class="element-label">Nav Button</span>
+                                        <span class="element-sub">Branching</span>
+                                    </button>
+                                    <button class="btn-element-add btn-element-compact" data-type="btn-toggle" title="Action Button">
+                                        <div class="element-icon-wrap"><i data-lucide="sparkles"></i></div>
+                                        <span class="element-label">Action Btn</span>
+                                        <span class="element-sub">Toggle state</span>
+                                    </button>
+                                    <button class="btn-element-add btn-element-compact" data-type="timer" title="MCQ Timer">
+                                        <div class="element-icon-wrap"><i data-lucide="timer"></i></div>
+                                        <span class="element-label">Timer Field</span>
+                                        <span class="element-sub">Countdown</span>
+                                    </button>
                                 </div>
                             </div>
 
-                            <!-- SLIDE PROPERTIES (Always visible when nothing is selected) -->
-                            <div class="inspector-section" id="slide-properties-section">
-                                <h4>Slide Settings</h4>
-                                <div class="form-group">
-                                    <label for="slide-name-input">Slide Name</label>
-                                    <input type="text" id="slide-name-input" value="Slide 1">
+                            <!-- CATEGORY 3: QUIZ & ASSESSMENT (2-column pair) -->
+                            <div class="inspector-section elements-category-section">
+                                <div class="elements-category-header">
+                                    <span class="elements-category-title"><i data-lucide="help-circle"></i> Quiz & Engagement</span>
+                                    <span class="elements-category-count">2</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="slide-bg-type">Background Type</label>
-                                    <select id="slide-bg-type">
-                                        <option value="color">Solid Color</option>
-                                        <option value="gradient">Gradient</option>
-                                        <option value="image">Image</option>
-                                    </select>
+                                <div class="element-grid element-grid-2col">
+                                    <button class="btn-element-add" data-type="btn-option" title="MCQ Answer Option Button">
+                                        <div class="element-icon-wrap"><i data-lucide="check-square"></i></div>
+                                        <span class="element-label">4-Option Btn</span>
+                                        <span class="element-sub">MCQ assessment</span>
+                                    </button>
+                                    <button class="btn-element-add" data-type="btn-show-ans" title="Show Answer Button">
+                                        <div class="element-icon-wrap"><i data-lucide="eye"></i></div>
+                                        <span class="element-label">Show Ans Btn</span>
+                                        <span class="element-sub">Reveal widget</span>
+                                    </button>
                                 </div>
-                                <div class="form-group">
-                                    <label for="slide-transition">Slide Transition</label>
-                                    <div class="select-with-icon">
-                                        <span id="slide-transition-icon-container" class="select-icon-indicator">
-                                            <i data-lucide="ban"></i>
-                                        </span>
-                                        <select id="slide-transition">
-                                            <option value="none">None</option>
-                                            <option value="fade">Fade</option>
-                                            <option value="slide-left">Slide Left</option>
-                                            <option value="slide-right">Slide Right</option>
-                                            <option value="slide-up">Slide Up</option>
-                                            <option value="slide-down">Slide Down</option>
-                                            <option value="slide-bounce-left">Slide Bounce Left</option>
-                                            <option value="slide-bounce-right">Slide Bounce Right</option>
-                                            <option value="zoom">Zoom</option>
-                                            <option value="spin-zoom">Spin Zoom</option>
-                                            <option value="flip-horizontal">Card Flip (Horiz)</option>
-                                            <option value="flip-vertical">Card Flip (Vert)</option>
-                                            <option value="iris">Iris Circle</option>
-                                            <option value="slide-skew-left">Skew Slide Left</option>
-                                            <option value="wash-black">Fade to Black</option>
-                                            <option value="wash-white">Fade to White</option>
-                                            <option value="cross-scale">Cross Scale Zoom</option>
-                                            <option value="diagonal-slide">Diagonal Slide</option>
-                                            <option value="wipe-left">Wipe Left</option>
-                                            <option value="wipe-right">Wipe Right</option>
-                                            <option value="wipe-up">Wipe Up</option>
-                                            <option value="wipe-down">Wipe Down</option>
-                                            <option value="split-horizontal">Split Horizontal</option>
-                                            <option value="split-vertical">Split Vertical</option>
-                                            <option value="cube-left">3D Cube Left</option>
-                                            <option value="cube-right">3D Cube Right</option>
-                                            <option value="spiral">Vortex Spiral</option>
-                                            <option value="glitch">Glitch Signal</option>
-                                            <option value="bounce-zoom">Bounce Zoom</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Background options -->
-                                <div class="bg-option-fields" id="bg-color-fields">
-                                    <div class="form-group">
-                                        <label for="slide-bg-color">Background Color</label>
-                                        <div class="color-picker-wrapper">
-                                            <input type="color" id="slide-bg-color" value="#1e293b">
-                                            <input type="text" id="slide-bg-color-hex" value="#1e293b">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-option-fields hidden" id="bg-gradient-fields">
-                                    <div class="form-group">
-                                        <label for="slide-bg-grad-1">Gradient Start</label>
-                                        <div class="color-picker-wrapper">
-                                            <input type="color" id="slide-bg-grad-1" value="#0f172a">
-                                            <input type="text" id="slide-bg-grad-1-hex" value="#0f172a">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="slide-bg-grad-2">Gradient End</label>
-                                        <div class="color-picker-wrapper">
-                                            <input type="color" id="slide-bg-grad-2" value="#1e293b">
-                                            <input type="text" id="slide-bg-grad-2-hex" value="#1e293b">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="slide-bg-grad-angle">Gradient Angle (deg)</label>
-                                        <input type="number" id="slide-bg-grad-angle" value="135" min="0" max="360">
-                                    </div>
-                                </div>
-                                <div class="bg-option-fields hidden" id="bg-image-fields">
-                                    <div class="form-group">
-                                        <label for="slide-bg-image-url">Image URL</label>
-                                        <div class="input-with-button">
-                                            <input type="text" id="slide-bg-image-url" placeholder="https://...">
-                                            <button class="btn btn-secondary btn-icon-only" id="btn-upload-bg-url"
-                                                title="Load Image"><i data-lucide="check"></i></button>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Or Upload File</label>
-                                        <label class="file-upload-label">
-                                            <input type="file" id="slide-bg-image-file" accept="image/*">
-                                            <i data-lucide="upload-cloud"></i>
-                                            <span>Choose file...</span>
-                                        </label>
-                                        <div class="url-notice" style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.3;">
-                                            💡 Tip: Prefer using image URLs for faster presentation load times and storage efficiency.
-                                        </div>
-                                    </div>
-                                </div>
-
                             </div>
                         </div>
 
                         <!-- PROPERTIES TAB -->
                         <div id="properties-tab" class="tab-panel">
-                            <div id="no-element-selected" class="empty-state">
-                                <i data-lucide="mouse-pointer-click"></i>
-                                <p>Select an element on the canvas to inspect its properties</p>
+                            <!-- SLIDE CANVAS & BACKDROP INSPECTOR (Active when no element is selected) -->
+                            <div class="slide-canvas-inspector" id="slide-properties-section">
+                                <!-- HEADER CARD -->
+                                <div class="slide-canvas-header-card">
+                                    <div class="slide-canvas-title-group">
+                                        <span class="slide-canvas-icon-pill"><i data-lucide="monitor"></i></span>
+                                        <div class="slide-canvas-heading">
+                                            <h4>Slide Canvas</h4>
+                                            <span class="slide-canvas-res-tag">1920 × 1080 • 16:9 HD</span>
+                                        </div>
+                                    </div>
+                                    <div class="slide-canvas-index-pill" id="slide-canvas-index-pill" title="Slide Index">
+                                        <span class="slide-canvas-pill-label">SLIDE</span>
+                                        <span id="slide-canvas-index-num" class="slide-canvas-pill-num">01</span>
+                                    </div>
+                                </div>
+
+                                <!-- SLIDE TITLE / NAME -->
+                                <div class="slide-canvas-card">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="slide-name-input" class="slide-canvas-field-label">
+                                            <span>Slide Title</span>
+                                            <span class="field-hint">Page Name</span>
+                                        </label>
+                                        <div class="slide-name-input-wrapper">
+                                            <input type="text" id="slide-name-input" value="Slide 1" placeholder="Enter slide title...">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- BACKDROP FILL SECTION -->
+                                <div class="slide-canvas-card">
+                                    <div class="slide-canvas-section-header">
+                                        <span class="slide-canvas-section-title"><i data-lucide="palette"></i> Backdrop Fill</span>
+                                        <div class="bg-type-segmented" id="bg-type-segmented-controls">
+                                            <button type="button" class="bg-type-seg-btn active" data-bg-type="color">Solid</button>
+                                            <button type="button" class="bg-type-seg-btn" data-bg-type="gradient">Gradient</button>
+                                            <button type="button" class="bg-type-seg-btn" data-bg-type="image">Image</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Preserved native select for backward-compatibility -->
+                                    <select id="slide-bg-type" class="hidden">
+                                        <option value="color">Solid Color</option>
+                                        <option value="gradient">Gradient</option>
+                                        <option value="image">Image</option>
+                                    </select>
+
+                                    <!-- Quick Studio Palette Swatches -->
+                                    <div class="canvas-palette-presets" title="Quick Studio Background Presets">
+                                        <button type="button" class="canvas-swatch-preset" data-color="#050507" style="background: #050507;" title="Pitch Dark (#050507)"></button>
+                                        <button type="button" class="canvas-swatch-preset" data-color="#0a0a0c" style="background: #0a0a0c;" title="Studio Zinc (#0a0a0c)"></button>
+                                        <button type="button" class="canvas-swatch-preset" data-color="#0f172a" style="background: #0f172a;" title="Slate Navy (#0f172a)"></button>
+                                        <button type="button" class="canvas-swatch-preset" data-color="#18181b" style="background: #18181b;" title="Deep Carbon (#18181b)"></button>
+                                        <button type="button" class="canvas-swatch-preset" data-color="#1e293b" style="background: #1e293b;" title="Slate (#1e293b)"></button>
+                                        <button type="button" class="canvas-swatch-preset" data-color="#ffffff" style="background: #ffffff;" title="Clean White (#ffffff)"></button>
+                                    </div>
+
+                                    <!-- Solid Color Field -->
+                                    <div class="bg-option-fields" id="bg-color-fields">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="slide-bg-color">Color Picker</label>
+                                            <div class="color-picker-wrapper">
+                                                <input type="color" id="slide-bg-color" value="#1e293b">
+                                                <input type="text" id="slide-bg-color-hex" value="#1e293b">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Gradient Fields -->
+                                    <div class="bg-option-fields hidden" id="bg-gradient-fields">
+                                        <div class="gradient-dual-pickers">
+                                            <div class="form-group" style="flex: 1;">
+                                                <label for="slide-bg-grad-1">Start Color</label>
+                                                <div class="color-picker-wrapper">
+                                                    <input type="color" id="slide-bg-grad-1" value="#0f172a">
+                                                    <input type="text" id="slide-bg-grad-1-hex" value="#0f172a">
+                                                </div>
+                                            </div>
+                                            <div class="form-group" style="flex: 1;">
+                                                <label for="slide-bg-grad-2">End Color</label>
+                                                <div class="color-picker-wrapper">
+                                                    <input type="color" id="slide-bg-grad-2" value="#1e293b">
+                                                    <input type="text" id="slide-bg-grad-2-hex" value="#1e293b">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
+                                            <label for="slide-bg-grad-angle">Gradient Angle (deg)</label>
+                                            <input type="number" id="slide-bg-grad-angle" value="135" min="0" max="360">
+                                        </div>
+                                    </div>
+
+                                    <!-- Image Fields -->
+                                    <div class="bg-option-fields hidden" id="bg-image-fields">
+                                        <div class="form-group">
+                                            <label for="slide-bg-image-url">Image URL</label>
+                                            <div class="input-with-button">
+                                                <input type="text" id="slide-bg-image-url" placeholder="https://...">
+                                                <button class="btn btn-secondary btn-icon-only" id="btn-upload-bg-url"
+                                                    title="Load Image"><i data-lucide="check"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>Or Upload File</label>
+                                            <label class="file-upload-label">
+                                                <input type="file" id="slide-bg-image-file" accept="image/*">
+                                                <i data-lucide="upload-cloud"></i>
+                                                <span>Choose file...</span>
+                                            </label>
+                                            <div class="url-notice" style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.3;">
+                                                💡 Tip: Prefer using image URLs for faster load times.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SLIDE TRANSITION SECTION -->
+                                <div class="slide-canvas-card">
+                                    <div class="slide-canvas-section-header">
+                                        <span class="slide-canvas-section-title"><i data-lucide="sparkles"></i> Slide Transition</span>
+                                    </div>
+
+                                    <!-- Quick transition pills -->
+                                    <div class="transition-quick-pills" id="transition-quick-pills">
+                                        <button type="button" class="transition-quick-pill active" data-transition="none">None</button>
+                                        <button type="button" class="transition-quick-pill" data-transition="fade">Fade</button>
+                                        <button type="button" class="transition-quick-pill" data-transition="slide-left">Slide</button>
+                                        <button type="button" class="transition-quick-pill" data-transition="zoom">Zoom</button>
+                                    </div>
+
+                                    <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
+                                        <div class="select-with-icon">
+                                            <span id="slide-transition-icon-container" class="select-icon-indicator">
+                                                <i data-lucide="ban"></i>
+                                            </span>
+                                            <select id="slide-transition">
+                                                <option value="none">None</option>
+                                                <option value="fade">Fade</option>
+                                                <option value="slide-left">Slide Left</option>
+                                                <option value="slide-right">Slide Right</option>
+                                                <option value="slide-up">Slide Up</option>
+                                                <option value="slide-down">Slide Down</option>
+                                                <option value="slide-bounce-left">Slide Bounce Left</option>
+                                                <option value="slide-bounce-right">Slide Bounce Right</option>
+                                                <option value="zoom">Zoom</option>
+                                                <option value="spin-zoom">Spin Zoom</option>
+                                                <option value="flip-horizontal">Card Flip (Horiz)</option>
+                                                <option value="flip-vertical">Card Flip (Vert)</option>
+                                                <option value="iris">Iris Circle</option>
+                                                <option value="slide-skew-left">Skew Slide Left</option>
+                                                <option value="wash-black">Fade to Black</option>
+                                                <option value="wash-white">Fade to White</option>
+                                                <option value="cross-scale">Cross Scale Zoom</option>
+                                                <option value="diagonal-slide">Diagonal Slide</option>
+                                                <option value="wipe-left">Wipe Left</option>
+                                                <option value="wipe-right">Wipe Right</option>
+                                                <option value="wipe-up">Wipe Up</option>
+                                                <option value="wipe-down">Wipe Down</option>
+                                                <option value="split-horizontal">Split Horizontal</option>
+                                                <option value="split-vertical">Split Vertical</option>
+                                                <option value="cube-left">3D Cube Left</option>
+                                                <option value="cube-right">3D Cube Right</option>
+                                                <option value="spiral">Vortex Spiral</option>
+                                                <option value="glitch">Glitch Signal</option>
+                                                <option value="bounce-zoom">Bounce Zoom</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- HINT BANNER -->
+                                <div class="slide-canvas-hint-banner">
+                                    <i data-lucide="mouse-pointer"></i>
+                                    <span>Select any element on the canvas to inspect its typography, appearance, and transform layout.</span>
+                                </div>
                             </div>
+
+                            <!-- Hidden empty state kept for legacy reference -->
+                            <div id="no-element-selected" class="empty-state hidden" style="display: none;"></div>
                             <div id="element-inspector-form" class="hidden">
                                 <!-- INSPECTOR HEADER CARD -->
                                 <div class="inspector-header-card">
@@ -729,206 +809,7 @@
                                 <!-- ACCORDION SECTIONS -->
                                 <div class="inspector-accordion">
 
-                                    <!-- ACCORDION 1: TRANSFORM & LAYOUT -->
-                                    <div class="inspector-accordion-item open" id="acc-item-transform">
-                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
-                                            <div class="accordion-header-left">
-                                                <i data-lucide="move" class="accordion-icon"></i>
-                                                <span class="accordion-title">Transform & Layout</span>
-                                            </div>
-                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
-                                        </div>
-                                        <div class="accordion-body">
-                                            <!-- Studio Pro Geometry Matrix (Position & Dimensions) -->
-                                            <div class="geometry-matrix-container" id="geometry-matrix-container">
-                                                <!-- Row 1: Position Coordinates (X, Y) -->
-                                                <div class="geometry-row geometry-row-coords">
-                                                    <div class="geometry-field" id="field-geo-x">
-                                                        <div class="geometry-badge" id="badge-geo-x" title="Click and drag horizontally to scrub X position, or click input to edit">
-                                                            <span class="geo-badge-letter">X</span>
-                                                        </div>
-                                                        <input type="text" id="elem-x" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Horizontal Position X (px). Supports math expressions e.g. +20, -50, *2">
-                                                        <span class="geometry-unit">px</span>
-                                                    </div>
-
-                                                    <div class="geometry-field" id="field-geo-y">
-                                                        <div class="geometry-badge" id="badge-geo-y" title="Click and drag horizontally to scrub Y position, or click input to edit">
-                                                            <span class="geo-badge-letter">Y</span>
-                                                        </div>
-                                                        <input type="text" id="elem-y" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Vertical Position Y (px). Supports math expressions e.g. +20, -50, *2">
-                                                        <span class="geometry-unit">px</span>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Row 2: Dimensions & Proportional Lock (W, Lock, H) -->
-                                                <div class="geometry-row geometry-row-dims">
-                                                    <div class="geometry-field" id="field-geo-w">
-                                                        <div class="geometry-badge" id="badge-geo-w" title="Click and drag horizontally to scrub Width, or click input to edit">
-                                                            <span class="geo-badge-letter">W</span>
-                                                        </div>
-                                                        <input type="text" id="elem-w" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Width (px). Supports math expressions e.g. +50, /2">
-                                                        <span class="geometry-unit">px</span>
-                                                    </div>
-
-                                                    <!-- Constrain Proportions Aspect Ratio Lock Button -->
-                                                    <button type="button" class="btn-aspect-ratio-lock" id="btn-aspect-ratio-lock" title="Constrain Proportions (Lock Aspect Ratio)">
-                                                        <i data-lucide="unlock" class="lock-icon" id="icon-aspect-ratio-lock"></i>
-                                                    </button>
-
-                                                    <div class="geometry-field" id="field-geo-h">
-                                                        <div class="geometry-badge" id="badge-geo-h" title="Click and drag horizontally to scrub Height, or click input to edit">
-                                                            <span class="geo-badge-letter">H</span>
-                                                        </div>
-                                                        <input type="text" id="elem-h" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Height (px). Supports math expressions e.g. +50, /2">
-                                                        <span class="geometry-unit">px</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Studio Rotation Control Widget -->
-                                            <div class="rotation-widget-container" id="rotation-widget">
-                                                <div class="rotation-widget-header">
-                                                    <span class="rotation-widget-label">
-                                                        <i data-lucide="rotate-cw" class="rot-label-icon"></i>
-                                                        <span>Rotation</span>
-                                                    </span>
-                                                    <!-- Scrubbable Input Badge -->
-                                                    <div class="rotation-scrub-wrapper" id="rotation-scrub-wrapper" title="Click and drag horizontally to scrub angle, or click to type">
-                                                        <span class="rotation-scrub-icon">∠</span>
-                                                        <input type="text" id="elem-rotation" value="0°" class="rotation-scrub-input" autocomplete="off" spellcheck="false">
-                                                        <!-- Hidden slider input for full backward compatibility -->
-                                                        <input type="range" id="elem-rotation-slider" min="0" max="360" value="0" class="hidden">
-                                                    </div>
-                                                </div>
-                                                <div class="rotation-widget-body">
-                                                    <!-- Radial Dial -->
-                                                    <div class="rotation-dial" id="rotation-radial-dial" title="Click & drag to rotate (Hold Shift for 15° snap)">
-                                                        <svg class="rotation-dial-svg" viewBox="0 0 44 44">
-                                                            <circle class="dial-track" cx="22" cy="22" r="18" />
-                                                            <path class="dial-arc" id="rotation-dial-arc" d="" />
-                                                            <!-- Cardinal ticks: Top(0°), Right(90°), Bottom(180°), Left(270°) -->
-                                                            <line x1="22" y1="4" x2="22" y2="7" class="dial-tick cardinal" />
-                                                            <line x1="40" y1="22" x2="37" y2="22" class="dial-tick cardinal" />
-                                                            <line x1="22" y1="40" x2="22" y2="37" class="dial-tick cardinal" />
-                                                            <line x1="4" y1="22" x2="7" y2="22" class="dial-tick cardinal" />
-                                                        </svg>
-                                                        <div class="rotation-dial-needle" id="rotation-dial-needle">
-                                                            <div class="needle-pip"></div>
-                                                        </div>
-                                                        <div class="dial-center-dot"></div>
-                                                    </div>
-
-                                                    <!-- Quick Turn & Reset Buttons -->
-                                                    <div class="rotation-quick-actions">
-                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-ccw" title="Rotate 90° Counter-Clockwise (↺)">
-                                                            <i data-lucide="rotate-ccw"></i>
-                                                            <span>-90°</span>
-                                                        </button>
-                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-cw" title="Rotate 90° Clockwise (↻)">
-                                                            <i data-lucide="rotate-cw"></i>
-                                                            <span>+90°</span>
-                                                        </button>
-                                                        <button type="button" class="btn-rot-step btn-rot-reset" id="btn-rot-reset" title="Reset Rotation to 0°">
-                                                            <i data-lucide="refresh-cw"></i>
-                                                            <span>0°</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Layout & Arrange Section Divided by Purpose -->
-                                            <div class="layout-purpose-container" id="group-layout-alignment">
-                                                <!-- Main Section Header -->
-                                                <div class="layout-purpose-header">
-                                                    <span class="layout-purpose-title">
-                                                        <i data-lucide="layout-grid" class="layout-title-icon"></i>
-                                                        <span>Align & Arrange</span>
-                                                    </span>
-                                                    <span id="layout-target-indicator" class="layout-target-badge">Canvas</span>
-                                                </div>
-
-                                                <!-- PURPOSE 1: ALIGNMENT (Horizontal & Vertical Subgroups) -->
-                                                <div class="layout-purpose-group">
-                                                    <div class="layout-subgroup-labels">
-                                                        <span>Horizontal</span>
-                                                        <span>Vertical</span>
-                                                    </div>
-                                                    <div class="layout-align-dual-grid">
-                                                        <!-- Horizontal Alignment Group -->
-                                                        <div class="layout-segmented-control">
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-left" title="Align Left">
-                                                                <i data-lucide="align-left"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-center-h" title="Align Center Horizontally">
-                                                                <i data-lucide="align-center"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-right" title="Align Right">
-                                                                <i data-lucide="align-right"></i>
-                                                            </button>
-                                                        </div>
-
-                                                        <!-- Vertical Alignment Group -->
-                                                        <div class="layout-segmented-control">
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-top" title="Align Top">
-                                                                <i data-lucide="arrow-up-to-line"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-middle-v" title="Align Middle Vertically">
-                                                                <i data-lucide="align-center-vertical"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool" id="btn-align-bottom" title="Align Bottom">
-                                                                <i data-lucide="arrow-down-to-line"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- PURPOSE 2: EVEN DISTRIBUTION -->
-                                                <div class="layout-purpose-group">
-                                                    <span class="layout-group-label">Even Distribution</span>
-                                                    <div class="layout-distribute-grid">
-                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-h" title="Distribute Horizontally (Even Spacing)">
-                                                            <i data-lucide="align-horizontal-distribute-center"></i>
-                                                            <span>Horizontal</span>
-                                                        </button>
-                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-v" title="Distribute Vertically (Even Spacing)">
-                                                            <i data-lucide="align-vertical-distribute-center"></i>
-                                                            <span>Vertical</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <!-- PURPOSE 3: AUTO-STACK FLOW & GAP -->
-                                                <div class="layout-purpose-group">
-                                                    <div class="layout-purpose-label-row">
-                                                        <span class="layout-group-label">Auto-Stack Flow</span>
-                                                        <span class="layout-group-label">Gap</span>
-                                                    </div>
-                                                    <div class="layout-stack-flow-row">
-                                                        <div class="layout-segmented-control layout-stack-tools">
-                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-row" title="Auto-Stack Row (Horizontal Flex)">
-                                                                <i data-lucide="rows"></i>
-                                                                <span>Row</span>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-col" title="Auto-Stack Column (Vertical Flex)">
-                                                                <i data-lucide="columns"></i>
-                                                                <span>Col</span>
-                                                            </button>
-                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-grid" title="Auto-Stack 2x2 Grid">
-                                                                <i data-lucide="layout-grid"></i>
-                                                                <span>Grid</span>
-                                                            </button>
-                                                        </div>
-
-                                                        <div class="layout-gap-badge" title="Spacing gap between elements">
-                                                            <input type="number" id="layout-gap-input" value="24" min="0" max="200">
-                                                            <span class="gap-unit">px</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- ACCORDION 2: TYPOGRAPHY & CONTENT -->
+                                    <!-- ACCORDION 1: TYPOGRAPHY & CONTENT -->
                                     <div class="inspector-accordion-item open" id="acc-item-typography">
                                         <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
                                             <div class="accordion-header-left">
@@ -1130,9 +1011,9 @@
                                         </div>
                                     </div>
 
-                                    <!-- ACCORDION 3: APPEARANCE & STYLE -->
-                                    <div class="inspector-accordion-item" id="acc-item-appearance">
-                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                                    <!-- ACCORDION 2: APPEARANCE & STYLE -->
+                                    <div class="inspector-accordion-item open" id="acc-item-appearance">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
                                             <div class="accordion-header-left">
                                                 <i data-lucide="palette" class="accordion-icon"></i>
                                                 <span class="accordion-title">Appearance & Style</span>
@@ -1288,6 +1169,205 @@
                                                             <button type="button" class="btn-radius-preset active" data-radius="8" title="Smooth (8px)">8</button>
                                                             <button type="button" class="btn-radius-preset" data-radius="16" title="Round (16px)">16</button>
                                                             <button type="button" class="btn-radius-preset" data-radius="50" title="Pill / Full (50px)">Pill</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ACCORDION 3: TRANSFORM & LAYOUT -->
+                                    <div class="inspector-accordion-item open" id="acc-item-transform">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="move" class="accordion-icon"></i>
+                                                <span class="accordion-title">Transform & Layout</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
+                                        </div>
+                                        <div class="accordion-body">
+                                            <!-- Studio Pro Geometry Matrix (Position & Dimensions) -->
+                                            <div class="geometry-matrix-container" id="geometry-matrix-container">
+                                                <!-- Row 1: Position Coordinates (X, Y) -->
+                                                <div class="geometry-row geometry-row-coords">
+                                                    <div class="geometry-field" id="field-geo-x">
+                                                        <div class="geometry-badge" id="badge-geo-x" title="Click and drag horizontally to scrub X position, or click input to edit">
+                                                            <span class="geo-badge-letter">X</span>
+                                                        </div>
+                                                        <input type="text" id="elem-x" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Horizontal Position X (px). Supports math expressions e.g. +20, -50, *2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+
+                                                    <div class="geometry-field" id="field-geo-y">
+                                                        <div class="geometry-badge" id="badge-geo-y" title="Click and drag horizontally to scrub Y position, or click input to edit">
+                                                            <span class="geo-badge-letter">Y</span>
+                                                        </div>
+                                                        <input type="text" id="elem-y" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Vertical Position Y (px). Supports math expressions e.g. +20, -50, *2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Row 2: Dimensions & Proportional Lock (W, Lock, H) -->
+                                                <div class="geometry-row geometry-row-dims">
+                                                    <div class="geometry-field" id="field-geo-w">
+                                                        <div class="geometry-badge" id="badge-geo-w" title="Click and drag horizontally to scrub Width, or click input to edit">
+                                                            <span class="geo-badge-letter">W</span>
+                                                        </div>
+                                                        <input type="text" id="elem-w" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Width (px). Supports math expressions e.g. +50, /2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+
+                                                    <!-- Constrain Proportions Aspect Ratio Lock Button -->
+                                                    <button type="button" class="btn-aspect-ratio-lock" id="btn-aspect-ratio-lock" title="Constrain Proportions (Lock Aspect Ratio)">
+                                                        <i data-lucide="unlock" class="lock-icon" id="icon-aspect-ratio-lock"></i>
+                                                    </button>
+
+                                                    <div class="geometry-field" id="field-geo-h">
+                                                        <div class="geometry-badge" id="badge-geo-h" title="Click and drag horizontally to scrub Height, or click input to edit">
+                                                            <span class="geo-badge-letter">H</span>
+                                                        </div>
+                                                        <input type="text" id="elem-h" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Height (px). Supports math expressions e.g. +50, /2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Studio Rotation Control Widget -->
+                                            <div class="rotation-widget-container" id="rotation-widget">
+                                                <div class="rotation-widget-header">
+                                                    <span class="rotation-widget-label">
+                                                        <i data-lucide="rotate-cw" class="rot-label-icon"></i>
+                                                        <span>Rotation</span>
+                                                    </span>
+                                                    <!-- Scrubbable Input Badge -->
+                                                    <div class="rotation-scrub-wrapper" id="rotation-scrub-wrapper" title="Click and drag horizontally to scrub angle, or click to type">
+                                                        <span class="rotation-scrub-icon">∠</span>
+                                                        <input type="text" id="elem-rotation" value="0°" class="rotation-scrub-input" autocomplete="off" spellcheck="false">
+                                                        <!-- Hidden slider input for full backward compatibility -->
+                                                        <input type="range" id="elem-rotation-slider" min="0" max="360" value="0" class="hidden">
+                                                    </div>
+                                                </div>
+                                                <div class="rotation-widget-body">
+                                                    <!-- Radial Dial -->
+                                                    <div class="rotation-dial" id="rotation-radial-dial" title="Click & drag to rotate (Hold Shift for 15° snap)">
+                                                        <svg class="rotation-dial-svg" viewBox="0 0 44 44">
+                                                            <circle class="dial-track" cx="22" cy="22" r="18" />
+                                                            <path class="dial-arc" id="rotation-dial-arc" d="" />
+                                                            <!-- Cardinal ticks: Top(0°), Right(90°), Bottom(180°), Left(270°) -->
+                                                            <line x1="22" y1="4" x2="22" y2="7" class="dial-tick cardinal" />
+                                                            <line x1="40" y1="22" x2="37" y2="22" class="dial-tick cardinal" />
+                                                            <line x1="22" y1="40" x2="22" y2="37" class="dial-tick cardinal" />
+                                                            <line x1="4" y1="22" x2="7" y2="22" class="dial-tick cardinal" />
+                                                        </svg>
+                                                        <div class="rotation-dial-needle" id="rotation-dial-needle">
+                                                            <div class="needle-pip"></div>
+                                                        </div>
+                                                        <div class="dial-center-dot"></div>
+                                                    </div>
+
+                                                    <!-- Quick Turn & Reset Buttons -->
+                                                    <div class="rotation-quick-actions">
+                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-ccw" title="Rotate 90° Counter-Clockwise (↺)">
+                                                            <i data-lucide="rotate-ccw"></i>
+                                                            <span>-90°</span>
+                                                        </button>
+                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-cw" title="Rotate 90° Clockwise (↻)">
+                                                            <i data-lucide="rotate-cw"></i>
+                                                            <span>+90°</span>
+                                                        </button>
+                                                        <button type="button" class="btn-rot-step btn-rot-reset" id="btn-rot-reset" title="Reset Rotation to 0°">
+                                                            <i data-lucide="refresh-cw"></i>
+                                                            <span>0°</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Layout & Arrange Section Divided by Purpose -->
+                                            <div class="layout-purpose-container" id="group-layout-alignment">
+                                                <!-- Main Section Header -->
+                                                <div class="layout-purpose-header">
+                                                    <span class="layout-purpose-title">
+                                                        <i data-lucide="layout-grid" class="layout-title-icon"></i>
+                                                        <span>Align & Arrange</span>
+                                                    </span>
+                                                    <span id="layout-target-indicator" class="layout-target-badge">Canvas</span>
+                                                </div>
+
+                                                <!-- PURPOSE 1: ALIGNMENT (Horizontal & Vertical Subgroups) -->
+                                                <div class="layout-purpose-group">
+                                                    <div class="layout-subgroup-labels">
+                                                        <span>Horizontal</span>
+                                                        <span>Vertical</span>
+                                                    </div>
+                                                    <div class="layout-align-dual-grid">
+                                                        <!-- Horizontal Alignment Group -->
+                                                        <div class="layout-segmented-control">
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-left" title="Align Left">
+                                                                <i data-lucide="align-left"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-center-h" title="Align Center Horizontally">
+                                                                <i data-lucide="align-center"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-right" title="Align Right">
+                                                                <i data-lucide="align-right"></i>
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- Vertical Alignment Group -->
+                                                        <div class="layout-segmented-control">
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-top" title="Align Top">
+                                                                <i data-lucide="arrow-up-to-line"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-middle-v" title="Align Middle Vertically">
+                                                                <i data-lucide="align-center-vertical"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-bottom" title="Align Bottom">
+                                                                <i data-lucide="arrow-down-to-line"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- PURPOSE 2: EVEN DISTRIBUTION -->
+                                                <div class="layout-purpose-group">
+                                                    <span class="layout-group-label">Even Distribution</span>
+                                                    <div class="layout-distribute-grid">
+                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-h" title="Distribute Horizontally (Even Spacing)">
+                                                            <i data-lucide="align-horizontal-distribute-center"></i>
+                                                            <span>Horizontal</span>
+                                                        </button>
+                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-v" title="Distribute Vertically (Even Spacing)">
+                                                            <i data-lucide="align-vertical-distribute-center"></i>
+                                                            <span>Vertical</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- PURPOSE 3: AUTO-STACK FLOW & GAP -->
+                                                <div class="layout-purpose-group">
+                                                    <div class="layout-purpose-label-row">
+                                                        <span class="layout-group-label">Auto-Stack Flow</span>
+                                                        <span class="layout-group-label">Gap</span>
+                                                    </div>
+                                                    <div class="layout-stack-flow-row">
+                                                        <div class="layout-segmented-control layout-stack-tools">
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-row" title="Auto-Stack Row (Horizontal Flex)">
+                                                                <i data-lucide="rows"></i>
+                                                                <span>Row</span>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-col" title="Auto-Stack Column (Vertical Flex)">
+                                                                <i data-lucide="columns"></i>
+                                                                <span>Col</span>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-grid" title="Auto-Stack 2x2 Grid">
+                                                                <i data-lucide="layout-grid"></i>
+                                                                <span>Grid</span>
+                                                            </button>
+                                                        </div>
+
+                                                        <div class="layout-gap-badge" title="Spacing gap between elements">
+                                                            <input type="number" id="layout-gap-input" value="24" min="0" max="200">
+                                                            <span class="gap-unit">px</span>
                                                         </div>
                                                     </div>
                                                 </div>

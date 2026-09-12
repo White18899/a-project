@@ -214,6 +214,21 @@ function initEditorUI() {
         const nameEl = document.getElementById('toolbar-slide-name');
         if (nameEl) nameEl.textContent = slide.name || '';
 
+        // Update slide canvas inspector index pill
+        const slideCanvasIndexNum = document.getElementById('slide-canvas-index-num');
+        if (slideCanvasIndexNum) slideCanvasIndexNum.textContent = slideIndexStr;
+
+        // Sync segmented background buttons
+        document.querySelectorAll('.bg-type-seg-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-bg-type') === slide.background.type);
+        });
+
+        // Sync transition quick pills
+        const activeTrans = slide.transition || 'none';
+        document.querySelectorAll('.transition-quick-pill').forEach(p => {
+            p.classList.toggle('active', p.getAttribute('data-transition') === activeTrans);
+        });
+
         document.getElementById('slide-bg-type').value = slide.background.type;
         document.getElementById('slide-transition').value = slide.transition || 'none';
         updateTransitionIcon(slide.transition || 'none');
@@ -249,21 +264,31 @@ function initEditorUI() {
     state.on('selection-changed', (element) => {
         const inspectorForm = document.getElementById('element-inspector-form');
         const emptyState = document.getElementById('no-element-selected');
+        const slideProperties = document.getElementById('slide-properties-section');
 
         if (!element) {
             inspectorForm.classList.add('hidden');
-            emptyState.classList.remove('hidden');
+            if (emptyState) emptyState.classList.add('hidden');
+            if (slideProperties) slideProperties.classList.remove('hidden');
             const hud = document.getElementById('floating-mini-inspector');
             if (hud) hud.classList.add('hidden');
             closeCustomColorPicker();
             
-            // Switch back to Slide Settings Tab automatically for editing background
-            switchTab('elements-tab');
+            // Sync slide canvas index in inspector
+            const slide = state.getActiveSlide();
+            if (slide && state.project && state.project.slides) {
+                const slideIdx = state.project.slides.findIndex(s => s.id === slide.id);
+                if (slideIdx !== -1) {
+                    const numEl = document.getElementById('slide-canvas-index-num');
+                    if (numEl) numEl.textContent = String(slideIdx + 1).padStart(2, '0');
+                }
+            }
         } else {
+            if (slideProperties) slideProperties.classList.add('hidden');
+            if (emptyState) emptyState.classList.add('hidden');
             // Rebuild target dropdown selectors first!
             rebuildElementInspectorSelectors();
             
-            emptyState.classList.add('hidden');
             inspectorForm.classList.remove('hidden');
             switchTab('properties-tab');
             
@@ -928,6 +953,62 @@ function initEditorUI() {
                 }
             });
         }
+    });
+
+    // Segmented Background Type Toggle
+    document.querySelectorAll('.bg-type-seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.getAttribute('data-bg-type');
+            const selectEl = document.getElementById('slide-bg-type');
+            if (selectEl) {
+                selectEl.value = type;
+                selectEl.dispatchEvent(new Event('change'));
+            }
+            document.querySelectorAll('.bg-type-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+        });
+    });
+
+    // Quick Canvas Palette Presets
+    document.querySelectorAll('.canvas-swatch-preset').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const color = swatch.getAttribute('data-color');
+            const colorInput = document.getElementById('slide-bg-color');
+            const hexInput = document.getElementById('slide-bg-color-hex');
+            if (colorInput && hexInput) {
+                colorInput.value = color === 'transparent' ? '#000000' : color;
+                hexInput.value = color;
+                
+                // Ensure Solid Color mode is active
+                const selectEl = document.getElementById('slide-bg-type');
+                if (selectEl && selectEl.value !== 'color') {
+                    selectEl.value = 'color';
+                    selectEl.dispatchEvent(new Event('change'));
+                    document.querySelectorAll('.bg-type-seg-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-bg-type') === 'color'));
+                }
+                
+                state.updateSlideSettings({
+                    background: {
+                        ...state.getActiveSlide().background,
+                        color: color,
+                        type: 'color'
+                    }
+                });
+                syncColorSwatchTransparentClass(colorInput, color);
+            }
+        });
+    });
+
+    // Quick Transition Pills
+    document.querySelectorAll('.transition-quick-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            const trans = pill.getAttribute('data-transition');
+            const transSelect = document.getElementById('slide-transition');
+            if (transSelect) {
+                transSelect.value = trans;
+                transSelect.dispatchEvent(new Event('change'));
+            }
+            document.querySelectorAll('.transition-quick-pill').forEach(p => p.classList.toggle('active', p === pill));
+        });
     });
 
 
@@ -2456,7 +2537,7 @@ function initEditorUI() {
             setAccordionItemVisible('acc-item-media', false);
 
             setAccordionItemOpen('acc-item-typography', true);
-            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-appearance', true);
             setAccordionItemOpen('acc-item-ai', false);
         } else if (type === 'shape') {
             getEl('group-shape-settings')?.classList.remove('hidden');
@@ -2500,7 +2581,7 @@ function initEditorUI() {
             setAccordionItemVisible('acc-item-media', false);
 
             setAccordionItemOpen('acc-item-typography', false);
-            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-appearance', true);
             setAccordionItemOpen('acc-item-interactivity', true);
             setAccordionItemOpen('acc-item-ai', false);
         } else if (type && type.startsWith('btn-')) {
@@ -2521,7 +2602,7 @@ function initEditorUI() {
             setAccordionItemVisible('acc-item-media', false);
 
             setAccordionItemOpen('acc-item-typography', true);
-            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-appearance', true);
             setAccordionItemOpen('acc-item-interactivity', true);
             setAccordionItemOpen('acc-item-ai', false);
         }
@@ -3661,6 +3742,17 @@ function initEditorUI() {
     const assetError = document.getElementById('ai-asset-error');
     const assetErrorText = document.getElementById('ai-asset-error-text');
 
+    // Inspiration prompt chips
+    document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const prompt = chip.getAttribute('data-prompt');
+            if (prompt && assetPromptInput) {
+                assetPromptInput.value = prompt;
+                assetPromptInput.focus();
+            }
+        });
+    });
+
     if (generateAssetBtn) {
         generateAssetBtn.onclick = async () => {
             const promptVal = (assetPromptInput.value || '').trim();
@@ -3724,7 +3816,7 @@ function initEditorUI() {
                 if (assetError) assetError.classList.remove('hidden');
             } finally {
                 generateAssetBtn.disabled = false;
-                generateAssetBtn.innerHTML = '<i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert';
+                generateAssetBtn.innerHTML = '<i data-lucide="wand-2" style="width: 14px; height: 14px;"></i> <span>Generate & Insert</span>';
                 if (assetProgress) assetProgress.classList.add('hidden');
                 if (window.lucide) lucide.createIcons();
             }
