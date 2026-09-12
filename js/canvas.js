@@ -63,6 +63,12 @@ class SlideCanvas {
         if (this.mode === 'edit') {
             this.uiContainer = new PIXI.Container();
             this.app.stage.addChild(this.uiContainer);
+
+            // Dedicated guides container on top of uiContainer for smart alignment snap lines
+            this.guidesContainer = new PIXI.Container();
+            this.app.stage.addChild(this.guidesContainer);
+            this.guidesGraphics = new PIXI.Graphics();
+            this.guidesContainer.addChild(this.guidesGraphics);
         }
         
         // Handle resizing
@@ -182,6 +188,9 @@ class SlideCanvas {
             this.slideContainer.removeChildren();
             if (this.uiContainer) {
                 this.uiContainer.removeChildren();
+            }
+            if (this.guidesGraphics) {
+                this.guidesGraphics.clear();
             }
         } else {
             this.pauseVideosInContainer(targetContainer);
@@ -976,6 +985,81 @@ class SlideCanvas {
     }
 
     // ==========================================
+    // SMART ALIGNMENT GUIDES (SNAP-LINES)
+    // ==========================================
+
+    computeSnapCandidates(slide, selectedIds = []) {
+        const candidatesX = [];
+        const candidatesY = [];
+
+        // 1. Canvas landmarks (margins, center, borders)
+        candidatesX.push({ val: 0, type: 'canvas-edge' });
+        candidatesX.push({ val: 60, type: 'canvas-margin' });
+        candidatesX.push({ val: this.baseWidth / 2, type: 'canvas-center' }); // 960
+        candidatesX.push({ val: this.baseWidth - 60, type: 'canvas-margin' }); // 1860
+        candidatesX.push({ val: this.baseWidth, type: 'canvas-edge' });
+
+        candidatesY.push({ val: 0, type: 'canvas-edge' });
+        candidatesY.push({ val: 60, type: 'canvas-margin' });
+        candidatesY.push({ val: this.baseHeight / 2, type: 'canvas-center' }); // 540
+        candidatesY.push({ val: this.baseHeight - 60, type: 'canvas-margin' }); // 1020
+        candidatesY.push({ val: this.baseHeight, type: 'canvas-edge' });
+
+        // 2. Target elements on active slide (excluding currently selected elements)
+        if (slide && slide.elements) {
+            slide.elements.forEach(other => {
+                if (selectedIds.includes(other.id) || other.visible === false) return;
+
+                // X candidates: Left, Center, Right
+                candidatesX.push({ val: other.x, type: 'element-edge', ref: other });
+                candidatesX.push({ val: other.x + other.width / 2, type: 'element-center', ref: other });
+                candidatesX.push({ val: other.x + other.width, type: 'element-edge', ref: other });
+
+                // Y candidates: Top, Center, Bottom
+                candidatesY.push({ val: other.y, type: 'element-edge', ref: other });
+                candidatesY.push({ val: other.y + other.height / 2, type: 'element-center', ref: other });
+                candidatesY.push({ val: other.y + other.height, type: 'element-edge', ref: other });
+            });
+        }
+
+        this.snapCandidatesX = candidatesX;
+        this.snapCandidatesY = candidatesY;
+    }
+
+    drawSmartGuides(guideX, typeX, guideY, typeY) {
+        if (!this.guidesGraphics) return;
+        this.guidesGraphics.clear();
+
+        if (guideX !== null && guideX !== undefined) {
+            const isCanvas = typeX && typeX.startsWith('canvas');
+            const color = isCanvas ? 0x00f0ff : 0xff2a85;
+            this.guidesGraphics.lineStyle(1.5, color, 0.9);
+            this.guidesGraphics.moveTo(guideX, 0);
+            this.guidesGraphics.lineTo(guideX, this.baseHeight);
+
+            // Draw indicator dots
+            this.guidesGraphics.beginFill(color, 0.95);
+            this.guidesGraphics.drawCircle(guideX, 10, 3.5);
+            this.guidesGraphics.drawCircle(guideX, this.baseHeight - 10, 3.5);
+            this.guidesGraphics.endFill();
+        }
+
+        if (guideY !== null && guideY !== undefined) {
+            const isCanvas = typeY && typeY.startsWith('canvas');
+            const color = isCanvas ? 0x00f0ff : 0xff2a85;
+            this.guidesGraphics.lineStyle(1.5, color, 0.9);
+            this.guidesGraphics.moveTo(0, guideY);
+            this.guidesGraphics.lineTo(this.baseWidth, guideY);
+
+            // Draw indicator dots
+            this.guidesGraphics.beginFill(color, 0.95);
+            this.guidesGraphics.drawCircle(10, guideY, 3.5);
+            this.guidesGraphics.drawCircle(this.baseWidth - 10, guideY, 3.5);
+            this.guidesGraphics.endFill();
+        }
+    }
+
+    // ==========================================
     // EDITOR ACTIONS: DRAG & RESIZE
     // ==========================================
     
@@ -1028,6 +1112,9 @@ class SlideCanvas {
             startY: localPos.y,
             elements: groupElements
         };
+
+        // Precompute snap candidate landmarks
+        this.computeSnapCandidates(slide, window.EngineState.selectedElementIds || []);
         
         // Attach moving listeners to stage
         this.app.stage.interactive = true;
@@ -1051,24 +1138,100 @@ class SlideCanvas {
         const localPos = event.data.getLocalPosition(this.app.stage);
         
         if (this.activeAction === 'drag') {
-            const dx = localPos.x - this.dragData.startX;
-            const dy = localPos.y - this.dragData.startY;
+            const rawDx = localPos.x - this.dragData.startX;
+            const rawDy = localPos.y - this.dragData.startY;
             
-            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+            if (Math.abs(rawDx) > 2 || Math.abs(rawDy) > 2) {
                 this.hasMoved = true;
             }
+
+            let effectiveDx = rawDx;
+            let effectiveDy = rawDy;
+
+            // Check if Alt key is held to bypass magnetic snapping
+            const altPressed = event && (
+                event.altKey ||
+                (event.data && event.data.originalEvent && event.data.originalEvent.altKey) ||
+                (event.nativeEvent && event.nativeEvent.altKey)
+            );
+
+            // Magnetic Smart Guides calculation based on primary dragged element
+            const primaryItem = this.dragData.elements.find(item => item.element.id === this.draggedElement.id) || this.dragData.elements[0];
+            let activeGuideX = null;
+            let activeGuideTypeX = null;
+            let activeGuideY = null;
+            let activeGuideTypeY = null;
+
+            const SNAP_THRESHOLD = 8;
+
+            if (!altPressed && primaryItem && primaryItem.element) {
+                const pElem = primaryItem.element;
+                const testX = primaryItem.elemStartX + rawDx;
+                const testY = primaryItem.elemStartY + rawDy;
+
+                // Test X axis snap
+                if (this.snapCandidatesX && this.snapCandidatesX.length > 0) {
+                    let bestDiffX = SNAP_THRESHOLD + 1;
+                    const testPointsX = [
+                        { val: testX, offset: 0 },
+                        { val: testX + pElem.width / 2, offset: pElem.width / 2 },
+                        { val: testX + pElem.width, offset: pElem.width }
+                    ];
+
+                    for (const candidate of this.snapCandidatesX) {
+                        for (const tp of testPointsX) {
+                            const diff = Math.abs(tp.val - candidate.val);
+                            if (diff < bestDiffX) {
+                                bestDiffX = diff;
+                                effectiveDx = (candidate.val - tp.offset) - primaryItem.elemStartX;
+                                activeGuideX = candidate.val;
+                                activeGuideTypeX = candidate.type;
+                            }
+                        }
+                    }
+                }
+
+                // Test Y axis snap
+                if (this.snapCandidatesY && this.snapCandidatesY.length > 0) {
+                    let bestDiffY = SNAP_THRESHOLD + 1;
+                    const testPointsY = [
+                        { val: testY, offset: 0 },
+                        { val: testY + pElem.height / 2, offset: pElem.height / 2 },
+                        { val: testY + pElem.height, offset: pElem.height }
+                    ];
+
+                    for (const candidate of this.snapCandidatesY) {
+                        for (const tp of testPointsY) {
+                            const diff = Math.abs(tp.val - candidate.val);
+                            if (diff < bestDiffY) {
+                                bestDiffY = diff;
+                                effectiveDy = (candidate.val - tp.offset) - primaryItem.elemStartY;
+                                activeGuideY = candidate.val;
+                                activeGuideTypeY = candidate.type;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Draw snap guides
+            this.drawSmartGuides(activeGuideX, activeGuideTypeX, activeGuideY, activeGuideTypeY);
             
             this.dragData.elements.forEach(item => {
                 const elem = item.element;
                 const container = item.container;
                 
-                let newX = item.elemStartX + dx;
-                let newY = item.elemStartY + dy;
+                let newX = item.elemStartX + effectiveDx;
+                let newY = item.elemStartY + effectiveDy;
                 
-                // Snap to grid
+                // Snap to grid if enabled and not magnetically snapped on that axis
                 if (this.snapToGrid) {
-                    newX = Math.round(newX / this.gridSize) * this.gridSize;
-                    newY = Math.round(newY / this.gridSize) * this.gridSize;
+                    if (activeGuideX === null) {
+                        newX = Math.round(newX / this.gridSize) * this.gridSize;
+                    }
+                    if (activeGuideY === null) {
+                        newY = Math.round(newY / this.gridSize) * this.gridSize;
+                    }
                 }
                 
                 // Containment
@@ -1096,6 +1259,9 @@ class SlideCanvas {
             });
             
             this.drawSelectionUI();
+            if (typeof window.updateFloatingMiniInspectorPosition === 'function') {
+                window.updateFloatingMiniInspectorPosition();
+            }
             
         } else if (this.activeAction === 'resize') {
             const dx = localPos.x - this.dragData.startX;
@@ -1152,6 +1318,9 @@ class SlideCanvas {
             this.renderElement(this.draggedElement, window.EngineState.getActiveSlide().rpgTheme);
             this.draggedContainer = this.pixiElements.get(this.draggedElement.id);
             this.drawSelectionUI();
+            if (typeof window.updateFloatingMiniInspectorPosition === 'function') {
+                window.updateFloatingMiniInspectorPosition();
+            }
 
             // Sync HTML overlay position & size
             const overlay = this.container.querySelector(`.html-video-overlay[data-element-id="${this.draggedElement.id}"]`);
@@ -1165,6 +1334,13 @@ class SlideCanvas {
     }
 
     onStagePointerUp(event) {
+        // Clear smart guides on release
+        if (this.guidesGraphics) {
+            this.guidesGraphics.clear();
+        }
+        this.snapCandidatesX = null;
+        this.snapCandidatesY = null;
+
         if (this.activeAction === 'marquee') {
             if (this.marqueeStart && this.marqueeEnd) {
                 this.applyMarqueeSelection(event);
@@ -1200,6 +1376,10 @@ class SlideCanvas {
         this.app.stage.off('pointermove', this.onStagePointerMove, this);
         this.app.stage.off('pointerup', this.onStagePointerUp, this);
         this.app.stage.off('pointerupoutside', this.onStagePointerUp, this);
+
+        if (typeof window.updateFloatingMiniInspector === 'function') {
+            window.updateFloatingMiniInspector();
+        }
     }
 
     // ==========================================

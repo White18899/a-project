@@ -253,6 +253,9 @@ function initEditorUI() {
         if (!element) {
             inspectorForm.classList.add('hidden');
             emptyState.classList.remove('hidden');
+            const hud = document.getElementById('floating-mini-inspector');
+            if (hud) hud.classList.add('hidden');
+            closeCustomColorPicker();
             
             // Switch back to Slide Settings Tab automatically for editing background
             switchTab('elements-tab');
@@ -279,6 +282,18 @@ function initEditorUI() {
                 }
             }
             
+            // Update target indicator in layout section
+            const targetInd = document.getElementById('layout-target-indicator');
+            if (targetInd) {
+                const count = (state.selectedElementIds || []).length;
+                targetInd.textContent = count > 1 ? `Selection (${count})` : 'Canvas';
+            }
+
+            // Update contextual floating mini-inspector
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
+
             // Bind fields
             document.getElementById('inspector-element-title').textContent = `${element.type.toUpperCase()} Element`;
             document.getElementById('elem-id').value = element.id;
@@ -297,8 +312,12 @@ function initEditorUI() {
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
             const rotVal = element.rotation || 0;
-            document.getElementById('elem-rotation').value = rotVal;
-            document.getElementById('elem-rotation-slider').value = rotVal;
+            if (window.syncRotationUI) {
+                window.syncRotationUI(rotVal, false);
+            } else {
+                document.getElementById('elem-rotation').value = `${rotVal}°`;
+                document.getElementById('elem-rotation-slider').value = rotVal;
+            }
             if (element.shapeType) {
                 const shape = SHAPES_LIST.find(s => s.id === element.shapeType) || SHAPES_LIST[0];
                 const trigger = document.getElementById('shape-select-trigger');
@@ -442,8 +461,13 @@ function initEditorUI() {
             document.getElementById('elem-y').value = element.y;
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
-            document.getElementById('elem-rotation').value = element.rotation || 0;
-            document.getElementById('elem-rotation-slider').value = element.rotation || 0;
+            const rotVal = element.rotation || 0;
+            if (window.syncRotationUI) {
+                window.syncRotationUI(rotVal, false);
+            } else {
+                document.getElementById('elem-rotation').value = `${rotVal}°`;
+                document.getElementById('elem-rotation-slider').value = rotVal;
+            }
             if (element.shapeType) {
                 const shape = SHAPES_LIST.find(s => s.id === element.shapeType) || SHAPES_LIST[0];
                 const trigger = document.getElementById('shape-select-trigger');
@@ -960,16 +984,241 @@ function initEditorUI() {
     document.getElementById('elem-h').addEventListener('input', (e) => {
         updateActiveElem({ height: parseInt(e.target.value) || 30 });
     });
-    document.getElementById('elem-rotation').addEventListener('input', (e) => {
-        const val = Math.min(360, Math.max(0, parseInt(e.target.value) || 0));
-        document.getElementById('elem-rotation-slider').value = val;
-        updateActiveElem({ rotation: val });
-    });
-    document.getElementById('elem-rotation-slider').addEventListener('input', (e) => {
-        const val = parseInt(e.target.value) || 0;
-        document.getElementById('elem-rotation').value = val;
-        updateActiveElem({ rotation: val });
-    });
+    // ==========================================
+    // STUDIO ROTATION WIDGET (DIAL + SCRUB + 90°)
+    // ==========================================
+    function initRotationWidget() {
+        const rotationDial = document.getElementById('rotation-radial-dial');
+        const needle = document.getElementById('rotation-dial-needle');
+        const dialArc = document.getElementById('rotation-dial-arc');
+        const scrubWrapper = document.getElementById('rotation-scrub-wrapper');
+        const rotInput = document.getElementById('elem-rotation');
+        const rotSlider = document.getElementById('elem-rotation-slider');
+        const btnCcw = document.getElementById('btn-rot-step-ccw');
+        const btnCw = document.getElementById('btn-rot-step-cw');
+        const btnReset = document.getElementById('btn-rot-reset');
+
+        if (!rotationDial || !rotInput) return;
+
+        function updateArcPath(deg) {
+            if (!dialArc) return;
+            const r = 18;
+            const cx = 22;
+            const cy = 22;
+            
+            if (deg <= 0.5 || deg >= 359.5) {
+                dialArc.setAttribute('d', '');
+                return;
+            }
+
+            const rad = (deg - 90) * Math.PI / 180;
+            const x = cx + r * Math.cos(rad);
+            const y = cy + r * Math.sin(rad);
+            const largeArcFlag = deg > 180 ? 1 : 0;
+
+            // Arc starting from top (22, 4) to (x, y)
+            dialArc.setAttribute('d', `M 22 4 A ${r} ${r} 0 ${largeArcFlag} 1 ${x.toFixed(2)} ${y.toFixed(2)}`);
+        }
+
+        window.syncRotationUI = function(angle, emitState = false) {
+            let normalized = Math.round(angle) % 360;
+            if (normalized < 0) normalized += 360;
+
+            // Only update text value if user isn't actively typing
+            if (document.activeElement !== rotInput) {
+                rotInput.value = `${normalized}°`;
+            }
+            if (rotSlider) rotSlider.value = normalized;
+            if (needle) needle.style.transform = `rotate(${normalized}deg)`;
+            updateArcPath(normalized);
+
+            if (emitState) {
+                updateActiveElem({ rotation: normalized });
+            }
+        };
+
+        // --- 1. RADIAL DIAL POINTER DRAG ---
+        let isDraggingDial = false;
+
+        function calculateAngleFromPointer(e) {
+            const rect = rotationDial.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = e.clientX - cx;
+            const dy = e.clientY - cy;
+            let rad = Math.atan2(dy, dx);
+            let deg = (rad * 180 / Math.PI) + 90;
+            if (deg < 0) deg += 360;
+
+            // Magnetic Snapping: 15° with Shift or near cardinal angles
+            if (e.shiftKey) {
+                deg = Math.round(deg / 15) * 15 % 360;
+            } else {
+                const cardinals = [0, 90, 180, 270, 360];
+                for (const c of cardinals) {
+                    if (Math.abs(deg - c) <= 4 || (c === 360 && deg <= 4)) {
+                        deg = c % 360;
+                        break;
+                    }
+                }
+            }
+            return deg;
+        }
+
+        rotationDial.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            isDraggingDial = true;
+            rotationDial.setPointerCapture(e.pointerId);
+            rotationDial.classList.add('dragging');
+            state.pushHistory();
+
+            const deg = calculateAngleFromPointer(e);
+            window.syncRotationUI(deg, true);
+        });
+
+        rotationDial.addEventListener('pointermove', (e) => {
+            if (!isDraggingDial) return;
+            e.preventDefault();
+            const deg = calculateAngleFromPointer(e);
+            window.syncRotationUI(deg, true);
+        });
+
+        const stopDialDrag = (e) => {
+            if (!isDraggingDial) return;
+            isDraggingDial = false;
+            rotationDial.classList.remove('dragging');
+            try { rotationDial.releasePointerCapture(e.pointerId); } catch(err) {}
+        };
+
+        rotationDial.addEventListener('pointerup', stopDialDrag);
+        rotationDial.addEventListener('pointercancel', stopDialDrag);
+
+        // --- 2. HORIZONTAL SCRUBBABLE INPUT BADGE ---
+        let isScrubbing = false;
+        let scrubStartX = 0;
+        let scrubStartAngle = 0;
+        let hasMoved = false;
+
+        scrubWrapper?.addEventListener('pointerdown', (e) => {
+            if (e.target === rotInput && document.activeElement === rotInput) return;
+
+            scrubStartX = e.clientX;
+            scrubStartAngle = parseFloat(rotInput.value.replace('°', '')) || 0;
+            hasMoved = false;
+            isScrubbing = false;
+
+            const onPointerMove = (moveEv) => {
+                const dx = moveEv.clientX - scrubStartX;
+                if (!isScrubbing && Math.abs(dx) > 3) {
+                    isScrubbing = true;
+                    hasMoved = true;
+                    scrubWrapper.classList.add('scrubbing');
+                    state.pushHistory();
+                }
+
+                if (isScrubbing) {
+                    moveEv.preventDefault();
+                    let step = moveEv.altKey ? 0.2 : 0.5; // 1° per 2px
+                    let newAngle = (scrubStartAngle + dx * step) % 360;
+                    if (newAngle < 0) newAngle += 360;
+                    if (moveEv.shiftKey) {
+                        newAngle = Math.round(newAngle / 15) * 15 % 360;
+                    }
+                    window.syncRotationUI(newAngle, true);
+                }
+            };
+
+            const onPointerUp = (upEv) => {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                window.removeEventListener('pointercancel', onPointerUp);
+
+                if (isScrubbing) {
+                    isScrubbing = false;
+                    scrubWrapper.classList.remove('scrubbing');
+                    upEv.preventDefault();
+                    upEv.stopPropagation();
+                } else if (!hasMoved && e.target === rotInput) {
+                    rotInput.focus();
+                }
+            };
+
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            window.addEventListener('pointercancel', onPointerUp);
+        });
+
+        // --- 3. INPUT FOCUS / TYPING BEHAVIOR ---
+        rotInput.addEventListener('focus', () => {
+            rotInput.value = rotInput.value.replace('°', '').trim();
+            rotInput.select();
+        });
+
+        rotInput.addEventListener('input', () => {
+            const raw = rotInput.value.replace('°', '').trim();
+            const parsed = parseFloat(raw);
+            if (!isNaN(parsed)) {
+                let norm = Math.round(parsed) % 360;
+                if (norm < 0) norm += 360;
+                if (rotSlider) rotSlider.value = norm;
+                if (needle) needle.style.transform = `rotate(${norm}deg)`;
+                updateArcPath(norm);
+                updateActiveElem({ rotation: norm });
+            }
+        });
+
+        rotInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                rotInput.blur();
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                state.pushHistory();
+                const cur = parseFloat(rotInput.value.replace('°', '')) || 0;
+                const step = e.shiftKey ? 15 : 1;
+                let next = e.key === 'ArrowUp' ? (cur + step) : (cur - step);
+                next = next % 360;
+                if (next < 0) next += 360;
+                rotInput.value = next;
+                window.syncRotationUI(next, true);
+            }
+        });
+
+        rotInput.addEventListener('blur', () => {
+            const parsed = parseFloat(rotInput.value.replace('°', '')) || 0;
+            let norm = Math.round(parsed) % 360;
+            if (norm < 0) norm += 360;
+            state.pushHistory();
+            window.syncRotationUI(norm, true);
+        });
+
+        // --- 4. QUICK TURN (-90° / +90°) & RESET (0°) BUTTONS ---
+        btnCcw?.addEventListener('click', () => {
+            state.pushHistory();
+            const cur = parseFloat(rotInput.value.replace('°', '')) || 0;
+            let next = (Math.round(cur) - 90) % 360;
+            if (next < 0) next += 360;
+            window.syncRotationUI(next, true);
+        });
+
+        btnCw?.addEventListener('click', () => {
+            state.pushHistory();
+            const cur = parseFloat(rotInput.value.replace('°', '')) || 0;
+            let next = (Math.round(cur) + 90) % 360;
+            window.syncRotationUI(next, true);
+        });
+
+        btnReset?.addEventListener('click', () => {
+            state.pushHistory();
+            window.syncRotationUI(0, true);
+        });
+
+        // Slider fallback
+        rotSlider?.addEventListener('input', (e) => {
+            window.syncRotationUI(parseInt(e.target.value) || 0, true);
+        });
+    }
+
+    initRotationWidget();
     document.getElementById('elem-visible').addEventListener('change', (e) => {
         state.pushHistory();
         updateActiveElemAndSave({ visible: e.target.checked });
@@ -1296,6 +1545,9 @@ function initEditorUI() {
     canvas.onZoomChange = (newZoom) => {
         currentZoom = newZoom;
         document.getElementById('zoom-percentage').textContent = `${Math.round(currentZoom * 100)}%`;
+        if (typeof window.updateFloatingMiniInspectorPosition === 'function') {
+            window.updateFloatingMiniInspectorPosition();
+        }
     };
 
     // Initialize display from canvas initial state
@@ -1819,12 +2071,26 @@ function initEditorUI() {
         }
     });
 
+    window.addEventListener('scroll', () => {
+        if (customPickerActivePair) {
+            repositionCustomPicker(customPickerActivePair.picker);
+        }
+    }, { passive: true });
+
+    document.querySelector('.canvas-container-outer')?.addEventListener('scroll', () => {
+        if (customPickerActivePair) {
+            repositionCustomPicker(customPickerActivePair.picker);
+        }
+    }, { passive: true });
+
     function syncColorSwatchTransparentClass(pickerEl, val) {
-        if (!pickerEl || !pickerEl.parentElement) return;
+        if (!pickerEl) return;
         if (val === 'transparent') {
-            pickerEl.parentElement.classList.add('color-transparent');
+            pickerEl.classList.add('color-transparent');
+            if (pickerEl.parentElement) pickerEl.parentElement.classList.add('color-transparent');
         } else {
-            pickerEl.parentElement.classList.remove('color-transparent');
+            pickerEl.classList.remove('color-transparent');
+            if (pickerEl.parentElement) pickerEl.parentElement.classList.remove('color-transparent');
         }
     }
 
@@ -1881,56 +2147,128 @@ function initEditorUI() {
         }
     }
 
+    function setAccordionItemVisible(id, isVisible) {
+        const item = document.getElementById(id);
+        if (item) {
+            if (isVisible) item.classList.remove('hidden');
+            else item.classList.add('hidden');
+        }
+    }
+
+    function setAccordionItemOpen(id, isOpen) {
+        const item = document.getElementById(id);
+        if (item) {
+            const header = item.querySelector('.accordion-header');
+            if (isOpen) {
+                item.classList.add('open');
+                if (header) header.setAttribute('aria-expanded', 'true');
+            } else {
+                item.classList.remove('open');
+                if (header) header.setAttribute('aria-expanded', 'false');
+            }
+        }
+    }
+
     function toggleInspectorFieldsForType(type) {
         // Hide all conditional inspector groupings first
-        document.getElementById('group-text-styles').classList.add('hidden');
-        document.getElementById('group-bg-styles').classList.add('hidden');
-        document.getElementById('group-image-styles').classList.add('hidden');
-        document.getElementById('group-video-styles').classList.add('hidden');
-        document.getElementById('group-timer-settings').classList.add('hidden');
-        document.getElementById('group-nav-settings').classList.add('hidden');
-        document.getElementById('group-option-settings').classList.add('hidden');
-        document.getElementById('group-show-ans-settings').classList.add('hidden');
-        document.getElementById('group-toggle-settings').classList.add('hidden');
-        document.getElementById('group-button-markup').classList.add('hidden');
-        const shapeGroup = document.getElementById('group-shape-settings');
-        if (shapeGroup) shapeGroup.classList.add('hidden');
+        const getEl = id => document.getElementById(id);
+        getEl('group-text-styles')?.classList.add('hidden');
+        getEl('group-bg-styles')?.classList.add('hidden');
+        getEl('group-image-styles')?.classList.add('hidden');
+        getEl('group-video-styles')?.classList.add('hidden');
+        getEl('group-timer-settings')?.classList.add('hidden');
+        getEl('group-nav-settings')?.classList.add('hidden');
+        getEl('group-option-settings')?.classList.add('hidden');
+        getEl('group-show-ans-settings')?.classList.add('hidden');
+        getEl('group-toggle-settings')?.classList.add('hidden');
+        getEl('group-button-markup')?.classList.add('hidden');
+        getEl('group-shape-settings')?.classList.add('hidden');
+
+        // Transform is always visible and open
+        setAccordionItemVisible('acc-item-transform', true);
+        setAccordionItemOpen('acc-item-transform', true);
+
+        // AI Design Agent is always available (closed by default)
+        setAccordionItemVisible('acc-item-ai', true);
 
         if (type === 'text') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-        } else if (type === 'image') {
-            document.getElementById('group-image-styles').classList.remove('hidden');
-        } else if (type === 'video') {
-            document.getElementById('group-video-styles').classList.remove('hidden');
-        } else if (type === 'timer') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-            document.getElementById('group-timer-settings').classList.remove('hidden');
-        } else if (type === 'btn-nav') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-            document.getElementById('group-nav-settings').classList.remove('hidden');
-            document.getElementById('group-button-markup').classList.remove('hidden');
-        } else if (type === 'btn-option') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-            document.getElementById('group-option-settings').classList.remove('hidden');
-            document.getElementById('group-toggle-settings').classList.remove('hidden');
-            document.getElementById('group-button-markup').classList.remove('hidden');
-        } else if (type === 'btn-show-ans') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-            document.getElementById('group-show-ans-settings').classList.remove('hidden');
-            document.getElementById('group-button-markup').classList.remove('hidden');
-        } else if (type === 'btn-toggle') {
-            document.getElementById('group-text-styles').classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
-            document.getElementById('group-toggle-settings').classList.remove('hidden');
-            document.getElementById('group-button-markup').classList.remove('hidden');
+            getEl('group-text-styles')?.classList.remove('hidden');
+            getEl('group-bg-styles')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', true);
+            setAccordionItemVisible('acc-item-appearance', true);
+            setAccordionItemVisible('acc-item-interactivity', false);
+            setAccordionItemVisible('acc-item-media', false);
+
+            setAccordionItemOpen('acc-item-typography', true);
+            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-ai', false);
         } else if (type === 'shape') {
-            if (shapeGroup) shapeGroup.classList.remove('hidden');
-            document.getElementById('group-bg-styles').classList.remove('hidden');
+            getEl('group-shape-settings')?.classList.remove('hidden');
+            getEl('group-bg-styles')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', false);
+            setAccordionItemVisible('acc-item-appearance', true);
+            setAccordionItemVisible('acc-item-interactivity', false);
+            setAccordionItemVisible('acc-item-media', false);
+
+            setAccordionItemOpen('acc-item-appearance', true);
+            setAccordionItemOpen('acc-item-ai', false);
+        } else if (type === 'image') {
+            getEl('group-image-styles')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', false);
+            setAccordionItemVisible('acc-item-appearance', false);
+            setAccordionItemVisible('acc-item-interactivity', false);
+            setAccordionItemVisible('acc-item-media', true);
+
+            setAccordionItemOpen('acc-item-media', true);
+            setAccordionItemOpen('acc-item-ai', false);
+        } else if (type === 'video') {
+            getEl('group-video-styles')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', false);
+            setAccordionItemVisible('acc-item-appearance', false);
+            setAccordionItemVisible('acc-item-interactivity', false);
+            setAccordionItemVisible('acc-item-media', true);
+
+            setAccordionItemOpen('acc-item-media', true);
+            setAccordionItemOpen('acc-item-ai', false);
+        } else if (type === 'timer') {
+            getEl('group-text-styles')?.classList.remove('hidden');
+            getEl('group-bg-styles')?.classList.remove('hidden');
+            getEl('group-timer-settings')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', true);
+            setAccordionItemVisible('acc-item-appearance', true);
+            setAccordionItemVisible('acc-item-interactivity', true);
+            setAccordionItemVisible('acc-item-media', false);
+
+            setAccordionItemOpen('acc-item-typography', false);
+            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-interactivity', true);
+            setAccordionItemOpen('acc-item-ai', false);
+        } else if (type && type.startsWith('btn-')) {
+            getEl('group-text-styles')?.classList.remove('hidden');
+            getEl('group-bg-styles')?.classList.remove('hidden');
+            getEl('group-button-markup')?.classList.remove('hidden');
+
+            if (type === 'btn-nav') getEl('group-nav-settings')?.classList.remove('hidden');
+            else if (type === 'btn-option') {
+                getEl('group-option-settings')?.classList.remove('hidden');
+                getEl('group-toggle-settings')?.classList.remove('hidden');
+            } else if (type === 'btn-show-ans') getEl('group-show-ans-settings')?.classList.remove('hidden');
+            else if (type === 'btn-toggle') getEl('group-toggle-settings')?.classList.remove('hidden');
+
+            setAccordionItemVisible('acc-item-typography', true);
+            setAccordionItemVisible('acc-item-appearance', true);
+            setAccordionItemVisible('acc-item-interactivity', true);
+            setAccordionItemVisible('acc-item-media', false);
+
+            setAccordionItemOpen('acc-item-typography', true);
+            setAccordionItemOpen('acc-item-appearance', false);
+            setAccordionItemOpen('acc-item-interactivity', true);
+            setAccordionItemOpen('acc-item-ai', false);
         }
     }
 
@@ -3137,6 +3475,628 @@ function initEditorUI() {
             }
         };
     }
+
+    // ==========================================
+    // AUTO-LAYOUT & SMART DISTRIBUTION ENGINE
+    // ==========================================
+
+    window.SlideLayoutEngine = {
+        align(direction) {
+            const slide = state.getActiveSlide();
+            if (!slide) return;
+
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length === 0) return;
+
+            state.pushHistory();
+
+            const elements = slide.elements.filter(e => selectedIds.includes(e.id));
+            if (elements.length === 0) return;
+
+            const canvasW = 1920;
+            const canvasH = 1080;
+
+            if (elements.length === 1) {
+                // Align single element relative to canvas
+                const el = elements[0];
+                let newX = el.x;
+                let newY = el.y;
+
+                switch (direction) {
+                    case 'left':
+                        newX = 0;
+                        break;
+                    case 'center-h':
+                        newX = Math.round((canvasW - el.width) / 2);
+                        break;
+                    case 'right':
+                        newX = canvasW - el.width;
+                        break;
+                    case 'top':
+                        newY = 0;
+                        break;
+                    case 'middle-v':
+                        newY = Math.round((canvasH - el.height) / 2);
+                        break;
+                    case 'bottom':
+                        newY = canvasH - el.height;
+                        break;
+                }
+
+                state.updateElement(el.id, { x: newX, y: newY });
+            } else {
+                // Align multiple elements relative to collective bounding box
+                const minX = Math.min(...elements.map(e => e.x));
+                const maxX = Math.max(...elements.map(e => e.x + e.width));
+                const minY = Math.min(...elements.map(e => e.y));
+                const maxY = Math.max(...elements.map(e => e.y + e.height));
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+
+                elements.forEach(el => {
+                    let newX = el.x;
+                    let newY = el.y;
+
+                    switch (direction) {
+                        case 'left':
+                            newX = minX;
+                            break;
+                        case 'center-h':
+                            newX = Math.round(centerX - el.width / 2);
+                            break;
+                        case 'right':
+                            newX = maxX - el.width;
+                            break;
+                        case 'top':
+                            newY = minY;
+                            break;
+                        case 'middle-v':
+                            newY = Math.round(centerY - el.height / 2);
+                            break;
+                        case 'bottom':
+                            newY = maxY - el.height;
+                            break;
+                    }
+
+                    state.updateElement(el.id, { x: newX, y: newY });
+                });
+            }
+
+            state.markUnsaved();
+            canvas.renderSlide(slide);
+            canvas.drawSelectionUI();
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
+        },
+
+        distribute(axis) {
+            const slide = state.getActiveSlide();
+            if (!slide) return;
+
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length < 2) return;
+
+            state.pushHistory();
+
+            const elements = slide.elements.filter(e => selectedIds.includes(e.id));
+            if (elements.length < 2) return;
+
+            if (axis === 'horizontal') {
+                elements.sort((a, b) => a.x - b.x);
+                if (elements.length >= 3) {
+                    const first = elements[0];
+                    const last = elements[elements.length - 1];
+                    const totalSpan = (last.x + last.width) - first.x;
+                    const totalElemWidth = elements.reduce((acc, el) => acc + el.width, 0);
+                    const gap = Math.max(10, (totalSpan - totalElemWidth) / (elements.length - 1));
+
+                    let curX = first.x;
+                    elements.forEach(el => {
+                        state.updateElement(el.id, { x: Math.round(curX) });
+                        curX += el.width + gap;
+                    });
+                } else {
+                    // 2 elements: space symmetrically around selection center
+                    const minX = Math.min(...elements.map(e => e.x));
+                    const maxX = Math.max(...elements.map(e => e.x + e.width));
+                    const mid = (minX + maxX) / 2;
+                    const gap = 30;
+                    state.updateElement(elements[0].id, { x: Math.round(mid - gap / 2 - elements[0].width) });
+                    state.updateElement(elements[1].id, { x: Math.round(mid + gap / 2) });
+                }
+            } else if (axis === 'vertical') {
+                elements.sort((a, b) => a.y - b.y);
+                if (elements.length >= 3) {
+                    const first = elements[0];
+                    const last = elements[elements.length - 1];
+                    const totalSpan = (last.y + last.height) - first.y;
+                    const totalElemHeight = elements.reduce((acc, el) => acc + el.height, 0);
+                    const gap = Math.max(10, (totalSpan - totalElemHeight) / (elements.length - 1));
+
+                    let curY = first.y;
+                    elements.forEach(el => {
+                        state.updateElement(el.id, { y: Math.round(curY) });
+                        curY += el.height + gap;
+                    });
+                } else {
+                    const minY = Math.min(...elements.map(e => e.y));
+                    const maxY = Math.max(...elements.map(e => e.y + e.height));
+                    const mid = (minY + maxY) / 2;
+                    const gap = 30;
+                    state.updateElement(elements[0].id, { y: Math.round(mid - gap / 2 - elements[0].height) });
+                    state.updateElement(elements[1].id, { y: Math.round(mid + gap / 2) });
+                }
+            }
+
+            state.markUnsaved();
+            canvas.renderSlide(slide);
+            canvas.drawSelectionUI();
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
+        },
+
+        autoStack(direction, customGap = null) {
+            const slide = state.getActiveSlide();
+            if (!slide) return;
+
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length < 2) return;
+
+            state.pushHistory();
+
+            const elements = slide.elements.filter(e => selectedIds.includes(e.id));
+            if (elements.length < 2) return;
+
+            const gapInput = document.getElementById('layout-gap-input');
+            const gap = customGap !== null ? customGap : (gapInput ? parseInt(gapInput.value) || 24 : 24);
+
+            const startX = Math.min(...elements.map(e => e.x));
+            const startY = Math.min(...elements.map(e => e.y));
+
+            if (direction === 'row') {
+                elements.sort((a, b) => a.x - b.x);
+                let curX = startX;
+                elements.forEach(el => {
+                    state.updateElement(el.id, { x: Math.round(curX), y: Math.round(startY) });
+                    curX += el.width + gap;
+                });
+            } else if (direction === 'column') {
+                elements.sort((a, b) => a.y - b.y);
+                let curY = startY;
+                elements.forEach(el => {
+                    state.updateElement(el.id, { x: Math.round(startX), y: Math.round(curY) });
+                    curY += el.height + gap;
+                });
+            } else if (direction === 'grid') {
+                // Arrange in 2-column grid in reading order
+                elements.sort((a, b) => {
+                    if (Math.abs(a.y - b.y) > 40) return a.y - b.y;
+                    return a.x - b.x;
+                });
+                const cols = 2;
+                const maxW = Math.max(...elements.map(e => e.width));
+                const maxH = Math.max(...elements.map(e => e.height));
+
+                elements.forEach((el, idx) => {
+                    const r = Math.floor(idx / cols);
+                    const c = idx % cols;
+                    const newX = startX + c * (maxW + gap);
+                    const newY = startY + r * (maxH + gap);
+                    state.updateElement(el.id, { x: Math.round(newX), y: Math.round(newY) });
+                });
+            }
+
+            state.markUnsaved();
+            canvas.renderSlide(slide);
+            canvas.drawSelectionUI();
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
+        }
+    };
+
+    // Bind Layout & Alignment Sidebar Buttons
+    document.getElementById('btn-align-left')?.addEventListener('click', () => window.SlideLayoutEngine.align('left'));
+    document.getElementById('btn-align-center-h')?.addEventListener('click', () => window.SlideLayoutEngine.align('center-h'));
+    document.getElementById('btn-align-right')?.addEventListener('click', () => window.SlideLayoutEngine.align('right'));
+    document.getElementById('btn-align-top')?.addEventListener('click', () => window.SlideLayoutEngine.align('top'));
+    document.getElementById('btn-align-middle-v')?.addEventListener('click', () => window.SlideLayoutEngine.align('middle-v'));
+    document.getElementById('btn-align-bottom')?.addEventListener('click', () => window.SlideLayoutEngine.align('bottom'));
+
+    document.getElementById('btn-distribute-h')?.addEventListener('click', () => window.SlideLayoutEngine.distribute('horizontal'));
+    document.getElementById('btn-distribute-v')?.addEventListener('click', () => window.SlideLayoutEngine.distribute('vertical'));
+
+    document.getElementById('btn-stack-row')?.addEventListener('click', () => window.SlideLayoutEngine.autoStack('row'));
+    document.getElementById('btn-stack-col')?.addEventListener('click', () => window.SlideLayoutEngine.autoStack('column'));
+    document.getElementById('btn-stack-grid')?.addEventListener('click', () => window.SlideLayoutEngine.autoStack('grid'));
+
+    // ==========================================
+    // CONTEXTUAL FLOATING MINI-INSPECTOR (HUD BAR)
+    // ==========================================
+
+    function initFloatingMiniInspector() {
+        const hud = document.getElementById('floating-mini-inspector');
+        if (!hud) return;
+
+        window.updateFloatingMiniInspectorPosition = () => {
+            if (!hud || hud.classList.contains('hidden')) return;
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length === 0) {
+                hud.classList.add('hidden');
+                return;
+            }
+
+            const slide = state.getActiveSlide();
+            if (!slide) return;
+            const elements = slide.elements.filter(e => selectedIds.includes(e.id));
+            if (elements.length === 0) {
+                hud.classList.add('hidden');
+                return;
+            }
+
+            const minX = Math.min(...elements.map(e => e.x));
+            const maxX = Math.max(...elements.map(e => e.x + e.width));
+            const minY = Math.min(...elements.map(e => e.y));
+            const maxY = Math.max(...elements.map(e => e.y + e.height));
+
+            const canvasBox = document.getElementById('canvas-container');
+            const outer = document.querySelector('.canvas-container-outer');
+            if (!canvasBox || !outer) return;
+
+            const canvasRect = canvasBox.getBoundingClientRect();
+            const outerRect = outer.getBoundingClientRect();
+            const zoom = canvas ? canvas.zoom : (canvasRect.width / 1920);
+
+            const screenSelX = (canvasRect.left - outerRect.left) + (minX * zoom);
+            const screenSelY = (canvasRect.top - outerRect.top) + (minY * zoom);
+            const screenSelW = (maxX - minX) * zoom;
+            const screenSelH = (maxY - minY) * zoom;
+
+            const hudW = hud.offsetWidth || 340;
+            const hudH = hud.offsetHeight || 42;
+
+            let posX = screenSelX + (screenSelW / 2) - (hudW / 2);
+            let posY = screenSelY - hudH - 12;
+
+            // Flip below if too close to top of outer container
+            if (posY < 8) {
+                posY = screenSelY + screenSelH + 12;
+            }
+
+            // Clamp inside outer container
+            posX = Math.max(10, Math.min(outerRect.width - hudW - 10, posX));
+
+            hud.style.left = `${posX}px`;
+            hud.style.top = `${posY}px`;
+        };
+
+        window.updateFloatingMiniInspector = () => {
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length === 0) {
+                hud.classList.add('hidden');
+                return;
+            }
+
+            const slide = state.getActiveSlide();
+            if (!slide) {
+                hud.classList.add('hidden');
+                return;
+            }
+
+            const elements = slide.elements.filter(e => selectedIds.includes(e.id));
+            if (elements.length === 0) {
+                hud.classList.add('hidden');
+                return;
+            }
+
+            const primaryElem = elements.find(e => e.id === state.selectedElementId) || elements[0];
+            const isTextLike = primaryElem.type === 'text' || primaryElem.type.startsWith('btn-') || primaryElem.type === 'timer' || primaryElem.text !== undefined;
+            const isShapeLike = primaryElem.type === 'shape' || primaryElem.shapeType !== undefined || primaryElem.bgColor !== undefined;
+
+            const textGroup = document.getElementById('hud-text-group');
+            const shapeGroup = document.getElementById('hud-shape-group');
+
+            if (textGroup) {
+                if (isTextLike) {
+                    textGroup.classList.remove('hidden');
+                    const fontValEl = document.getElementById('hud-font-size-val');
+                    if (fontValEl) fontValEl.textContent = primaryElem.fontSize || 24;
+                    const currentTxtCol = primaryElem.textColor && primaryElem.textColor !== 'transparent' ? primaryElem.textColor : '#ffffff';
+                    const colSwatch = document.getElementById('hud-text-swatch');
+                    const textBtn = document.getElementById('hud-btn-text-color');
+                    if (colSwatch) {
+                        colSwatch.style.backgroundColor = primaryElem.textColor === 'transparent' ? 'transparent' : currentTxtCol;
+                    }
+                    if (textBtn) {
+                        if (primaryElem.textColor === 'transparent') textBtn.classList.add('color-transparent');
+                        else textBtn.classList.remove('color-transparent');
+                    }
+                } else {
+                    textGroup.classList.add('hidden');
+                }
+            }
+
+            if (shapeGroup) {
+                if (isShapeLike && !isTextLike) {
+                    shapeGroup.classList.remove('hidden');
+                    const currentFill = primaryElem.bgColor && primaryElem.bgColor !== 'transparent' ? primaryElem.bgColor : '#3b82f6';
+                    const fillSwatch = document.getElementById('hud-shape-fill-swatch');
+                    const fillBtn = document.getElementById('hud-btn-shape-fill');
+                    if (fillSwatch) {
+                        fillSwatch.style.backgroundColor = primaryElem.bgColor === 'transparent' ? 'transparent' : currentFill;
+                    }
+                    if (fillBtn) {
+                        if (primaryElem.bgColor === 'transparent') fillBtn.classList.add('color-transparent');
+                        else fillBtn.classList.remove('color-transparent');
+                    }
+
+                    const currentBorder = primaryElem.borderColor && primaryElem.borderColor !== 'transparent' ? primaryElem.borderColor : '#ffffff';
+                    const borderSwatch = document.getElementById('hud-shape-border-swatch');
+                    const borderBtn = document.getElementById('hud-btn-shape-border');
+                    if (borderSwatch) {
+                        borderSwatch.style.backgroundColor = primaryElem.borderColor === 'transparent' ? 'transparent' : currentBorder;
+                    }
+                    if (borderBtn) {
+                        if (primaryElem.borderColor === 'transparent') borderBtn.classList.add('color-transparent');
+                        else borderBtn.classList.remove('color-transparent');
+                    }
+
+                    const borderValEl = document.getElementById('hud-border-width-val');
+                    if (borderValEl) borderValEl.textContent = primaryElem.borderWidth || 0;
+                    const radiusValEl = document.getElementById('hud-radius-val');
+                    if (radiusValEl) radiusValEl.textContent = primaryElem.borderRadius || 0;
+                } else {
+                    shapeGroup.classList.add('hidden');
+                }
+            }
+
+            // Update target indicator in layout section
+            const targetInd = document.getElementById('layout-target-indicator');
+            if (targetInd) {
+                targetInd.textContent = elements.length > 1 ? `Selection (${elements.length})` : 'Canvas';
+            }
+
+            hud.classList.remove('hidden');
+            window.updateFloatingMiniInspectorPosition();
+            if (window.lucide) lucide.createIcons();
+        };
+
+        // Text HUD Tools
+        document.getElementById('hud-font-down')?.addEventListener('click', () => {
+            const primaryElem = state.getActiveElement();
+            if (!primaryElem) return;
+            state.pushHistory();
+            const newSize = Math.max(8, (primaryElem.fontSize || 24) - 2);
+            updateActiveElem({ fontSize: newSize });
+            const fontValEl = document.getElementById('hud-font-size-val');
+            if (fontValEl) fontValEl.textContent = newSize;
+            const sideInput = document.getElementById('elem-font-size');
+            if (sideInput) sideInput.value = newSize;
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        document.getElementById('hud-font-up')?.addEventListener('click', () => {
+            const primaryElem = state.getActiveElement();
+            if (!primaryElem) return;
+            state.pushHistory();
+            const newSize = Math.min(160, (primaryElem.fontSize || 24) + 2);
+            updateActiveElem({ fontSize: newSize });
+            const fontValEl = document.getElementById('hud-font-size-val');
+            if (fontValEl) fontValEl.textContent = newSize;
+            const sideInput = document.getElementById('elem-font-size');
+            if (sideInput) sideInput.value = newSize;
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        // Text Color: Exclusively uses Custom Color Editor
+        const hudBtnTextColor = document.getElementById('hud-btn-text-color');
+        hudBtnTextColor?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!customPicker.classList.contains('hidden') && customPickerActivePair && customPickerActivePair.picker === hudBtnTextColor) {
+                closeCustomColorPicker();
+                return;
+            }
+            state.pushHistory();
+            const hexInp = document.getElementById('elem-text-color-hex');
+            openCustomColorPicker(hudBtnTextColor, hexInp, (color) => {
+                const swatch = document.getElementById('hud-text-swatch');
+                if (swatch) swatch.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+                if (hudBtnTextColor) {
+                    if (color === 'transparent') hudBtnTextColor.classList.add('color-transparent');
+                    else hudBtnTextColor.classList.remove('color-transparent');
+                }
+                updateActiveElem({ textColor: color });
+                const sideInp = document.getElementById('elem-text-color');
+                if (sideInp) sideInp.value = color === 'transparent' ? '#000000' : color;
+                canvas.renderSlide(state.getActiveSlide());
+                canvas.drawSelectionUI();
+            });
+        });
+
+        document.getElementById('hud-align-left')?.addEventListener('click', () => {
+            state.pushHistory();
+            updateActiveElem({ align: 'left' });
+            const sideAlign = document.getElementById('elem-align');
+            if (sideAlign) sideAlign.value = 'left';
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        document.getElementById('hud-align-center')?.addEventListener('click', () => {
+            state.pushHistory();
+            updateActiveElem({ align: 'center' });
+            const sideAlign = document.getElementById('elem-align');
+            if (sideAlign) sideAlign.value = 'center';
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        document.getElementById('hud-align-right')?.addEventListener('click', () => {
+            state.pushHistory();
+            updateActiveElem({ align: 'right' });
+            const sideAlign = document.getElementById('elem-align');
+            if (sideAlign) sideAlign.value = 'right';
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        // Shape HUD Tools: Exclusively uses Custom Color Editor
+        const hudBtnShapeFill = document.getElementById('hud-btn-shape-fill');
+        hudBtnShapeFill?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!customPicker.classList.contains('hidden') && customPickerActivePair && customPickerActivePair.picker === hudBtnShapeFill) {
+                closeCustomColorPicker();
+                return;
+            }
+            state.pushHistory();
+            const hexInp = document.getElementById('elem-bg-color-hex');
+            openCustomColorPicker(hudBtnShapeFill, hexInp, (color) => {
+                const swatch = document.getElementById('hud-shape-fill-swatch');
+                if (swatch) swatch.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+                if (hudBtnShapeFill) {
+                    if (color === 'transparent') hudBtnShapeFill.classList.add('color-transparent');
+                    else hudBtnShapeFill.classList.remove('color-transparent');
+                }
+                updateActiveElem({ bgColor: color });
+                const sideInp = document.getElementById('elem-bg-color');
+                if (sideInp) sideInp.value = color === 'transparent' ? '#000000' : color;
+                canvas.renderSlide(state.getActiveSlide());
+                canvas.drawSelectionUI();
+            });
+        });
+
+        const hudBtnShapeBorder = document.getElementById('hud-btn-shape-border');
+        hudBtnShapeBorder?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!customPicker.classList.contains('hidden') && customPickerActivePair && customPickerActivePair.picker === hudBtnShapeBorder) {
+                closeCustomColorPicker();
+                return;
+            }
+            state.pushHistory();
+            const hexInp = document.getElementById('elem-border-color-hex');
+            openCustomColorPicker(hudBtnShapeBorder, hexInp, (color) => {
+                const swatch = document.getElementById('hud-shape-border-swatch');
+                if (swatch) swatch.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+                if (hudBtnShapeBorder) {
+                    if (color === 'transparent') hudBtnShapeBorder.classList.add('color-transparent');
+                    else hudBtnShapeBorder.classList.remove('color-transparent');
+                }
+                updateActiveElem({ borderColor: color, borderStyle: 'solid' });
+                const sideInp = document.getElementById('elem-border-color');
+                if (sideInp) sideInp.value = color === 'transparent' ? '#000000' : color;
+                canvas.renderSlide(state.getActiveSlide());
+                canvas.drawSelectionUI();
+            });
+        });
+
+        document.getElementById('hud-border-width-toggle')?.addEventListener('click', () => {
+            const primaryElem = state.getActiveElement();
+            if (!primaryElem) return;
+            state.pushHistory();
+            const widths = [0, 2, 4, 8];
+            const curW = primaryElem.borderWidth || 0;
+            const nextIdx = (widths.indexOf(curW) + 1) % widths.length;
+            const newW = widths[nextIdx];
+            const newStyle = newW > 0 ? (primaryElem.borderStyle && primaryElem.borderStyle !== 'none' ? primaryElem.borderStyle : 'solid') : 'none';
+            updateActiveElem({ borderWidth: newW, borderStyle: newStyle });
+            const valBadge = document.getElementById('hud-border-width-val');
+            if (valBadge) valBadge.textContent = newW;
+            const sideW = document.getElementById('elem-border-width');
+            if (sideW) sideW.value = newW;
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        document.getElementById('hud-radius-toggle')?.addEventListener('click', () => {
+            const primaryElem = state.getActiveElement();
+            if (!primaryElem) return;
+            state.pushHistory();
+            const radii = [0, 8, 16, 24, 50];
+            const curR = primaryElem.borderRadius || 0;
+            const nextIdx = (radii.indexOf(curR) + 1) % radii.length;
+            const newR = radii[nextIdx];
+            updateActiveElem({ borderRadius: newR });
+            const valBadge = document.getElementById('hud-radius-val');
+            if (valBadge) valBadge.textContent = newR;
+            const sideR = document.getElementById('elem-border-radius');
+            if (sideR) sideR.value = newR;
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        });
+
+        // Common HUD Tools
+        document.getElementById('hud-quick-center-h')?.addEventListener('click', () => {
+            window.SlideLayoutEngine.align('center-h');
+        });
+        document.getElementById('hud-quick-center-v')?.addEventListener('click', () => {
+            window.SlideLayoutEngine.align('middle-v');
+        });
+        document.getElementById('hud-bring-front')?.addEventListener('click', () => {
+            if (state.selectedElementId) state.moveElementZIndex(state.selectedElementId, 'bring-front');
+        });
+        document.getElementById('hud-send-back')?.addEventListener('click', () => {
+            if (state.selectedElementId) state.moveElementZIndex(state.selectedElementId, 'send-back');
+        });
+        document.getElementById('hud-duplicate')?.addEventListener('click', () => {
+            state.copyElements();
+            state.pasteElements();
+        });
+        document.getElementById('hud-delete')?.addEventListener('click', () => {
+            const selectedIds = state.selectedElementIds || [];
+            if (selectedIds.length > 0) {
+                state.deleteElements(selectedIds);
+                hud.classList.add('hidden');
+            }
+        });
+
+        // Responsive positioning events
+        window.addEventListener('resize', window.updateFloatingMiniInspectorPosition);
+        document.querySelector('.canvas-container-outer')?.addEventListener('scroll', window.updateFloatingMiniInspectorPosition);
+    }
+
+    function initInspectorAccordions() {
+        const accordionHeaders = document.querySelectorAll('.inspector-accordion .accordion-header');
+        accordionHeaders.forEach(header => {
+            const toggle = () => {
+                const item = header.closest('.inspector-accordion-item');
+                if (!item) return;
+                const isOpen = item.classList.contains('open');
+                if (isOpen) {
+                    item.classList.remove('open');
+                    header.setAttribute('aria-expanded', 'false');
+                } else {
+                    item.classList.add('open');
+                    header.setAttribute('aria-expanded', 'true');
+                }
+            };
+
+            header.addEventListener('click', (e) => {
+                if (e.target.closest('button, input, select, textarea, a, .btn-icon')) return;
+                toggle();
+            });
+
+            header.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        });
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    initFloatingMiniInspector();
+    initInspectorAccordions();
 }
 
 function updateTransitionIcon(val) {

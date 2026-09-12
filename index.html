@@ -454,6 +454,54 @@
                         <div id="canvas-container" class="canvas-container">
                             <!-- PixiJS WebGL canvas will be injected here -->
                         </div>
+
+                        <!-- CONTEXTUAL FLOATING MINI-INSPECTOR (HUD BAR) -->
+                        <div id="floating-mini-inspector" class="floating-hud-toolbar hidden">
+                            <!-- Text Controls (shown when text or button element is selected) -->
+                            <div class="hud-group" id="hud-text-group">
+                                <button type="button" class="hud-btn" id="hud-font-down" title="Decrease Font Size (-2)"><i data-lucide="minus"></i></button>
+                                <span class="hud-val-badge" id="hud-font-size-val">24</span>
+                                <button type="button" class="hud-btn" id="hud-font-up" title="Increase Font Size (+2)"><i data-lucide="plus"></i></button>
+                                <div class="hud-divider"></div>
+                                <button type="button" class="hud-color-btn" id="hud-btn-text-color" title="Text Color">
+                                    <span class="hud-color-swatch" id="hud-text-swatch" style="background-color: #ffffff;"></span>
+                                </button>
+                                <div class="hud-divider"></div>
+                                <button type="button" class="hud-btn" id="hud-align-left" title="Align Left"><i data-lucide="align-left"></i></button>
+                                <button type="button" class="hud-btn" id="hud-align-center" title="Align Center"><i data-lucide="align-center"></i></button>
+                                <button type="button" class="hud-btn" id="hud-align-right" title="Align Right"><i data-lucide="align-right"></i></button>
+                            </div>
+
+                            <!-- Shape Controls (shown when shape/box element is selected) -->
+                            <div class="hud-group" id="hud-shape-group">
+                                <button type="button" class="hud-color-btn" id="hud-btn-shape-fill" title="Fill Color">
+                                    <span class="hud-color-swatch" id="hud-shape-fill-swatch" style="background-color: #3b82f6;"></span>
+                                </button>
+                                <button type="button" class="hud-color-btn" id="hud-btn-shape-border" title="Border Color">
+                                    <span class="hud-color-swatch" id="hud-shape-border-swatch" style="background-color: #ffffff; border: 1px solid rgba(255,255,255,0.3);"></span>
+                                </button>
+                                <button type="button" class="hud-btn" id="hud-border-width-toggle" title="Border Width (+2)">
+                                    <i data-lucide="square"></i>
+                                    <span id="hud-border-width-val" style="font-size: 0.7rem; font-weight: 700; margin-left: 2px;">0</span>
+                                </button>
+                                <button type="button" class="hud-btn" id="hud-radius-toggle" title="Corner Radius (+4)">
+                                    <i data-lucide="corner-down-right"></i>
+                                    <span id="hud-radius-val" style="font-size: 0.7rem; font-weight: 700; margin-left: 2px;">8</span>
+                                </button>
+                            </div>
+
+                            <!-- Common Actions (Z-Order, Duplicate, Delete, Quick Align) -->
+                            <div class="hud-group" id="hud-common-group">
+                                <div class="hud-divider"></div>
+                                <button type="button" class="hud-btn" id="hud-quick-center-h" title="Center Horizontally"><i data-lucide="align-center"></i></button>
+                                <button type="button" class="hud-btn" id="hud-quick-center-v" title="Center Vertically"><i data-lucide="align-center-vertical"></i></button>
+                                <div class="hud-divider"></div>
+                                <button type="button" class="hud-btn" id="hud-bring-front" title="Bring to Front"><i data-lucide="chevrons-up"></i></button>
+                                <button type="button" class="hud-btn" id="hud-send-back" title="Send to Back"><i data-lucide="chevrons-down"></i></button>
+                                <button type="button" class="hud-btn" id="hud-duplicate" title="Duplicate (Ctrl+D)"><i data-lucide="copy"></i></button>
+                                <button type="button" class="hud-btn hud-btn-danger" id="hud-delete" title="Delete Element"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </div>
                     </div>
                 </main>
 
@@ -465,8 +513,8 @@
                             Elements</button>
                         <button class="tab-btn" data-tab="properties-tab"><i data-lucide="sliders"></i>
                             Inspector</button>
-                        <button class="tab-btn" data-tab="ai-tab" style="position: relative;"><i data-lucide="sparkles"></i>
-                            AI Creator <span style="font-size: 0.65rem; font-weight: normal; margin-left: 4px; padding: 1px 4px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle;">Soon</span></button>
+                        <button class="tab-btn" data-tab="ai-tab"><i data-lucide="sparkles"></i>
+                            AI Creator</button>
                     </div>
 
                     <div class="tabs-content">
@@ -517,13 +565,13 @@
 
                             <!-- AI ASSET GENERATOR SECTION -->
                             <div class="inspector-section" id="section-ai-asset" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
-                                <h4>AI Asset Generator <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                <h4>AI Asset Generator</h4>
                                 <div class="form-group" style="margin-bottom: 8px;">
-                                    <label for="ai-asset-prompt" style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;">Illustration prompt / icon details</label>
-                                    <textarea id="ai-asset-prompt" disabled rows="2" placeholder="e.g. minimalist neon rocket icon, 3d crystal sphere..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 50px; font-family: inherit; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;"></textarea>
+                                    <label for="ai-asset-prompt" style="font-size: 0.8rem; color: var(--text-muted);">Illustration prompt / icon details</label>
+                                    <textarea id="ai-asset-prompt" rows="2" placeholder="e.g. minimalist neon rocket icon, 3d crystal sphere..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 50px; font-family: inherit; font-size: 0.85rem;"></textarea>
                                 </div>
-                                <button type="button" id="btn-ai-generate-asset" class="btn btn-accent btn-glow" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
-                                    <i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert (Coming Soon)
+                                <button type="button" id="btn-ai-generate-asset" class="btn btn-accent btn-glow" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <i data-lucide="image" style="width: 14px; height: 14px;"></i> Generate & Insert
                                 </button>
                                 <div id="ai-asset-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
                                     <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -651,436 +699,575 @@
                                 <p>Select an element on the canvas to inspect its properties</p>
                             </div>
                             <div id="element-inspector-form" class="hidden">
-                                <div class="inspector-section">
+                                <!-- INSPECTOR HEADER CARD -->
+                                <div class="inspector-header-card">
                                     <div class="section-title-with-actions">
                                         <h4 id="inspector-element-title">Element Settings</h4>
                                         <div class="element-action-buttons">
-                                            <button id="btn-elem-copy" class="btn-icon"
+                                            <button type="button" id="btn-elem-copy" class="btn-icon"
                                                 title="Copy Element(s) (Ctrl+C)"><i data-lucide="copy"></i></button>
-                                            <button id="btn-elem-bring-front" class="btn-icon" title="Bring to Front"><i
+                                            <button type="button" id="btn-elem-bring-front" class="btn-icon" title="Bring to Front"><i
                                                     data-lucide="chevrons-up"></i></button>
-                                            <button id="btn-elem-send-back" class="btn-icon" title="Send to Back"><i
+                                            <button type="button" id="btn-elem-send-back" class="btn-icon" title="Send to Back"><i
                                                     data-lucide="chevrons-down"></i></button>
-                                            <button id="btn-elem-delete" class="btn-icon text-danger"
+                                            <button type="button" id="btn-elem-delete" class="btn-icon text-danger"
                                                 title="Delete Element"><i data-lucide="trash-2"></i></button>
                                         </div>
                                     </div>
-
-                                    <div class="form-group">
-                                        <label for="elem-id">Element ID</label>
-                                        <input type="text" id="elem-id" readonly title="System identifier">
-                                    </div>
-                                    <div class="form-group">
+                                    <div class="inspector-meta-row">
+                                        <div class="inspector-id-group">
+                                            <label for="elem-id">ID:</label>
+                                            <input type="text" id="elem-id" readonly title="System identifier">
+                                        </div>
                                         <label class="checkbox-label">
                                             <input type="checkbox" id="elem-visible" checked>
-                                            <span>Visible on Slide Start</span>
+                                            <span>Visible</span>
                                         </label>
                                     </div>
+                                </div>
 
-                                    <!-- Text content field (conditional) -->
-                                    <div class="form-group inspector-field" id="field-elem-text">
-                                        <label for="elem-text">Text Content</label>
-                                        <textarea id="elem-text" rows="3"></textarea>
-                                    </div>
+                                <!-- ACCORDION SECTIONS -->
+                                <div class="inspector-accordion">
 
-                                    <!-- Shape settings (conditional) -->
-                                    <div class="inspector-field hidden" id="group-shape-settings">
-                                        <div class="form-group" style="width: 100%;">
-                                            <label>Shape Type</label>
-                                            <div class="custom-select-wrapper" id="shape-select-wrapper">
-                                                <div class="custom-select-trigger" id="shape-select-trigger">
-                                                    <span class="selected-shape-preview"></span>
-                                                    <span class="selected-shape-name">Rectangle</span>
-                                                    <i data-lucide="chevron-down" class="select-chevron"></i>
+                                    <!-- ACCORDION 1: TRANSFORM & LAYOUT -->
+                                    <div class="inspector-accordion-item open" id="acc-item-transform">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="move" class="accordion-icon"></i>
+                                                <span class="accordion-title">Transform & Layout</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
+                                        </div>
+                                        <div class="accordion-body">
+                                            <!-- Position & Size -->
+                                            <div class="row-fields">
+                                                <div class="form-group">
+                                                    <label for="elem-x">Pos X</label>
+                                                    <input type="number" id="elem-x">
                                                 </div>
-                                                <div class="custom-options" id="shape-options-dropdown">
-                                                    <!-- Options populated dynamically -->
+                                                <div class="form-group">
+                                                    <label for="elem-y">Pos Y</label>
+                                                    <input type="number" id="elem-y">
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                            <div class="row-fields">
+                                                <div class="form-group">
+                                                    <label for="elem-w">Width</label>
+                                                    <input type="number" id="elem-w">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="elem-h">Height</label>
+                                                    <input type="number" id="elem-h">
+                                                </div>
+                                            </div>
+                                            <!-- Studio Rotation Control Widget -->
+                                            <div class="rotation-widget-container" id="rotation-widget">
+                                                <div class="rotation-widget-header">
+                                                    <span class="rotation-widget-label">
+                                                        <i data-lucide="rotate-cw" class="rot-label-icon"></i>
+                                                        <span>Rotation</span>
+                                                    </span>
+                                                    <!-- Scrubbable Input Badge -->
+                                                    <div class="rotation-scrub-wrapper" id="rotation-scrub-wrapper" title="Click and drag horizontally to scrub angle, or click to type">
+                                                        <span class="rotation-scrub-icon">∠</span>
+                                                        <input type="text" id="elem-rotation" value="0°" class="rotation-scrub-input" autocomplete="off" spellcheck="false">
+                                                        <!-- Hidden slider input for full backward compatibility -->
+                                                        <input type="range" id="elem-rotation-slider" min="0" max="360" value="0" class="hidden">
+                                                    </div>
+                                                </div>
+                                                <div class="rotation-widget-body">
+                                                    <!-- Radial Dial -->
+                                                    <div class="rotation-dial" id="rotation-radial-dial" title="Click & drag to rotate (Hold Shift for 15° snap)">
+                                                        <svg class="rotation-dial-svg" viewBox="0 0 44 44">
+                                                            <circle class="dial-track" cx="22" cy="22" r="18" />
+                                                            <path class="dial-arc" id="rotation-dial-arc" d="" />
+                                                            <!-- Cardinal ticks: Top(0°), Right(90°), Bottom(180°), Left(270°) -->
+                                                            <line x1="22" y1="4" x2="22" y2="7" class="dial-tick cardinal" />
+                                                            <line x1="40" y1="22" x2="37" y2="22" class="dial-tick cardinal" />
+                                                            <line x1="22" y1="40" x2="22" y2="37" class="dial-tick cardinal" />
+                                                            <line x1="4" y1="22" x2="7" y2="22" class="dial-tick cardinal" />
+                                                        </svg>
+                                                        <div class="rotation-dial-needle" id="rotation-dial-needle">
+                                                            <div class="needle-pip"></div>
+                                                        </div>
+                                                        <div class="dial-center-dot"></div>
+                                                    </div>
 
-                                    <!-- Position & Size -->
-                                    <div class="row-fields">
-                                        <div class="form-group">
-                                            <label for="elem-x">Pos X</label>
-                                            <input type="number" id="elem-x">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-y">Pos Y</label>
-                                            <input type="number" id="elem-y">
-                                        </div>
-                                    </div>
-                                    <div class="row-fields">
-                                        <div class="form-group">
-                                            <label for="elem-w">Width</label>
-                                            <input type="number" id="elem-w">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-h">Height</label>
-                                            <input type="number" id="elem-h">
-                                        </div>
-                                    </div>
-                                    <div class="row-fields" style="margin-top: 10px;">
-                                        <div class="form-group" style="width: 100%;">
-                                            <label for="elem-rotation">Rotation (Degrees)</label>
-                                            <div style="display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 4px;">
-                                                <input type="range" id="elem-rotation-slider" min="0" max="360" value="0" style="flex: 1; accent-color: #3b82f6; cursor: pointer; height: 6px;">
-                                                <input type="number" id="elem-rotation" min="0" max="360" value="0" style="width: 65px; text-align: center; padding: 4px; border-radius: 4px; background: var(--input-bg); border: 1px solid var(--border-color); color: #fff;">
+                                                    <!-- Quick Turn & Reset Buttons -->
+                                                    <div class="rotation-quick-actions">
+                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-ccw" title="Rotate 90° Counter-Clockwise (↺)">
+                                                            <i data-lucide="rotate-ccw"></i>
+                                                            <span>-90°</span>
+                                                        </button>
+                                                        <button type="button" class="btn-rot-step" id="btn-rot-step-cw" title="Rotate 90° Clockwise (↻)">
+                                                            <i data-lucide="rotate-cw"></i>
+                                                            <span>+90°</span>
+                                                        </button>
+                                                        <button type="button" class="btn-rot-step btn-rot-reset" id="btn-rot-reset" title="Reset Rotation to 0°">
+                                                            <i data-lucide="refresh-cw"></i>
+                                                            <span>0°</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    <!-- Font Style (conditional for text and button elements) -->
-                                    <div class="inspector-field" id="group-text-styles">
-                                        <div class="form-group">
-                                            <label for="elem-font-family">Font Family</label>
-                                            <select id="elem-font-family">
-                                                <option value="Outfit" style="font-family: 'Outfit';">Outfit (Clean)
-                                                </option>
-                                                <option value="Inter" style="font-family: 'Inter';">Inter (Sleek)
-                                                </option>
-                                                <option value="Montserrat" style="font-family: 'Montserrat';">Montserrat
-                                                    (Modern Sans)</option>
-                                                <option value="Space Grotesk" style="font-family: 'Space Grotesk';">
-                                                    Space Grotesk (Tech Geometric)</option>
-                                                <option value="Unbounded" style="font-family: 'Unbounded';">Unbounded
-                                                    (Wide Futurist)</option>
-                                                <option value="Comfortaa" style="font-family: 'Comfortaa';">Comfortaa
-                                                    (Soft Rounded)</option>
-                                                <option value="Quicksand" style="font-family: 'Quicksand';">Quicksand
-                                                    (Friendly Rounded)</option>
-                                                <option value="Bebas Neue" style="font-family: 'Bebas Neue';">Bebas Neue
-                                                    (Impact Heading)</option>
-                                                <option value="Playfair Display"
-                                                    style="font-family: 'Playfair Display';">Playfair Display (Elegant
-                                                    Serif)</option>
-                                                <option value="Cinzel" style="font-family: 'Cinzel';">Cinzel (Roman
-                                                    Editorial)</option>
-                                                <option value="Cinzel Decorative"
-                                                    style="font-family: 'Cinzel Decorative';">Cinzel Decorative (Classic
-                                                    Ornate)</option>
-                                                <option value="Cormorant Garamond"
-                                                    style="font-family: 'Cormorant Garamond';">Cormorant Garamond
-                                                    (Graceful Garamond)</option>
-                                                <option value="Abril Fatface" style="font-family: 'Abril Fatface';">
-                                                    Abril Fatface (High Contrast Serif)</option>
-                                                <option value="Cardo" style="font-family: 'Cardo';">Cardo (Classic
-                                                    Academic)</option>
-                                                <option value="Oswald" style="font-family: 'Oswald';">Oswald (Condensed
-                                                    Sans)</option>
-                                                <option value="Josefin Sans" style="font-family: 'Josefin Sans';">
-                                                    Josefin Sans (Vintage Geometric)</option>
-                                                <option value="Rajdhani" style="font-family: 'Rajdhani';">Rajdhani
-                                                    (Squared Tech)</option>
-                                                <option value="Righteous" style="font-family: 'Righteous';">Righteous
-                                                    (Art Deco Retro)</option>
-                                                <option value="Russo One" style="font-family: 'Russo One';">Russo One
-                                                    (Heavy Tech)</option>
-                                                <option value="Lobster" style="font-family: 'Lobster';">Lobster (Retro
-                                                    Bold Script)</option>
-                                                <option value="Satisfy" style="font-family: 'Satisfy';">Satisfy (Script
-                                                    Cursive)</option>
-                                                <option value="Dancing Script" style="font-family: 'Dancing Script';">
-                                                    Dancing Script (Casual Script)</option>
-                                                <option value="Courgette" style="font-family: 'Courgette';">Courgette
-                                                    (Elegant Script)</option>
-                                                <option value="Pacifico" style="font-family: 'Pacifico';">Pacifico
-                                                    (Brush Cursive)</option>
-                                                <option value="Kaushan Script" style="font-family: 'Kaushan Script';">
-                                                    Kaushan Script (Brush Calligraphy)</option>
-                                                <option value="Permanent Marker"
-                                                    style="font-family: 'Permanent Marker';">Permanent Marker (Marker
-                                                    Brush)</option>
-                                                <option value="Shadows Into Light"
-                                                    style="font-family: 'Shadows Into Light';">Shadows Into Light
-                                                    (Casual Writing)</option>
-                                                <option value="Fira Code" style="font-family: 'Fira Code';">Fira Code
-                                                    (Code Mono)</option>
-                                                <option value="Space Mono" style="font-family: 'Space Mono';">Space Mono
-                                                    (Geometric Mono)</option>
-                                                <option value="Courier New" style="font-family: 'Courier New';">
-                                                    Monospace (System)</option>
-                                                <option value="Press Start 2P"
-                                                    style="font-family: 'Press Start 2P'; font-size: 10px;">Press Start
-                                                    2P (8-bit Pixel)</option>
-                                                <option value="VT323" style="font-family: 'VT323'; font-size: 14px;">
-                                                    VT323 (8-bit Arcade)</option>
-                                                <option value="Silkscreen" style="font-family: 'Silkscreen';">Silkscreen
-                                                    (8-bit Classic)</option>
-                                                <option value="Arial" style="font-family: 'Arial';">Arial (Sans-Serif)
-                                                </option>
-                                                <option value="Georgia" style="font-family: 'Georgia';">Georgia (Serif)
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="row-fields">
-                                            <div class="form-group">
-                                                <label for="elem-font-size">Font Size</label>
-                                                <input type="number" id="elem-font-size" value="24" min="8" max="120">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="elem-align">Align</label>
-                                                <select id="elem-align">
-                                                    <option value="left">Left</option>
-                                                    <option value="center">Center</option>
-                                                    <option value="right">Right</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-text-color">Text Color</label>
-                                            <div class="color-picker-wrapper">
-                                                <input type="color" id="elem-text-color" value="#ffffff">
-                                                <input type="text" id="elem-text-color-hex" value="#ffffff">
-                                            </div>
-                                        </div>
-                                    </div>
+                                            <!-- Layout & Arrange Section Divided by Purpose -->
+                                            <div class="layout-purpose-container" id="group-layout-alignment">
+                                                <!-- Main Section Header -->
+                                                <div class="layout-purpose-header">
+                                                    <span class="layout-purpose-title">
+                                                        <i data-lucide="layout-grid" class="layout-title-icon"></i>
+                                                        <span>Align & Arrange</span>
+                                                    </span>
+                                                    <span id="layout-target-indicator" class="layout-target-badge">Canvas</span>
+                                                </div>
 
-                                    <!-- Background styling (conditional for text / buttons / boxes) -->
-                                    <div class="inspector-field" id="group-bg-styles">
-                                        <div class="form-group">
-                                            <label for="elem-bg-color">Background Color</label>
-                                            <div class="color-picker-wrapper">
-                                                <input type="color" id="elem-bg-color" value="#334155">
-                                                <input type="text" id="elem-bg-color-hex" value="#334155">
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-bg-alpha">Background Opacity</label>
-                                            <input type="range" id="elem-bg-alpha" min="0" max="1" step="0.1" value="1">
-                                        </div>
-                                        <div class="row-fields">
-                                            <div class="form-group">
-                                                <label for="elem-border-radius">Border Radius</label>
-                                                <input type="number" id="elem-border-radius" value="8" min="0" max="100">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="elem-border-width">Border Width</label>
-                                                <input type="number" id="elem-border-width" value="0" min="0" max="50">
-                                            </div>
-                                        </div>
-                                        <div class="row-fields">
-                                            <div class="form-group">
-                                                <label for="elem-border-style">Border Type</label>
-                                                <select id="elem-border-style">
-                                                    <option value="none">None</option>
-                                                    <option value="solid">Solid</option>
-                                                    <option value="dashed">Dashed</option>
-                                                    <option value="dotted">Dotted</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="elem-border-color">Border Color</label>
-                                                <div class="color-picker-wrapper">
-                                                    <input type="color" id="elem-border-color" value="#ffffff">
-                                                    <input type="text" id="elem-border-color-hex" value="#ffffff">
+                                                <!-- PURPOSE 1: ALIGNMENT (Horizontal & Vertical Subgroups) -->
+                                                <div class="layout-purpose-group">
+                                                    <div class="layout-subgroup-labels">
+                                                        <span>Horizontal</span>
+                                                        <span>Vertical</span>
+                                                    </div>
+                                                    <div class="layout-align-dual-grid">
+                                                        <!-- Horizontal Alignment Group -->
+                                                        <div class="layout-segmented-control">
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-left" title="Align Left">
+                                                                <i data-lucide="align-left"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-center-h" title="Align Center Horizontally">
+                                                                <i data-lucide="align-center"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-right" title="Align Right">
+                                                                <i data-lucide="align-right"></i>
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- Vertical Alignment Group -->
+                                                        <div class="layout-segmented-control">
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-top" title="Align Top">
+                                                                <i data-lucide="arrow-up-to-line"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-middle-v" title="Align Middle Vertically">
+                                                                <i data-lucide="align-center-vertical"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool" id="btn-align-bottom" title="Align Bottom">
+                                                                <i data-lucide="arrow-down-to-line"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- PURPOSE 2: EVEN DISTRIBUTION -->
+                                                <div class="layout-purpose-group">
+                                                    <span class="layout-group-label">Even Distribution</span>
+                                                    <div class="layout-distribute-grid">
+                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-h" title="Distribute Horizontally (Even Spacing)">
+                                                            <i data-lucide="align-horizontal-distribute-center"></i>
+                                                            <span>Horizontal</span>
+                                                        </button>
+                                                        <button type="button" class="btn-layout-pill" id="btn-distribute-v" title="Distribute Vertically (Even Spacing)">
+                                                            <i data-lucide="align-vertical-distribute-center"></i>
+                                                            <span>Vertical</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- PURPOSE 3: AUTO-STACK FLOW & GAP -->
+                                                <div class="layout-purpose-group">
+                                                    <div class="layout-purpose-label-row">
+                                                        <span class="layout-group-label">Auto-Stack Flow</span>
+                                                        <span class="layout-group-label">Gap</span>
+                                                    </div>
+                                                    <div class="layout-stack-flow-row">
+                                                        <div class="layout-segmented-control layout-stack-tools">
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-row" title="Auto-Stack Row (Horizontal Flex)">
+                                                                <i data-lucide="rows"></i>
+                                                                <span>Row</span>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-col" title="Auto-Stack Column (Vertical Flex)">
+                                                                <i data-lucide="columns"></i>
+                                                                <span>Col</span>
+                                                            </button>
+                                                            <button type="button" class="btn-layout-tool btn-layout-tool-labeled" id="btn-stack-grid" title="Auto-Stack 2x2 Grid">
+                                                                <i data-lucide="layout-grid"></i>
+                                                                <span>Grid</span>
+                                                            </button>
+                                                        </div>
+
+                                                        <div class="layout-gap-badge" title="Spacing gap between elements">
+                                                            <input type="number" id="layout-gap-input" value="24" min="0" max="200">
+                                                            <span class="gap-unit">px</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-
                                     </div>
 
-                                    <!-- Button markup styling (conditional for buttons) -->
-                                    <div class="inspector-field hidden" id="group-button-markup">
-                                        <div class="form-group">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="elem-use-markup">
-                                                <span>Change Color on Click (Markup)</span>
-                                            </label>
+                                    <!-- ACCORDION 2: TYPOGRAPHY & CONTENT -->
+                                    <div class="inspector-accordion-item open" id="acc-item-typography">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="true">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="type" class="accordion-icon"></i>
+                                                <span class="accordion-title">Typography & Content</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
-                                        <div class="form-group hidden" id="field-markup-color">
-                                            <label for="elem-markup-color">Clicked Markup Color</label>
-                                            <div class="color-picker-wrapper">
-                                                <input type="color" id="elem-markup-color" value="#3b82f6">
-                                                <input type="text" id="elem-markup-color-hex" value="#3b82f6">
+                                        <div class="accordion-body">
+                                            <!-- Text content field (conditional) -->
+                                            <div class="form-group inspector-field" id="field-elem-text">
+                                                <label for="elem-text">Text Content</label>
+                                                <textarea id="elem-text" rows="3"></textarea>
+                                            </div>
+
+                                            <!-- Font Style (conditional for text and button elements) -->
+                                            <div class="inspector-field" id="group-text-styles">
+                                                <div class="form-group">
+                                                    <label for="elem-font-family">Font Family</label>
+                                                    <select id="elem-font-family">
+                                                        <option value="Outfit" style="font-family: 'Outfit';">Outfit (Clean)</option>
+                                                        <option value="Inter" style="font-family: 'Inter';">Inter (Sleek)</option>
+                                                        <option value="Montserrat" style="font-family: 'Montserrat';">Montserrat (Modern Sans)</option>
+                                                        <option value="Space Grotesk" style="font-family: 'Space Grotesk';">Space Grotesk (Tech Geometric)</option>
+                                                        <option value="Unbounded" style="font-family: 'Unbounded';">Unbounded (Wide Futurist)</option>
+                                                        <option value="Comfortaa" style="font-family: 'Comfortaa';">Comfortaa (Soft Rounded)</option>
+                                                        <option value="Quicksand" style="font-family: 'Quicksand';">Quicksand (Friendly Rounded)</option>
+                                                        <option value="Bebas Neue" style="font-family: 'Bebas Neue';">Bebas Neue (Impact Heading)</option>
+                                                        <option value="Playfair Display" style="font-family: 'Playfair Display';">Playfair Display (Elegant Serif)</option>
+                                                        <option value="Cinzel" style="font-family: 'Cinzel';">Cinzel (Roman Editorial)</option>
+                                                        <option value="Cinzel Decorative" style="font-family: 'Cinzel Decorative';">Cinzel Decorative (Classic Ornate)</option>
+                                                        <option value="Cormorant Garamond" style="font-family: 'Cormorant Garamond';">Cormorant Garamond (Graceful Garamond)</option>
+                                                        <option value="Abril Fatface" style="font-family: 'Abril Fatface';">Abril Fatface (High Contrast Serif)</option>
+                                                        <option value="Cardo" style="font-family: 'Cardo';">Cardo (Classic Academic)</option>
+                                                        <option value="Oswald" style="font-family: 'Oswald';">Oswald (Condensed Sans)</option>
+                                                        <option value="Josefin Sans" style="font-family: 'Josefin Sans';">Josefin Sans (Vintage Geometric)</option>
+                                                        <option value="Rajdhani" style="font-family: 'Rajdhani';">Rajdhani (Squared Tech)</option>
+                                                        <option value="Righteous" style="font-family: 'Righteous';">Righteous (Art Deco Retro)</option>
+                                                        <option value="Russo One" style="font-family: 'Russo One';">Russo One (Heavy Tech)</option>
+                                                        <option value="Lobster" style="font-family: 'Lobster';">Lobster (Retro Bold Script)</option>
+                                                        <option value="Satisfy" style="font-family: 'Satisfy';">Satisfy (Script Cursive)</option>
+                                                        <option value="Dancing Script" style="font-family: 'Dancing Script';">Dancing Script (Casual Script)</option>
+                                                        <option value="Courgette" style="font-family: 'Courgette';">Courgette (Elegant Script)</option>
+                                                        <option value="Pacifico" style="font-family: 'Pacifico';">Pacifico (Brush Cursive)</option>
+                                                        <option value="Kaushan Script" style="font-family: 'Kaushan Script';">Kaushan Script (Brush Calligraphy)</option>
+                                                        <option value="Permanent Marker" style="font-family: 'Permanent Marker';">Permanent Marker (Marker Brush)</option>
+                                                        <option value="Shadows Into Light" style="font-family: 'Shadows Into Light';">Shadows Into Light (Casual Writing)</option>
+                                                        <option value="Fira Code" style="font-family: 'Fira Code';">Fira Code (Code Mono)</option>
+                                                        <option value="Space Mono" style="font-family: 'Space Mono';">Space Mono (Geometric Mono)</option>
+                                                        <option value="Courier New" style="font-family: 'Courier New';">Monospace (System)</option>
+                                                        <option value="Press Start 2P" style="font-family: 'Press Start 2P'; font-size: 10px;">Press Start 2P (8-bit Pixel)</option>
+                                                        <option value="VT323" style="font-family: 'VT323'; font-size: 14px;">VT323 (8-bit Arcade)</option>
+                                                        <option value="Silkscreen" style="font-family: 'Silkscreen';">Silkscreen (8-bit Classic)</option>
+                                                        <option value="Arial" style="font-family: 'Arial';">Arial (Sans-Serif)</option>
+                                                        <option value="Georgia" style="font-family: 'Georgia';">Georgia (Serif)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="row-fields">
+                                                    <div class="form-group">
+                                                        <label for="elem-font-size">Font Size</label>
+                                                        <input type="number" id="elem-font-size" value="24" min="8" max="120">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="elem-align">Align</label>
+                                                        <select id="elem-align">
+                                                            <option value="left">Left</option>
+                                                            <option value="center">Center</option>
+                                                            <option value="right">Right</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="elem-text-color">Text Color</label>
+                                                    <div class="color-picker-wrapper">
+                                                        <input type="color" id="elem-text-color" value="#ffffff">
+                                                        <input type="text" id="elem-text-color-hex" value="#ffffff">
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Image properties (conditional) -->
-                                    <div class="inspector-field hidden" id="group-image-styles">
-                                        <div class="form-group">
-                                            <label for="elem-image-url">Image URL</label>
-                                            <div class="input-with-button">
-                                                <input type="text" id="elem-image-url" placeholder="https://...">
-                                                <button class="btn btn-secondary btn-icon-only" id="btn-upload-elem-url"
-                                                    title="Load Image"><i data-lucide="check"></i></button>
+                                    <!-- ACCORDION 3: APPEARANCE & STYLE -->
+                                    <div class="inspector-accordion-item" id="acc-item-appearance">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="palette" class="accordion-icon"></i>
+                                                <span class="accordion-title">Appearance & Style</span>
                                             </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
-                                        <div class="form-group">
-                                            <label>Or Upload File</label>
-                                            <label class="file-upload-label">
-                                                <input type="file" id="elem-image-file" accept="image/*">
-                                                <i data-lucide="upload-cloud"></i>
-                                                <span>Choose file...</span>
-                                            </label>
-                                            <div class="url-notice" style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.3;">
-                                                💡 Tip: Prefer using image URLs for faster presentation load times and storage efficiency.
+                                        <div class="accordion-body">
+                                            <!-- Shape settings (conditional) -->
+                                            <div class="inspector-field hidden" id="group-shape-settings">
+                                                <div class="form-group" style="width: 100%;">
+                                                    <label>Shape Type</label>
+                                                    <div class="custom-select-wrapper" id="shape-select-wrapper">
+                                                        <div class="custom-select-trigger" id="shape-select-trigger">
+                                                            <span class="selected-shape-preview"></span>
+                                                            <span class="selected-shape-name">Rectangle</span>
+                                                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                                                        </div>
+                                                        <div class="custom-options" id="shape-options-dropdown">
+                                                            <!-- Options populated dynamically -->
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Background & Border styling -->
+                                            <div class="inspector-field" id="group-bg-styles">
+                                                <div class="form-group">
+                                                    <label for="elem-bg-color">Background Color</label>
+                                                    <div class="color-picker-wrapper">
+                                                        <input type="color" id="elem-bg-color" value="#334155">
+                                                        <input type="text" id="elem-bg-color-hex" value="#334155">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="elem-bg-alpha">Background Opacity</label>
+                                                    <input type="range" id="elem-bg-alpha" min="0" max="1" step="0.1" value="1">
+                                                </div>
+                                                <div class="row-fields">
+                                                    <div class="form-group">
+                                                        <label for="elem-border-radius">Border Radius</label>
+                                                        <input type="number" id="elem-border-radius" value="8" min="0" max="100">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="elem-border-width">Border Width</label>
+                                                        <input type="number" id="elem-border-width" value="0" min="0" max="50">
+                                                    </div>
+                                                </div>
+                                                <div class="row-fields">
+                                                    <div class="form-group">
+                                                        <label for="elem-border-style">Border Type</label>
+                                                        <select id="elem-border-style">
+                                                            <option value="none">None</option>
+                                                            <option value="solid">Solid</option>
+                                                            <option value="dashed">Dashed</option>
+                                                            <option value="dotted">Dotted</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="elem-border-color">Border Color</label>
+                                                        <div class="color-picker-wrapper">
+                                                            <input type="color" id="elem-border-color" value="#ffffff">
+                                                            <input type="text" id="elem-border-color-hex" value="#ffffff">
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Video properties (conditional) -->
-                                    <div class="inspector-field hidden" id="group-video-styles">
-                                        <div class="form-group">
-                                            <label for="elem-video-url">Video Link / YouTube URL</label>
-                                            <div class="input-with-button">
-                                                <input type="text" id="elem-video-url"
-                                                    placeholder="YouTube shared link or direct URL...">
-                                                <button class="btn btn-secondary btn-icon-only"
-                                                    id="btn-upload-video-url" title="Load Video"><i
-                                                        data-lucide="check"></i></button>
+                                    <!-- ACCORDION 4: INTERACTIVITY & ACTIONS -->
+                                    <div class="inspector-accordion-item" id="acc-item-interactivity">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="zap" class="accordion-icon"></i>
+                                                <span class="accordion-title">Interactivity & Actions</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
+                                        </div>
+                                        <div class="accordion-body">
+                                            <!-- Button markup styling (conditional for buttons) -->
+                                            <div class="inspector-field hidden" id="group-button-markup">
+                                                <div class="form-group">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="elem-use-markup">
+                                                        <span>Change Color on Click (Markup)</span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-group hidden" id="field-markup-color">
+                                                    <label for="elem-markup-color">Clicked Markup Color</label>
+                                                    <div class="color-picker-wrapper">
+                                                        <input type="color" id="elem-markup-color" value="#3b82f6">
+                                                        <input type="text" id="elem-markup-color-hex" value="#3b82f6">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- BUTTON NAVIGATION FIELD (conditional) -->
+                                            <div class="inspector-field hidden" id="group-nav-settings">
+                                                <div class="form-group">
+                                                    <label for="elem-nav-target">Navigate to Slide</label>
+                                                    <select id="elem-nav-target">
+                                                        <!-- Dynamically populated -->
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- MCQ OPTION FIELD (conditional) -->
+                                            <div class="inspector-field hidden" id="group-option-settings">
+                                                <div class="form-group">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="elem-option-correct">
+                                                        <span>Is Correct Option?</span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="elem-option-group">Question Group (e.g. Q1)</label>
+                                                    <input type="text" id="elem-option-group" value="Q1">
+                                                </div>
+                                            </div>
+
+                                            <!-- SHOW ANSWER FIELD (conditional) -->
+                                            <div class="inspector-field hidden" id="group-show-ans-settings">
+                                                <div class="form-group">
+                                                    <label for="elem-show-ans-target">Target Element to Reveal</label>
+                                                    <select id="elem-show-ans-target">
+                                                        <!-- Dynamically populated with text/image elements in slide -->
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- ACTION BUTTON FIELD (conditional) -->
+                                            <div class="inspector-field hidden" id="group-toggle-settings">
+                                                <div class="toggle-actions-section">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                        <label style="font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Click Actions</label>
+                                                        <button type="button" id="btn-add-toggle-action" class="btn btn-accent" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
+                                                            <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Action
+                                                        </button>
+                                                    </div>
+                                                    <div id="toggle-actions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                                        <!-- Dynamic click action entries loaded here -->
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- MCQ TIMER FIELD (conditional) -->
+                                            <div class="inspector-field hidden" id="group-timer-settings">
+                                                <div class="form-group">
+                                                    <label for="elem-timer-duration">Duration (Seconds)</label>
+                                                    <input type="number" id="elem-timer-duration" value="30" min="1" max="999">
+                                                </div>
+                                                <div class="timer-actions-section" style="margin-top: 6px;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                        <label style="font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Timeout Actions</label>
+                                                        <button type="button" id="btn-add-timer-action" class="btn btn-accent" style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
+                                                            <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Action
+                                                        </button>
+                                                    </div>
+                                                    <div id="timer-actions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                                        <!-- Dynamic timer action entries loaded here -->
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="form-group">
-                                            <label>Or Upload Video File</label>
-                                            <label class="file-upload-label">
-                                                <input type="file" id="elem-video-file" accept="video/*">
-                                                <i data-lucide="upload-cloud"></i>
-                                                <span id="video-file-label">Choose file...</span>
-                                            </label>
+                                    </div>
+
+                                    <!-- ACCORDION 5: MEDIA SETTINGS -->
+                                    <div class="inspector-accordion-item" id="acc-item-media">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="film" class="accordion-icon"></i>
+                                                <span class="accordion-title">Media Settings</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
-                                        <div id="video-status-indicator"
-                                            style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                                            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
-                                            <span id="video-status-text">No video file loaded</span>
+                                        <div class="accordion-body">
+                                            <!-- Image properties (conditional) -->
+                                            <div class="inspector-field hidden" id="group-image-styles">
+                                                <div class="form-group">
+                                                    <label for="elem-image-url">Image URL</label>
+                                                    <div class="input-with-button">
+                                                        <input type="text" id="elem-image-url" placeholder="https://...">
+                                                        <button class="btn btn-secondary btn-icon-only" id="btn-upload-elem-url" title="Load Image"><i data-lucide="check"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Or Upload File</label>
+                                                    <label class="file-upload-label">
+                                                        <input type="file" id="elem-image-file" accept="image/*">
+                                                        <i data-lucide="upload-cloud"></i>
+                                                        <span>Choose file...</span>
+                                                    </label>
+                                                    <div class="url-notice" style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 6px; line-height: 1.3;">
+                                                        💡 Tip: Prefer using image URLs for faster presentation load times and storage efficiency.
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Video properties (conditional) -->
+                                            <div class="inspector-field hidden" id="group-video-styles">
+                                                <div class="form-group">
+                                                    <label for="elem-video-url">Video Link / YouTube URL</label>
+                                                    <div class="input-with-button">
+                                                        <input type="text" id="elem-video-url" placeholder="YouTube shared link or direct URL...">
+                                                        <button class="btn btn-secondary btn-icon-only" id="btn-upload-video-url" title="Load Video"><i data-lucide="check"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Or Upload Video File</label>
+                                                    <label class="file-upload-label">
+                                                        <input type="file" id="elem-video-file" accept="video/*">
+                                                        <i data-lucide="upload-cloud"></i>
+                                                        <span id="video-file-label">Choose file...</span>
+                                                    </label>
+                                                </div>
+                                                <div id="video-status-indicator" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                                                    <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+                                                    <span id="video-status-text">No video file loaded</span>
+                                                </div>
+                                                <div class="form-group" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                                    <button type="button" id="btn-video-preview-play" class="btn btn-accent btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);">
+                                                        <i data-lucide="play" style="width: 14px; height: 14px;"></i> Play Preview
+                                                    </button>
+                                                    <button type="button" id="btn-video-preview-pause" class="btn btn-secondary btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px;">
+                                                        <i data-lucide="pause" style="width: 14px; height: 14px;"></i> Pause
+                                                    </button>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="elem-video-autoplay">
+                                                        <span>Autoplay Video</span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="elem-video-loop">
+                                                        <span>Loop Video</span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="elem-video-muted">
+                                                        <span>Muted</span>
+                                                    </label>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="elem-video-volume">Volume</label>
+                                                    <input type="range" id="elem-video-volume" min="0" max="1" step="0.1" value="1">
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="url-notice" style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; line-height: 1.3;">
-                                            💡 Tip: Prefer using YouTube/external links for faster video loading and storage efficiency.
+                                    </div>
+
+                                    <!-- ACCORDION 6: AI DESIGN ASSISTANT -->
+                                    <div class="inspector-accordion-item" id="acc-item-ai">
+                                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                                            <div class="accordion-header-left">
+                                                <i data-lucide="sparkles" class="accordion-icon" style="color: #c084fc;"></i>
+                                                <span class="accordion-title">AI Design Agent</span>
+                                                <span class="accordion-badge">AI</span>
+                                            </div>
+                                            <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
-                                        <div class="video-cleanup-note"
-                                            style="font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 12px; line-height: 1.3;">
-                                            * Unused local videos are auto-deleted from the server (5-min safety window for unsaved uploads).
-                                        </div>
-                                        <div class="form-group" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                                            <button type="button" id="btn-video-preview-play" class="btn btn-accent btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);">
-                                                <i data-lucide="play" style="width: 14px; height: 14px;"></i> Play Preview
+                                        <div class="accordion-body">
+                                            <div class="form-group" style="margin-bottom: 4px;">
+                                                <label for="ai-refine-prompt" style="font-size: 0.78rem; color: var(--text-muted);">Alignment / Refinement instructions</label>
+                                                <input type="text" id="ai-refine-prompt" placeholder="e.g. 2 equal columns, center all, vertical list..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; font-size: 0.85rem;">
+                                            </div>
+                                            <button type="button" id="btn-ai-refine-layout" class="btn btn-accent btn-glow" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                                <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Clean & Align Layout
                                             </button>
-                                            <button type="button" id="btn-video-preview-pause" class="btn btn-secondary btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px; height: 32px;">
-                                                <i data-lucide="pause" style="width: 14px; height: 14px;"></i> Pause
-                                            </button>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="elem-video-autoplay">
-                                                <span>Autoplay Video</span>
-                                            </label>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="elem-video-loop">
-                                                <span>Loop Video</span>
-                                            </label>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="elem-video-muted">
-                                                <span>Muted</span>
-                                            </label>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-video-volume">Volume</label>
-                                            <input type="range" id="elem-video-volume" min="0" max="1" step="0.1"
-                                                value="1">
-                                        </div>
-                                    </div>
-
-                                    <!-- MCQ TIMER FIELD (conditional) -->
-                                    <div class="inspector-field hidden" id="group-timer-settings">
-                                        <div class="form-group">
-                                            <label for="elem-timer-duration">Duration (Seconds)</label>
-                                            <input type="number" id="elem-timer-duration" value="30" min="1" max="999">
-                                        </div>
-                                        <div class="timer-actions-section" style="margin-top: 10px;">
-                                            <div
-                                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                                <label
-                                                    style="font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Timeout
-                                                    Actions</label>
-                                                <button type="button" id="btn-add-timer-action" class="btn btn-accent"
-                                                    style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
-                                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add
-                                                    Action
-                                                </button>
-                                            </div>
-                                            <div id="timer-actions-list"
-                                                style="display: flex; flex-direction: column; gap: 10px;">
-                                                <!-- Dynamic timer action entries loaded here -->
+                                            <div id="ai-refine-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted);">
+                                                <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                                <span>Aligning selected elements...</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- BUTTON NAVIGATION FIELD (conditional) -->
-                                    <div class="inspector-field hidden" id="group-nav-settings">
-                                        <div class="form-group">
-                                            <label for="elem-nav-target">Navigate to Slide</label>
-                                            <select id="elem-nav-target">
-                                                <!-- Dynamically populated -->
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- MCQ OPTION FIELD (conditional) -->
-                                    <div class="inspector-field hidden" id="group-option-settings">
-                                        <div class="form-group">
-                                            <label class="checkbox-label">
-                                                <input type="checkbox" id="elem-option-correct">
-                                                <span>Is Correct Option?</span>
-                                            </label>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="elem-option-group">Question Group (e.g. Q1)</label>
-                                            <input type="text" id="elem-option-group" value="Q1">
-                                        </div>
-                                    </div>
-
-                                    <!-- SHOW ANSWER FIELD (conditional) -->
-                                    <div class="inspector-field hidden" id="group-show-ans-settings">
-                                        <div class="form-group">
-                                            <label for="elem-show-ans-target">Target Element to Reveal</label>
-                                            <select id="elem-show-ans-target">
-                                                <!-- Dynamically populated with text/image elements in slide -->
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- ACTION BUTTON FIELD (conditional) -->
-                                    <div class="inspector-field hidden" id="group-toggle-settings">
-                                        <div class="toggle-actions-section" style="margin-top: 10px;">
-                                            <div
-                                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                                <label
-                                                    style="font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Click
-                                                    Actions</label>
-                                                <button type="button" id="btn-add-toggle-action" class="btn btn-accent"
-                                                    style="padding: 4px 8px; font-size: 0.72rem; border-radius: 4px;">
-                                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add
-                                                    Action
-                                                </button>
-                                            </div>
-                                            <div id="toggle-actions-list"
-                                                style="display: flex; flex-direction: column; gap: 10px;">
-                                                <!-- Dynamic click action entries loaded here -->
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- AI LAYOUT REFINER SECTION -->
-                                    <div class="inspector-section" id="section-ai-refine" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
-                                        <h4>AI Design Agent <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
-                                        <div class="form-group" style="margin-bottom: 8px;">
-                                            <label for="ai-refine-prompt" style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;">Alignment / Refinement instructions</label>
-                                            <input type="text" id="ai-refine-prompt" disabled placeholder="e.g. 2 equal columns, center all, vertical list..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;">
-                                        </div>
-                                        <button type="button" id="btn-ai-refine-layout" class="btn btn-accent btn-glow" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
-                                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Clean & Align Layout (Coming Soon)
-                                        </button>
-                                        <div id="ai-refine-progress" class="hidden" style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
-                                            <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                            <span>Aligning selected elements...</span>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1089,23 +1276,23 @@
                         <div id="ai-tab" class="tab-panel">
                             <!-- API KEY SECTION -->
                             <div class="inspector-section">
-                                <h4>Gemini API Configuration <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
-                                <div class="ai-key-status-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; opacity: 0.6;">
+                                <h4>Gemini API Configuration</h4>
+                                <div class="ai-key-status-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                     <span class="status-label" style="font-size: 0.85rem; color: var(--text-muted);">Key Status:</span>
                                     <span id="ai-key-status-badge" class="badge badge-error" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; background-color: #ef4444; color: #ffffff;">Not Configured</span>
                                 </div>
                                 <div class="form-group" id="ai-key-input-wrapper">
-                                    <label for="ai-gemini-key-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Enter Gemini API Key</label>
-                                    <input type="password" id="ai-gemini-key-input" disabled placeholder="AIzaSy..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
-                                    <button id="btn-ai-save-key" class="btn btn-accent btn-sm" disabled style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.6; cursor: not-allowed;">
-                                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key (Coming Soon)
+                                    <label for="ai-gemini-key-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Enter Gemini API Key</label>
+                                    <input type="password" id="ai-gemini-key-input" placeholder="AIzaSy..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
+                                    <button id="btn-ai-save-key" class="btn btn-accent btn-sm" style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key
                                     </button>
                                 </div>
                                 <div id="ai-key-configured-wrapper" class="hidden">
                                     <p class="status-msg" style="font-size: 0.78rem; color: #10b981; margin-bottom: 10px; line-height: 1.4;">
                                         ✓ Your API key is securely saved in your account.
                                     </p>
-                                    <button id="btn-ai-change-key" class="btn btn-secondary btn-sm" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.6; cursor: not-allowed;">
+                                    <button id="btn-ai-change-key" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                                         Change API Key
                                     </button>
                                 </div>
@@ -1113,25 +1300,25 @@
 
                             <!-- SLIDE GENERATOR SECTION -->
                             <div class="inspector-section" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                                <h4>Generate with AI <span style="font-size: 0.7rem; font-weight: normal; margin-left: 6px; padding: 2px 6px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; color: #d8b4fe; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span></h4>
+                                <h4>Generate with AI</h4>
                                 <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-prompt-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Topic or Prompt</label>
-                                    <textarea id="ai-prompt-input" disabled rows="3" placeholder="e.g. History of Space Travel, Quantum Computing for Beginners, Ancient Rome Quiz..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem; opacity: 0.6; cursor: not-allowed;"></textarea>
+                                    <label for="ai-prompt-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Topic or Prompt</label>
+                                    <textarea id="ai-prompt-input" rows="3" placeholder="e.g. History of Space Travel, Quantum Computing for Beginners, Ancient Rome Quiz..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem;"></textarea>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-mode-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Generation Mode</label>
-                                    <select id="ai-mode-select" disabled style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                    <label for="ai-mode-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Generation Mode</label>
+                                    <select id="ai-mode-select" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
                                         <option value="quiz">AI Quiz Slide (Single MCQ)</option>
                                         <option value="presentation">AI Presentation (Multi-slide Deck)</option>
                                     </select>
                                 </div>
                                 <div class="form-group" id="ai-slide-count-group" style="display: none; margin-bottom: 12px;">
-                                    <label for="ai-slide-count" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Number of Slides</label>
-                                    <input type="number" id="ai-slide-count" disabled min="1" max="10" value="3" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                    <label for="ai-slide-count" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Number of Slides</label>
+                                    <input type="number" id="ai-slide-count" min="1" max="10" value="3" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-theme-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); opacity: 0.6;">Design Theme</label>
-                                    <select id="ai-theme-select" disabled style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; opacity: 0.6; cursor: not-allowed;">
+                                    <label for="ai-theme-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Design Theme</label>
+                                    <select id="ai-theme-select" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
                                         <option value="Obsidian Dark">Obsidian Dark (Sleek Dark Slate)</option>
                                         <option value="Neon Cyberpunk">Neon Cyberpunk (Futuristic Purple/Pink)</option>
                                         <option value="Classic Serif">Classic Serif (Warm Cream & Garamond)</option>
@@ -1139,8 +1326,8 @@
                                         <option value="Retro Game">Retro Game (Arcade Pixel Vibe)</option>
                                     </select>
                                 </div>
-                                <button id="btn-ai-generate" class="btn btn-accent btn-glow" disabled style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); opacity: 0.6; cursor: not-allowed;">
-                                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides (Coming Soon)
+                                <button id="btn-ai-generate" class="btn btn-accent btn-glow" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides
                                 </button>
 
                                 <div id="ai-progress-container" class="ai-progress-panel hidden" style="display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px; border-radius: 6px; background-color: rgba(255,255,255,0.05); font-size: 0.8rem;">
