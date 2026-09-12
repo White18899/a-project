@@ -48,7 +48,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- PixiJS WebGL Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=202609122300">
     <!-- Google Identity Services for Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Favicon -->
@@ -820,193 +820,371 @@
                                         </div>
                                         <div class="accordion-body">
                                             <div class="typography-studio-container">
-                                                <!-- GROUP 1: CONTENT & CHAR COUNT -->
-                                                <div class="form-group inspector-field typo-studio-field" id="field-elem-text">
+                                                <!-- TYPEFACE ROW (UNIVERSAL) -->
+                                                <div class="typo-group" id="group-typeface-selection" style="margin-bottom: 12px;">
                                                     <div class="typo-label-row">
-                                                        <label for="elem-text">Content</label>
-                                                        <div class="typo-content-actions">
-                                                            <span id="elem-text-char-count" class="typo-char-badge" title="Character Count">0 chars</span>
-                                                            <button type="button" id="btn-text-clear" class="btn-typo-clear" title="Clear text">
-                                                                <i data-lucide="x"></i>
-                                                            </button>
-                                                        </div>
+                                                        <span class="typo-group-label">Typeface & Font Family</span>
                                                     </div>
-                                                    <div class="typo-textarea-wrapper">
-                                                        <textarea id="elem-text" rows="3" placeholder="Type slide text here..."></textarea>
+                                                    <div class="typo-font-grid-pro">
+                                                        <button type="button" class="btn-font-picker-trigger" id="btn-font-picker-trigger" title="Select Typeface">
+                                                            <span class="font-trigger-glyph" id="font-trigger-glyph">Aa</span>
+                                                            <div class="font-trigger-info">
+                                                                <span class="font-trigger-name" id="selected-font-name">Outfit</span>
+                                                                <span class="font-trigger-badge" id="selected-font-badge">Sans</span>
+                                                            </div>
+                                                            <i data-lucide="chevron-down" class="font-trigger-chevron"></i>
+                                                        </button>
+                                                        <div class="typo-weight-wrapper">
+                                                            <select id="elem-font-weight" class="typo-select-weight-pro" title="Font Weight">
+                                                                <option value="300">Light</option>
+                                                                <option value="400" selected>Regular</option>
+                                                                <option value="500">Medium</option>
+                                                                <option value="600">SemiBold</option>
+                                                                <option value="700">Bold</option>
+                                                                <option value="800">ExtraBold</option>
+                                                                <option value="900">Black</option>
+                                                            </select>
+                                                        </div>
+                                                        <select id="elem-font-family" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                            <option value="Outfit" selected>Outfit (Modern Clean)</option>
+                                                            <option value="Inter">Inter (Swiss Neutral)</option>
+                                                            <option value="Montserrat">Montserrat (Geometric Sans)</option>
+                                                            <option value="Space Grotesk">Space Grotesk (Tech Modern)</option>
+                                                            <option value="Unbounded">Unbounded (Ultra Wide)</option>
+                                                            <option value="Comfortaa">Comfortaa (Rounded Minimal)</option>
+                                                            <option value="Quicksand">Quicksand (Friendly Sans)</option>
+                                                            <option value="Bebas Neue">Bebas Neue (Condensed Bold)</option>
+                                                            <option value="Playfair Display">Playfair Display (Editorial Serif)</option>
+                                                            <option value="Cinzel">Cinzel (Roman Elegance)</option>
+                                                            <option value="Cinzel Decorative">Cinzel Decorative (Luxury Display)</option>
+                                                            <option value="Cormorant Garamond">Cormorant Garamond (Classic Serif)</option>
+                                                            <option value="Abril Fatface">Abril Fatface (High Contrast Serif)</option>
+                                                            <option value="Cardo">Cardo (Scholarly Oldstyle)</option>
+                                                            <option value="Oswald">Oswald (Impact Condensed)</option>
+                                                            <option value="Josefin Sans">Josefin Sans (Vintage Geometric)</option>
+                                                            <option value="Rajdhani">Rajdhani (Cyberpunk Square)</option>
+                                                            <option value="Righteous">Righteous (Neo-Grotesk Display)</option>
+                                                            <option value="Russo One">Russo One (Block Headline)</option>
+                                                            <option value="Lobster">Lobster (Modern Script)</option>
+                                                            <option value="Satisfy">Satisfy (Casual Brush)</option>
+                                                            <option value="Dancing Script">Dancing Script (Playful Cursive)</option>
+                                                            <option value="Courgette">Courgette (Fluid Script)</option>
+                                                            <option value="Pacifico">Pacifico (Retro Brush)</option>
+                                                            <option value="Kaushan Script">Kaushan Script (Energetic Signature)</option>
+                                                            <option value="Permanent Marker">Permanent Marker (Marker Display)</option>
+                                                            <option value="Shadows Into Light">Shadows Into Light (Handwritten Neat)</option>
+                                                            <option value="Fira Code">Fira Code (Code Mono)</option>
+                                                            <option value="Space Mono">Space Mono (Geometric Mono)</option>
+                                                            <option value="Courier New">Courier New (Monospace System)</option>
+                                                            <option value="Press Start 2P">Press Start 2P (8-bit Pixel)</option>
+                                                            <option value="VT323">VT323 (8-bit Arcade)</option>
+                                                            <option value="Silkscreen">Silkscreen (8-bit Classic)</option>
+                                                            <option value="Arial">Arial (Sans-Serif)</option>
+                                                            <option value="Georgia">Georgia (Serif)</option>
+                                                        </select>
                                                     </div>
                                                 </div>
 
-                                                <!-- FONT & STYLING CONTAINER (conditional for text/button elements) -->
-                                                <div class="inspector-field typo-styles-group" id="group-text-styles">
-                                                    <!-- GROUP 2: TYPEFACE & WEIGHT -->
-                                                    <div class="typo-group">
-                                                        <div class="typo-label-row">
-                                                            <span class="typo-group-label">Typeface & Weight</span>
-                                                        </div>
-                                                        <div class="typo-font-grid-pro">
-                                                            <!-- Studio Font Picker Trigger Button -->
-                                                            <button type="button" class="btn-font-picker-trigger" id="btn-font-picker-trigger" title="Browse Typefaces">
-                                                                <span class="font-trigger-glyph" id="font-trigger-glyph">Aa</span>
-                                                                <div class="font-trigger-info">
-                                                                    <span class="font-trigger-name" id="selected-font-name">Outfit</span>
-                                                                    <span class="font-trigger-badge" id="selected-font-badge">Sans</span>
-                                                                </div>
-                                                                <i data-lucide="chevron-down" class="font-trigger-chevron"></i>
-                                                            </button>
+                                                <!-- MODE SWITCHER: CARD ARCHITECT VS PLAIN TEXT -->
+                                                <div class="card-architect-mode-segmented" id="card-architect-mode-segmented">
+                                                    <button type="button" class="btn-card-mode active" id="btn-mode-card-architect" title="Structured Card Layout with Heading & Subtext">
+                                                        <i data-lucide="layers"></i>
+                                                        <span>Card Architect</span>
+                                                    </button>
+                                                    <button type="button" class="btn-card-mode" id="btn-mode-plain-text" title="Standard Single Text Area">
+                                                        <i data-lucide="align-left"></i>
+                                                        <span>Plain Text</span>
+                                                    </button>
+                                                </div>
 
-                                                            <!-- Preserved Select for Complete Backward Compatibility & Headless Tests -->
-                                                            <select id="elem-font-family" class="sr-only" style="display: none;" tabindex="-1" aria-hidden="true">
-                                                                <option value="Outfit">Outfit (Clean)</option>
-                                                                <option value="Inter">Inter (Sleek)</option>
-                                                                <option value="Montserrat">Montserrat (Modern Sans)</option>
-                                                                <option value="Space Grotesk">Space Grotesk (Tech Geometric)</option>
-                                                                <option value="Unbounded">Unbounded (Wide Futurist)</option>
-                                                                <option value="Comfortaa">Comfortaa (Soft Rounded)</option>
-                                                                <option value="Quicksand">Quicksand (Friendly Rounded)</option>
-                                                                <option value="Bebas Neue">Bebas Neue (Impact Heading)</option>
-                                                                <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
-                                                                <option value="Cinzel">Cinzel (Roman Editorial)</option>
-                                                                <option value="Cinzel Decorative">Cinzel Decorative (Classic Ornate)</option>
-                                                                <option value="Cormorant Garamond">Cormorant Garamond (Graceful Garamond)</option>
-                                                                <option value="Abril Fatface">Abril Fatface (High Contrast Serif)</option>
-                                                                <option value="Cardo">Cardo (Classic Academic)</option>
-                                                                <option value="Oswald">Oswald (Condensed Sans)</option>
-                                                                <option value="Josefin Sans">Josefin Sans (Vintage Geometric)</option>
-                                                                <option value="Rajdhani">Rajdhani (Squared Tech)</option>
-                                                                <option value="Righteous">Righteous (Art Deco Retro)</option>
-                                                                <option value="Russo One">Russo One (Heavy Tech)</option>
-                                                                <option value="Lobster">Lobster (Retro Bold Script)</option>
-                                                                <option value="Satisfy">Satisfy (Script Cursive)</option>
-                                                                <option value="Dancing Script">Dancing Script (Casual Script)</option>
-                                                                <option value="Courgette">Courgette (Elegant Script)</option>
-                                                                <option value="Pacifico">Pacifico (Brush Cursive)</option>
-                                                                <option value="Kaushan Script">Kaushan Script (Brush Calligraphy)</option>
-                                                                <option value="Permanent Marker">Permanent Marker (Marker Brush)</option>
-                                                                <option value="Shadows Into Light">Shadows Into Light (Casual Writing)</option>
-                                                                <option value="Fira Code">Fira Code (Code Mono)</option>
-                                                                <option value="Space Mono">Space Mono (Geometric Mono)</option>
-                                                                <option value="Courier New">Monospace (System)</option>
-                                                                <option value="Press Start 2P">Press Start 2P (8-bit Pixel)</option>
-                                                                <option value="VT323">VT323 (8-bit Arcade)</option>
-                                                                <option value="Silkscreen">Silkscreen (8-bit Classic)</option>
-                                                                <option value="Arial">Arial (Sans-Serif)</option>
-                                                                <option value="Georgia">Georgia (Serif)</option>
+                                                <!-- ============================================== -->
+                                                <!-- PANEL A: MAGIC CARD ARCHITECT (DEFAULT)        -->
+                                                <!-- ============================================== -->
+                                                <div class="magic-card-architect-panel" id="magic-card-architect-panel">
+                                                    <!-- AI QUICK ACTIONS BAR -->
+                                                    <div class="card-architect-ai-bar">
+                                                        <div class="card-ai-bar-title">
+                                                            <div class="card-ai-bar-title-left">
+                                                                <i data-lucide="sparkles"></i>
+                                                                <span>AI Card Studio</span>
+                                                            </div>
+                                                            <span class="card-ai-badge">Smart Auto</span>
+                                                        </div>
+                                                        <div class="card-ai-bar-actions">
+                                                            <button type="button" class="btn-card-ai-action" id="btn-ai-auto-structure" title="Auto-detect title & body text from content">
+                                                                <i data-lucide="wand-2"></i>
+                                                                <span>Auto-Structure</span>
+                                                            </button>
+                                                            <button type="button" class="btn-card-ai-action" id="btn-ai-auto-balance" title="Harmonize font hierarchy & golden ratio spacing">
+                                                                <i data-lucide="scale"></i>
+                                                                <span>Auto-Balance</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SEMANTIC BLOCK 1: CARD HEADING -->
+                                                    <div class="card-semantic-block" id="card-block-heading">
+                                                        <div class="card-block-header">
+                                                            <div class="card-block-title">
+                                                                <i data-lucide="heading"></i>
+                                                                <span>Heading</span>
+                                                            </div>
+                                                            <div class="card-block-ai-chips">
+                                                                <button type="button" class="card-ai-chip" id="btn-ai-punchy-title" title="Make title snappy and impactful">
+                                                                    <i data-lucide="sparkles"></i>
+                                                                    <span>Punchy</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="card-block-input-wrap">
+                                                            <input type="text" id="card-heading-input" class="card-architect-input" placeholder="Enter headline or card title...">
+                                                        </div>
+
+                                                        <!-- Heading Toolstrip Row 1: Size & Color -->
+                                                        <div class="card-inline-toolstrip card-toolstrip-row-primary">
+                                                            <!-- Size Stepper -->
+                                                            <div class="typo-size-stepper mini" title="Heading Font Size">
+                                                                <button type="button" class="btn-typo-step" id="btn-font-size-dec">
+                                                                    <i data-lucide="minus"></i>
+                                                                </button>
+                                                                <div class="typo-size-scrub-wrapper" id="font-size-scrub-wrapper">
+                                                                    <input type="number" id="elem-font-size" value="28" min="8" max="144">
+                                                                    <span class="typo-unit">px</span>
+                                                                </div>
+                                                                <button type="button" class="btn-typo-step" id="btn-font-size-inc">
+                                                                    <i data-lucide="plus"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Color Swatch -->
+                                                            <div class="typo-color-card mini" id="typo-color-wrapper" title="Heading Color">
+                                                                <button type="button" class="typo-color-swatch-btn" id="btn-text-color-trigger">
+                                                                    <span class="typo-color-swatch-preview" id="text-color-swatch-preview"></span>
+                                                                </button>
+                                                                <input type="text" id="elem-text-color-hex" value="#ffffff" spellcheck="false">
+                                                                <input type="color" id="elem-text-color" value="#ffffff" class="sr-only" style="display:none;" aria-hidden="true" tabindex="-1">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Heading Toolstrip Row 2: Alignment & Formatting Buttons -->
+                                                        <div class="card-inline-toolstrip card-toolstrip-row-secondary">
+                                                            <!-- Alignment -->
+                                                            <div class="typo-segmented-control mini" id="typo-align-segmented">
+                                                                <button type="button" class="btn-typo-align" id="btn-text-align-left" data-align="left" title="Align Left">
+                                                                    <i data-lucide="align-left"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align active" id="btn-text-align-center" data-align="center" title="Align Center">
+                                                                    <i data-lucide="align-center"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align" id="btn-text-align-right" data-align="right" title="Align Right">
+                                                                    <i data-lucide="align-right"></i>
+                                                                </button>
+                                                            </div>
+                                                            <select id="elem-align" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                                <option value="left">Left</option>
+                                                                <option value="center" selected>Center</option>
+                                                                <option value="right">Right</option>
                                                             </select>
 
-                                                            <!-- Streamlined Font Weight Dropdown -->
-                                                            <div class="typo-weight-wrapper">
-                                                                <select id="elem-font-weight" class="typo-select-weight-pro" title="Font Weight">
+                                                            <!-- Formatting Buttons -->
+                                                            <div class="typo-format-toolbar mini">
+                                                                <button type="button" class="btn-typo-format" id="btn-text-format-bold" title="Bold">
+                                                                    <i data-lucide="bold"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-text-format-italic" title="Italic">
+                                                                    <i data-lucide="italic"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-text-format-underline" title="Underline">
+                                                                    <i data-lucide="underline"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-text-format-uppercase" title="Uppercase">
+                                                                    <i data-lucide="case-upper"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-text-format-strikethrough" title="Strikethrough">
+                                                                    <i data-lucide="strikethrough"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Heading Toolstrip Row 3: Heading Spacing Grid (Lead & Track) -->
+                                                        <div class="card-inline-toolstrip card-toolstrip-row-tertiary">
+                                                            <div class="card-block-spacing-row">
+                                                                <div class="card-spacing-chip" title="Line Height (Leading)">
+                                                                    <i data-lucide="move-vertical"></i>
+                                                                    <span>Lead</span>
+                                                                    <input type="number" id="elem-line-height" value="1.2" step="0.1" min="0.8" max="3.0">
+                                                                </div>
+                                                                <div class="card-spacing-chip" title="Letter Spacing (Tracking)">
+                                                                    <i data-lucide="move-horizontal"></i>
+                                                                    <span>Track</span>
+                                                                    <input type="number" id="elem-letter-spacing" value="0" step="1" min="-10" max="50">
+                                                                    <span class="unit">px</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SEMANTIC BLOCK 2: CARD SUBTEXT / BODY -->
+                                                    <div class="card-semantic-block" id="card-block-subtext">
+                                                        <div class="card-block-header">
+                                                            <div class="card-block-title">
+                                                                <i data-lucide="align-left"></i>
+                                                                <span>Subtext</span>
+                                                            </div>
+                                                            <div class="card-block-ai-chips">
+                                                                <button type="button" class="card-ai-chip" id="btn-ai-shorten-subtext" title="Summarize into concise copy">
+                                                                    <i data-lucide="scissors"></i>
+                                                                    <span>Shorten</span>
+                                                                </button>
+                                                                <button type="button" class="card-ai-chip" id="btn-ai-bulletize-subtext" title="Convert sentences to clean bullet points">
+                                                                    <i data-lucide="list"></i>
+                                                                    <span>Bullets</span>
+                                                                </button>
+                                                                <button type="button" class="card-ai-chip" id="btn-ai-polish-subtext" title="Fix tone and enhance clarity">
+                                                                    <i data-lucide="wand-2"></i>
+                                                                    <span>Polish</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="card-block-input-wrap">
+                                                            <textarea id="card-subtext-input" class="card-architect-textarea" rows="3" placeholder="Enter supporting body text, bullet points, or description..."></textarea>
+                                                        </div>
+
+                                                        <!-- Subtext Toolstrip Row 1: Size, Weight, Color -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-primary">
+                                                            <!-- Subtext Size Stepper -->
+                                                            <div class="typo-size-stepper mini" title="Subtext Font Size">
+                                                                <button type="button" class="btn-typo-step" id="btn-subtext-size-dec">
+                                                                    <i data-lucide="minus"></i>
+                                                                </button>
+                                                                <div class="typo-size-scrub-wrapper" id="subtext-size-scrub-wrapper">
+                                                                    <input type="number" id="elem-subtext-size" value="16" min="8" max="96">
+                                                                    <span class="typo-unit">px</span>
+                                                                </div>
+                                                                <button type="button" class="btn-typo-step" id="btn-subtext-size-inc">
+                                                                    <i data-lucide="plus"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Subtext Weight Select -->
+                                                            <div class="card-subtext-weight-wrap">
+                                                                <select id="elem-subtext-weight" class="typo-select-weight-pro mini" title="Subtext Font Weight">
                                                                     <option value="300">Light</option>
                                                                     <option value="400" selected>Regular</option>
                                                                     <option value="500">Medium</option>
                                                                     <option value="600">SemiBold</option>
                                                                     <option value="700">Bold</option>
-                                                                    <option value="800">ExtraBold</option>
-                                                                    <option value="900">Black</option>
                                                                 </select>
                                                             </div>
-                                                        </div>
-                                                    </div>
 
-                                                    <!-- GROUP 3: SIZE & ALIGNMENT -->
-                                                    <div class="typo-group">
-                                                        <div class="typo-dual-labels">
-                                                            <span class="typo-group-label">Size</span>
-                                                            <span class="typo-group-label">Alignment</span>
-                                                        </div>
-                                                        <div class="typo-dual-row">
-                                                            <!-- Font Size Stepper & Scrub Badge -->
-                                                            <div class="typo-size-stepper">
-                                                                <button type="button" class="btn-typo-step" id="btn-font-size-dec" title="Decrease font size (-2px)">
-                                                                    <i data-lucide="minus"></i>
+                                                            <!-- Subtext Color Swatch -->
+                                                            <div class="typo-color-card mini" id="subtext-color-wrapper" title="Subtext Color">
+                                                                <button type="button" class="typo-color-swatch-btn" id="btn-subtext-color-trigger">
+                                                                    <span class="typo-color-swatch-preview" id="subtext-color-swatch-preview"></span>
                                                                 </button>
-                                                                <div class="typo-size-scrub-wrapper" id="font-size-scrub-wrapper" title="Drag horizontally to scrub size">
-                                                                    <input type="number" id="elem-font-size" value="24" min="8" max="144">
-                                                                    <span class="typo-unit">px</span>
-                                                                </div>
-                                                                <button type="button" class="btn-typo-step" id="btn-font-size-inc" title="Increase font size (+2px)">
-                                                                    <i data-lucide="plus"></i>
-                                                                </button>
+                                                                <input type="text" id="elem-subtext-color-hex" value="#94a3b8" spellcheck="false">
+                                                                <input type="color" id="elem-subtext-color" value="#94a3b8" class="sr-only" style="display:none;" aria-hidden="true" tabindex="-1">
                                                             </div>
+                                                        </div>
 
-                                                            <!-- Segmented Alignment Control (Left, Center, Right) -->
-                                                            <div class="typo-segmented-control" id="typo-align-segmented">
-                                                                <button type="button" class="btn-typo-align" id="btn-text-align-left" data-align="left" title="Align Text Left">
+                                                        <!-- Subtext Toolstrip Row 2: Alignment & Formatting Buttons -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-secondary">
+                                                            <!-- Subtext Alignment -->
+                                                            <div class="typo-segmented-control mini" id="typo-subtext-align-segmented">
+                                                                <button type="button" class="btn-typo-align" id="btn-subtext-align-left" data-align="left" title="Align Left">
                                                                     <i data-lucide="align-left"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align active" id="btn-text-align-center" data-align="center" title="Align Text Center">
+                                                                <button type="button" class="btn-typo-align active" id="btn-subtext-align-center" data-align="center" title="Align Center">
                                                                     <i data-lucide="align-center"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align" id="btn-text-align-right" data-align="right" title="Align Text Right">
+                                                                <button type="button" class="btn-typo-align" id="btn-subtext-align-right" data-align="right" title="Align Right">
                                                                     <i data-lucide="align-right"></i>
                                                                 </button>
                                                             </div>
-
-                                                            <!-- Keep #elem-align in DOM (hidden) for 100% backward compatibility -->
-                                                            <select id="elem-align" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                            <select id="elem-subtext-align" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
                                                                 <option value="left">Left</option>
-                                                                <option value="center">Center</option>
+                                                                <option value="center" selected>Center</option>
                                                                 <option value="right">Right</option>
                                                             </select>
-                                                        </div>
-                                                    </div>
 
-                                                    <!-- GROUP 4: TEXT FORMATTING BAR -->
-                                                    <div class="typo-group">
-                                                        <div class="typo-label-row">
-                                                            <span class="typo-group-label">Formatting</span>
-                                                        </div>
-                                                        <div class="typo-format-toolbar">
-                                                            <button type="button" class="btn-typo-format" id="btn-text-format-bold" title="Bold (Ctrl+B)">
-                                                                <i data-lucide="bold"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-typo-format" id="btn-text-format-italic" title="Italic (Ctrl+I)">
-                                                                <i data-lucide="italic"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-typo-format" id="btn-text-format-underline" title="Underline (Ctrl+U)">
-                                                                <i data-lucide="underline"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-typo-format" id="btn-text-format-uppercase" title="Uppercase (Caps)">
-                                                                <i data-lucide="case-upper"></i>
-                                                            </button>
-                                                            <button type="button" class="btn-typo-format" id="btn-text-format-strikethrough" title="Strikethrough">
-                                                                <i data-lucide="strikethrough"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- GROUP 5: COLOR & ADVANCED METRICS -->
-                                                    <div class="typo-group">
-                                                        <div class="typo-dual-labels">
-                                                            <span class="typo-group-label">Color</span>
-                                                            <span class="typo-group-label">Spacing (Line / Char)</span>
-                                                        </div>
-                                                        <div class="typo-dual-row">
-                                                            <!-- Color Trigger with Hex & Popover Anchor -->
-                                                            <div class="typo-color-card" id="typo-color-wrapper">
-                                                                <button type="button" class="typo-color-swatch-btn" id="btn-text-color-trigger" title="Open Color Editor">
-                                                                    <span class="typo-color-swatch-preview" id="text-color-swatch-preview"></span>
+                                                            <!-- Subtext Formatting Toolbar (mini) -->
+                                                            <div class="typo-format-toolbar mini">
+                                                                <button type="button" class="btn-typo-format" id="btn-subtext-format-bold" title="Subtext Bold">
+                                                                    <i data-lucide="bold"></i>
                                                                 </button>
-                                                                <input type="text" id="elem-text-color-hex" value="#ffffff" spellcheck="false" title="Hex Color">
-                                                                <!-- Hidden native input to preserve ID -->
-                                                                <input type="color" id="elem-text-color" value="#ffffff" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                                <button type="button" class="btn-typo-format" id="btn-subtext-format-italic" title="Subtext Italic">
+                                                                    <i data-lucide="italic"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-subtext-format-underline" title="Subtext Underline">
+                                                                    <i data-lucide="underline"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-subtext-format-uppercase" title="Subtext Uppercase">
+                                                                    <i data-lucide="case-upper"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-format" id="btn-subtext-format-strikethrough" title="Subtext Strikethrough">
+                                                                    <i data-lucide="strikethrough"></i>
+                                                                </button>
                                                             </div>
+                                                        </div>
 
-                                                            <!-- Spacing Metrics (Line Height & Letter Spacing) -->
-                                                            <div class="typo-spacing-grid">
-                                                                <div class="typo-metric-badge" title="Line Height (Leading)">
-                                                                    <i data-lucide="move-vertical" class="metric-icon"></i>
-                                                                    <input type="number" id="elem-line-height" value="1.2" step="0.1" min="0.8" max="3.0">
+                                                        <!-- Subtext Toolstrip Row 3: Subtext Spacing Grid (Lead & Track) -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-tertiary">
+                                                            <div class="card-block-spacing-row card-subtext-spacing-row">
+                                                                <div class="card-spacing-chip" title="Subtext Line Height (Leading)">
+                                                                    <i data-lucide="move-vertical"></i>
+                                                                    <span>Lead</span>
+                                                                    <input type="number" id="elem-subtext-line-height" value="1.4" step="0.1" min="0.8" max="3.0">
                                                                 </div>
-                                                                <div class="typo-metric-badge" title="Letter Spacing (Tracking in px)">
-                                                                    <i data-lucide="move-horizontal" class="metric-icon"></i>
-                                                                    <input type="number" id="elem-letter-spacing" value="0" step="1" min="-10" max="50">
-                                                                    <span class="metric-unit">px</span>
+                                                                <div class="card-spacing-chip" title="Subtext Letter Spacing (Tracking)">
+                                                                    <i data-lucide="move-horizontal"></i>
+                                                                    <span>Track</span>
+                                                                    <input type="number" id="elem-subtext-letter-spacing" value="0" step="1" min="-10" max="50">
+                                                                    <span class="unit">px</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Subtext Toolstrip Row 4: Vertical Gap to Title (Dedicated Spacious Chip) -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-quaternary">
+                                                            <div class="card-spacing-chip highlight card-subtext-gap-chip" title="Vertical Gap Between Heading & Subtext">
+                                                                <div class="gap-chip-left">
+                                                                    <i data-lucide="chevrons-up-down"></i>
+                                                                    <span class="gap-label">Gap to Heading</span>
+                                                                </div>
+                                                                <div class="gap-chip-right">
+                                                                    <input type="number" id="elem-subtext-gap" value="16" min="0" max="120" step="2">
+                                                                    <span class="unit">px</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                <!-- ============================================== -->
+                                                <!-- PANEL B: PLAIN TEXT (FOR SIMPLE TEXT BLOCKS)   -->
+                                                <!-- ============================================== -->
+                                                <div class="plain-text-panel" id="plain-text-panel" style="display: none;">
+                                                    <div class="inspector-field typo-studio-field" id="field-elem-text">
+                                                        <div class="typo-label-row">
+                                                            <span class="typo-group-label">Content</span>
+                                                            <div class="typo-meta-actions">
+                                                                <span class="typo-char-badge" id="elem-text-char-count">0 chars</span>
+                                                                <button type="button" class="btn-typo-clear" id="btn-text-clear" title="Clear text">
+                                                                    <i data-lucide="x"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="typo-textarea-wrapper">
+                                                            <textarea id="elem-text" rows="4" placeholder="Enter text content..." spellcheck="false"></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Hidden compatibility elements -->
+                                                <input type="checkbox" id="elem-has-subtext" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                <div id="group-text-styles" style="display: none;" aria-hidden="true"></div>
+                                                <div id="group-subtext-styles" style="display: none;" aria-hidden="true"></div>
+
                                             </div>
                                         </div>
                                     </div>
@@ -1130,7 +1308,6 @@
                                                                 <i data-lucide="minus"></i>
                                                             </button>
                                                             <div class="appearance-stepper-input-wrapper" id="border-width-scrub-wrapper" title="Drag to scrub border width">
-                                                                <span class="stepper-icon">─</span>
                                                                 <input type="number" id="elem-border-width" value="3" min="0" max="50" class="stepper-input" title="Border Width (px)">
                                                                 <span class="stepper-unit">px</span>
                                                             </div>
@@ -1153,7 +1330,6 @@
                                                                 <i data-lucide="minus"></i>
                                                             </button>
                                                             <div class="appearance-stepper-input-wrapper" id="border-radius-scrub-wrapper" title="Drag to scrub corner radius">
-                                                                <span class="stepper-icon">╭</span>
                                                                 <input type="number" id="elem-border-radius" value="8" min="0" max="100" class="stepper-input" title="Corner Radius (px)">
                                                                 <span class="stepper-unit">px</span>
                                                             </div>

@@ -566,6 +566,8 @@ function initEditorUI() {
                 mini.style.height = `${(elem.height / 1080) * 100}%`;
                 mini.style.zIndex = elem.zIndex || 0;
                 mini.style.pointerEvents = 'none';
+                mini.style.boxSizing = 'border-box';
+                mini.style.overflow = 'hidden';
                 
                 if (elem.type === 'text' || elem.type.startsWith('btn-') || elem.type === 'timer') {
                     const isRpg = elem.rpgStyle || slide.rpgTheme;
@@ -593,24 +595,90 @@ function initEditorUI() {
                         }
                     }
 
-                    // Enable flex centering to match standard canvas vertical alignment
+                    // Apply proportional padding matching WebGL canvas
+                    const paddingPx = elem.padding !== undefined ? elem.padding : (isRpg ? 16 : 0);
+                    const padCqw = (paddingPx / 1920) * 100;
+                    mini.style.padding = `${padCqw}cqw`;
+
+                    const isButtonOrTimer = elem.type.startsWith('btn-') || elem.type === 'timer';
+                    const resolvedAlign = elem.align || (isButtonOrTimer ? 'center' : 'left');
+
+                    // Modern flex layout: Buttons & short single-line badges center vertically, multiline text & cards align to top
                     mini.style.display = 'flex';
-                    mini.style.alignItems = 'center';
+                    mini.style.flexDirection = 'column';
+                    mini.style.alignItems = resolvedAlign === 'center' ? 'center' : (resolvedAlign === 'right' ? 'flex-end' : 'flex-start');
+                    mini.style.justifyContent = (isButtonOrTimer || ((elem.height || 0) <= 90 && !(elem.text || '').includes('\n'))) ? 'center' : 'flex-start';
                     
                     if (elem.text) {
+                        const hasSubtextStyling = !!(elem.hasSubtext || elem.subtext || elem.subtextSize || elem.subtextColor || elem.subtextFontWeight);
+                        let headingText = elem.text || '';
+                        let subtextContent = elem.subtext || '';
+
+                        if (hasSubtextStyling && !elem.subtext && headingText.includes('\n')) {
+                            const parts = headingText.includes('\n\n') ? headingText.split(/\n\n+/) : headingText.split(/\n+/);
+                            headingText = parts[0] || '';
+                            subtextContent = parts.slice(1).join('\n\n');
+                        }
+
                         const textSpan = document.createElement('span');
-                        textSpan.textContent = elem.text;
+                        const rawText = headingText;
+                        textSpan.textContent = elem.isUppercase ? rawText.toUpperCase() : rawText;
                         textSpan.style.color = elem.textColor || '#ffffff';
                         textSpan.style.fontSize = `${(elem.fontSize || 24) / 1920 * 100}cqw`;
                         textSpan.style.fontFamily = isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit');
+                        textSpan.style.fontWeight = elem.fontWeight ? String(elem.fontWeight) : (elem.isBold ? 'bold' : 'normal');
+                        textSpan.style.fontStyle = elem.isItalic ? 'italic' : 'normal';
+                        if (elem.isUnderline) textSpan.style.textDecoration = 'underline';
+                        if (elem.isStrikethrough) textSpan.style.textDecoration = 'line-through';
+
                         textSpan.style.display = 'block';
-                        textSpan.style.overflow = 'hidden';
                         textSpan.style.width = '100%';
-                        textSpan.style.textAlign = elem.align || 'left';
-                        textSpan.style.whiteSpace = 'nowrap';
-                        textSpan.style.textOverflow = 'ellipsis';
-                        textSpan.style.lineHeight = '1.2';
+                        textSpan.style.textAlign = resolvedAlign;
+                        // CRITICAL: Preserve newlines and allow word wrapping just like WebGL canvas wordWrap!
+                        textSpan.style.whiteSpace = 'pre-wrap';
+                        textSpan.style.wordBreak = 'break-word';
+                        textSpan.style.overflow = 'hidden';
+
+                        const rawLh = typeof elem.lineHeight === 'number' ? elem.lineHeight : parseFloat(elem.lineHeight);
+                        textSpan.style.lineHeight = (!isNaN(rawLh) && rawLh > 0) ? (rawLh < 5 ? String(rawLh) : `${(rawLh / 1920) * 100}cqw`) : '1.25';
+
+                        if (elem.letterSpacing) {
+                            textSpan.style.letterSpacing = `${(parseFloat(elem.letterSpacing) || 0) / 1920 * 100}cqw`;
+                        }
                         mini.appendChild(textSpan);
+
+                        // If Subtext is active and has content, render subtext span below heading
+                        if (hasSubtextStyling && subtextContent) {
+                            const subSpan = document.createElement('span');
+                            const rawSub = subtextContent;
+                            subSpan.textContent = elem.subtextUppercase ? rawSub.toUpperCase() : rawSub;
+                            subSpan.style.color = elem.subtextColor || '#94a3b8';
+                            const subSize = elem.subtextSize || Math.max(12, Math.round((elem.fontSize || 24) * 0.65));
+                            subSpan.style.fontSize = `${subSize / 1920 * 100}cqw`;
+                            subSpan.style.fontFamily = elem.fontFamily || 'Outfit';
+                            subSpan.style.fontWeight = elem.subtextFontWeight ? String(elem.subtextFontWeight) : (elem.subtextIsBold ? 'bold' : 'normal');
+                            subSpan.style.fontStyle = elem.subtextItalic ? 'italic' : 'normal';
+                            if (elem.subtextUnderline) subSpan.style.textDecoration = 'underline';
+                            if (elem.subtextStrikethrough) subSpan.style.textDecoration = 'line-through';
+
+                            subSpan.style.display = 'block';
+                            subSpan.style.width = '100%';
+                            subSpan.style.textAlign = elem.subtextAlign || resolvedAlign;
+                            subSpan.style.whiteSpace = 'pre-wrap';
+                            subSpan.style.wordBreak = 'break-word';
+                            subSpan.style.overflow = 'hidden';
+
+                            const subGap = elem.subtextGap !== undefined ? elem.subtextGap : 16;
+                            subSpan.style.marginTop = `${(subGap / 1920) * 100}cqw`;
+
+                            const rawSubLh = typeof elem.subtextLineHeight === 'number' ? elem.subtextLineHeight : parseFloat(elem.subtextLineHeight);
+                            subSpan.style.lineHeight = (!isNaN(rawSubLh) && rawSubLh > 0) ? (rawSubLh < 5 ? String(rawSubLh) : `${(rawSubLh / 1920) * 100}cqw`) : '1.35';
+
+                            if (elem.subtextLetterSpacing) {
+                                subSpan.style.letterSpacing = `${(parseFloat(elem.subtextLetterSpacing) || 0) / 1920 * 100}cqw`;
+                            }
+                            mini.appendChild(subSpan);
+                        }
                     }
                 } else if (elem.type === 'image') {
                     mini.style.backgroundImage = `url(${elem.fileData || elem.url})`;
@@ -1042,7 +1110,11 @@ function initEditorUI() {
                         'bgColor', 'bgAlpha', 'borderRadius', 'borderWidth', 
                         'borderStyle', 'borderColor', 'useMarkupColor', 'markupColor',
                         'fontWeight', 'isBold', 'isItalic', 'isUnderline', 'isUppercase', 'isStrikethrough',
-                        'lineHeight', 'letterSpacing'
+                        'lineHeight', 'letterSpacing',
+                        'hasSubtext', 'subtext', 'subtextSize', 'subtextColor',
+                        'subtextFontWeight', 'subtextIsBold', 'subtextItalic', 'subtextUnderline',
+                        'subtextUppercase', 'subtextStrikethrough', 'subtextLineHeight',
+                        'subtextLetterSpacing', 'subtextGap', 'subtextAlign'
                     ];
                     
                     for (const key in props) {
@@ -1627,6 +1699,9 @@ function initEditorUI() {
     });
     bindColorPickerPair('elem-text-color', 'elem-text-color-hex', (val) => {
         updateActiveElem({ textColor: val });
+    });
+    bindColorPickerPair('elem-subtext-color', 'elem-subtext-color-hex', (val) => {
+        updateActiveElem({ subtextColor: val });
     });
 
     // Element BG Box attributes
@@ -2509,6 +2584,8 @@ function initEditorUI() {
         // Hide all conditional inspector groupings first
         const getEl = id => document.getElementById(id);
         getEl('group-text-styles')?.classList.add('hidden');
+        getEl('group-subtext-styles')?.classList.add('hidden');
+        getEl('typo-scope-container')?.classList.add('hidden');
         getEl('group-bg-styles')?.classList.add('hidden');
         getEl('group-image-styles')?.classList.add('hidden');
         getEl('group-video-styles')?.classList.add('hidden');
@@ -2528,7 +2605,12 @@ function initEditorUI() {
         setAccordionItemVisible('acc-item-ai', true);
 
         if (type === 'text') {
-            getEl('group-text-styles')?.classList.remove('hidden');
+            getEl('typo-scope-container')?.classList.remove('hidden');
+            if (window.updateTypoScopeVisibility) {
+                window.updateTypoScopeVisibility();
+            } else {
+                getEl('group-text-styles')?.classList.remove('hidden');
+            }
             getEl('group-bg-styles')?.classList.remove('hidden');
 
             setAccordionItemVisible('acc-item-typography', true);
@@ -3377,12 +3459,22 @@ function initEditorUI() {
     });
 
     // ==========================================
-    // AI GENERATOR CONTROL BINDINGS
+    // AI GENERATOR CONTROL BINDINGS (THE MAGIC STUDIO HUB)
     // ==========================================
+    function escapeHtml(str) {
+        return (str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function syncAIKeyUI() {
         const badge = document.getElementById('ai-key-status-badge');
         const inputWrapper = document.getElementById('ai-key-input-wrapper');
         const configWrapper = document.getElementById('ai-key-configured-wrapper');
+        const pill = document.getElementById('ai-key-status-pill');
+        const pillLabel = document.getElementById('ai-key-pill-label');
         
         if (state.hasGeminiKey) {
             if (badge) {
@@ -3392,6 +3484,10 @@ function initEditorUI() {
             }
             if (inputWrapper) inputWrapper.classList.add('hidden');
             if (configWrapper) configWrapper.classList.remove('hidden');
+            if (pill) {
+                pill.classList.add('configured');
+                if (pillLabel) pillLabel.textContent = 'Gemini Ready';
+            }
         } else {
             if (badge) {
                 badge.textContent = "Not Configured";
@@ -3400,6 +3496,10 @@ function initEditorUI() {
             }
             if (inputWrapper) inputWrapper.classList.remove('hidden');
             if (configWrapper) configWrapper.classList.add('hidden');
+            if (pill) {
+                pill.classList.remove('configured');
+                if (pillLabel) pillLabel.textContent = 'API Key';
+            }
         }
     }
 
@@ -3413,6 +3513,15 @@ function initEditorUI() {
 
     // Run sync initially
     syncAIKeyUI();
+
+    // Toggle API Key Drawer
+    const keyPill = document.getElementById('ai-key-status-pill');
+    const keyDrawer = document.getElementById('ai-key-drawer');
+    if (keyPill && keyDrawer) {
+        keyPill.onclick = () => {
+            keyDrawer.classList.toggle('hidden');
+        };
+    }
 
     const saveKeyBtn = document.getElementById('btn-ai-save-key');
     const changeKeyBtn = document.getElementById('btn-ai-change-key');
@@ -3435,6 +3544,7 @@ function initEditorUI() {
                     localStorage.setItem('slide_engine_active_has_gemini_key', 'true');
                     state.emit('gemini-key-changed', true);
                     keyInput.value = '';
+                    if (keyDrawer) keyDrawer.classList.add('hidden');
                 } else {
                     alert("Failed to save key: " + res.message);
                 }
@@ -3442,7 +3552,7 @@ function initEditorUI() {
                 alert("Error saving API Key: " + err.message);
             } finally {
                 saveKeyBtn.disabled = false;
-                saveKeyBtn.innerHTML = '<i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key';
+                saveKeyBtn.innerHTML = '<i data-lucide="save" style="width: 14px; height: 14px;"></i> Save';
                 if (window.lucide) lucide.createIcons();
             }
         };
@@ -3469,196 +3579,453 @@ function initEditorUI() {
         };
     }
 
+    // ==========================================
+    // SEGMENTED MODE SWITCHER
+    // ==========================================
     const modeSelect = document.getElementById('ai-mode-select');
+    const deckQuizSection = document.getElementById('ai-deck-quiz-section');
+    const assetSection = document.getElementById('ai-asset-section');
     const slideCountGroup = document.getElementById('ai-slide-count-group');
-    if (modeSelect && slideCountGroup) {
-        modeSelect.onchange = () => {
-            if (modeSelect.value === 'presentation') {
-                slideCountGroup.style.display = 'block';
+    const previewOutlineBtn = document.getElementById('btn-ai-preview-outline');
+    const generateBtn = document.getElementById('btn-ai-generate');
+
+    document.querySelectorAll('.ai-segment-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.ai-segment-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const mode = btn.getAttribute('data-mode');
+
+            if (mode === 'asset') {
+                if (deckQuizSection) deckQuizSection.classList.add('hidden');
+                if (assetSection) assetSection.classList.remove('hidden');
             } else {
-                slideCountGroup.style.display = 'none';
+                if (assetSection) assetSection.classList.add('hidden');
+                if (deckQuizSection) deckQuizSection.classList.remove('hidden');
+                
+                if (modeSelect) modeSelect.value = mode;
+
+                if (mode === 'presentation') {
+                    if (slideCountGroup) slideCountGroup.style.display = 'block';
+                    if (previewOutlineBtn) previewOutlineBtn.style.display = 'flex';
+                    if (generateBtn) {
+                        const span = generateBtn.querySelector('span');
+                        if (span) span.textContent = 'Quick Deck';
+                    }
+                } else {
+                    if (slideCountGroup) slideCountGroup.style.display = 'none';
+                    if (previewOutlineBtn) previewOutlineBtn.style.display = 'none';
+                    if (generateBtn) {
+                        const span = generateBtn.querySelector('span');
+                        if (span) span.textContent = 'Generate Quiz';
+                    }
+                }
             }
+        });
+    });
+
+    // Clear Prompt button
+    const clearPromptBtn = document.getElementById('btn-ai-clear-prompt');
+    const promptInput = document.getElementById('ai-prompt-input');
+    if (clearPromptBtn && promptInput) {
+        clearPromptBtn.onclick = () => {
+            promptInput.value = '';
+            promptInput.focus();
         };
     }
 
-    const generateBtn = document.getElementById('btn-ai-generate');
-    const promptInput = document.getElementById('ai-prompt-input');
+    // Inspiration prompt chips
+    document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const prompt = chip.getAttribute('data-prompt');
+            const assetPrompt = document.getElementById('ai-asset-prompt');
+            const isAssetVisible = assetSection && !assetSection.classList.contains('hidden');
+
+            if (isAssetVisible && assetPrompt) {
+                assetPrompt.value = prompt;
+                assetPrompt.focus();
+            } else if (promptInput) {
+                promptInput.value = prompt;
+                promptInput.focus();
+            }
+        });
+    });
+
+    // Visual Theme Grid Cards
     const themeSelect = document.getElementById('ai-theme-select');
+    document.querySelectorAll('.ai-theme-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.ai-theme-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            const themeName = card.getAttribute('data-theme');
+            if (themeSelect && themeName) {
+                themeSelect.value = themeName;
+            }
+        });
+    });
+
+    // Slide Deck Stepper & Preset Pills
     const slideCountInput = document.getElementById('ai-slide-count');
+    const slideCountDisplay = document.getElementById('ai-slide-count-display');
+    const countMinusBtn = document.getElementById('btn-ai-count-minus');
+    const countPlusBtn = document.getElementById('btn-ai-count-plus');
+
+    function updateSlideCount(newCount) {
+        const clamped = Math.max(1, Math.min(10, newCount));
+        if (slideCountInput) slideCountInput.value = clamped;
+        if (slideCountDisplay) slideCountDisplay.textContent = `${clamped} Slides`;
+        
+        document.querySelectorAll('.ai-preset-pill').forEach(pill => {
+            const val = parseInt(pill.getAttribute('data-count'));
+            if (val === clamped) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+    }
+
+    if (countMinusBtn) {
+        countMinusBtn.onclick = () => {
+            const current = parseInt(slideCountInput.value) || 4;
+            updateSlideCount(current - 1);
+        };
+    }
+
+    if (countPlusBtn) {
+        countPlusBtn.onclick = () => {
+            const current = parseInt(slideCountInput.value) || 4;
+            updateSlideCount(current + 1);
+        };
+    }
+
+    document.querySelectorAll('.ai-preset-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            const count = parseInt(pill.getAttribute('data-count'));
+            if (!isNaN(count)) updateSlideCount(count);
+        });
+    });
+
+    // Progress & Error containers
     const progressContainer = document.getElementById('ai-progress-container');
     const progressText = document.getElementById('ai-progress-text');
     const errorBanner = document.getElementById('ai-error-banner');
     const errorText = document.getElementById('ai-error-text');
 
-    if (generateBtn) {
-        generateBtn.onclick = async () => {
-            const promptVal = (promptInput.value || '').trim();
-            if (!promptVal) {
-                alert("Please enter a topic or prompt for slide generation.");
-                return;
-            }
+    // ==========================================
+    // CORE SLIDE GENERATION EXECUTOR
+    // ==========================================
+    async function executeAISlideGeneration(promptVal, modeVal, themeVal, countVal, outlineVal = null) {
+        if (!promptVal) {
+            alert("Please enter a topic or prompt for slide generation.");
+            return;
+        }
 
-            // Show loading state
-            generateBtn.disabled = true;
-            generateBtn.textContent = "Generating...";
-            if (progressContainer) progressContainer.classList.remove('hidden');
-            if (errorBanner) errorBanner.classList.add('hidden');
-            if (progressText) progressText.textContent = "Connecting to Gemini API...";
+        if (generateBtn) generateBtn.disabled = true;
+        const generateAllBtn = document.getElementById('btn-ai-outline-generate-all');
+        if (generateAllBtn) generateAllBtn.disabled = true;
 
-            const modeVal = modeSelect.value;
-            const themeVal = themeSelect.value;
-            const countVal = parseInt(slideCountInput.value) || 3;
+        if (progressContainer) progressContainer.classList.remove('hidden');
+        if (errorBanner) errorBanner.classList.add('hidden');
+        if (progressText) progressText.textContent = outlineVal ? "Synthesizing full presentation from outline..." : "Connecting to Gemini API...";
 
-            try {
-                if (progressText) progressText.textContent = "Generating layout and quiz options...";
-                const res = await window.SlideEngineAPI.generateAI(promptVal, modeVal, themeVal, countVal);
+        try {
+            if (progressText) progressText.textContent = "Generating layout and design elements...";
+            const res = await window.SlideEngineAPI.generateAI(promptVal, modeVal, themeVal, countVal, outlineVal);
+            
+            if (res.slides && res.slides.length > 0) {
+                if (progressText) progressText.textContent = "Injecting slides into project...";
                 
-                if (res.slides && res.slides.length > 0) {
-                    if (progressText) progressText.textContent = "Injecting slides into project...";
+                // Generate unique IDs for all items to prevent conflicts
+                res.slides.forEach(slide => {
+                    const newSlideId = 'id-' + Math.random().toString(36).substring(2, 11);
+                    const oldSlideId = slide.id;
+                    slide.id = newSlideId;
+
+                    slide.elements.forEach(el => {
+                        const newElId = 'id-' + Math.random().toString(36).substring(2, 11);
+                        const oldElId = el.id;
+                        el.id = newElId;
+
+                        if (el.targetElementId === oldElId) {
+                            el.targetElementId = newElId;
+                        }
+                    });
+                });
+
+                if (modeVal === 'presentation') {
+                    const idMap = {};
+                    const slidesData = res.slides;
                     
-                    // Generate unique IDs for all items to prevent conflicts
-                    res.slides.forEach(slide => {
-                        const newSlideId = 'id-' + Math.random().toString(36).substring(2, 11);
-                        const oldSlideId = slide.id;
+                    const mappedSlides = slidesData.map((slide, idx) => {
+                        const newSlideId = 'slide-' + Math.random().toString(36).substring(2, 11);
+                        const oldSlideId = slide.id || `old-slide-${idx}`;
+                        idMap[oldSlideId] = newSlideId;
                         slide.id = newSlideId;
+                        return { slide, oldSlideId };
+                    });
+
+                    mappedSlides.forEach(({ slide }) => {
+                        const elIdMap = {};
+                        slide.elements.forEach(el => {
+                            const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
+                            const oldElId = el.id || `old-el-${Math.random()}`;
+                            elIdMap[oldElId] = newElId;
+                            el.id = newElId;
+                        });
 
                         slide.elements.forEach(el => {
-                            const newElId = 'id-' + Math.random().toString(36).substring(2, 11);
-                            const oldElId = el.id;
-                            el.id = newElId;
-
-                            if (el.targetElementId === oldElId) {
-                                el.targetElementId = newElId;
+                            if (el.type === 'btn-nav' && el.targetSlideId) {
+                                if (idMap[el.targetSlideId]) {
+                                    el.targetSlideId = idMap[el.targetSlideId];
+                                }
+                            }
+                            if (el.type === 'btn-show-ans' && el.targetElementId) {
+                                if (elIdMap[el.targetElementId]) {
+                                    el.targetElementId = elIdMap[el.targetElementId];
+                                }
+                            }
+                            if (el.type === 'btn-toggle' && el.actions) {
+                                el.actions.forEach(act => {
+                                    if (elIdMap[act.targetId]) {
+                                        act.targetId = elIdMap[act.targetId];
+                                    }
+                                });
                             }
                         });
                     });
 
-                    if (modeVal === 'presentation') {
-                        const idMap = {};
-                        const slidesData = res.slides;
+                    if (!state.project) {
+                        state.project = {
+                            id: 'proj-' + Math.random().toString(36).substring(2, 11),
+                            name: promptVal || "AI Presentation",
+                            slides: []
+                        };
+                    }
+                    
+                    state.project.slides = slidesData;
+                    state.project.name = promptVal;
+                    state.selectedSlideId = slidesData[0].id;
+                    state.selectedElementId = null;
+                    state.selectedElementIds = [];
+                    
+                    state.markUnsaved();
+                    state.emit('project-loaded', state.project);
+                    state.emit('slide-list-changed', state.project.slides);
+                    state.emit('slide-changed', state.getActiveSlide());
+                } else {
+                    const quizSlide = res.slides[0];
+                    if (quizSlide) {
+                        const elIdMap = {};
+                        quizSlide.elements.forEach(el => {
+                            const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
+                            const oldElId = el.id || `old-el-${Math.random()}`;
+                            elIdMap[oldElId] = newElId;
+                            el.id = newElId;
+                        });
+
+                        quizSlide.elements.forEach(el => {
+                            if (el.type === 'btn-show-ans' && el.targetElementId) {
+                                if (elIdMap[el.targetElementId]) {
+                                    el.targetElementId = elIdMap[el.targetElementId];
+                                }
+                            }
+                            if (el.type === 'btn-toggle' && el.actions) {
+                                el.actions.forEach(act => {
+                                    if (elIdMap[act.targetId]) {
+                                        act.targetId = elIdMap[act.targetId];
+                                    }
+                                });
+                            }
+                        });
+
+                        quizSlide.id = 'slide-' + Math.random().toString(36).substring(2, 11);
                         
-                        const mappedSlides = slidesData.map((slide, idx) => {
-                            const newSlideId = 'slide-' + Math.random().toString(36).substring(2, 11);
-                            const oldSlideId = slide.id || `old-slide-${idx}`;
-                            idMap[oldSlideId] = newSlideId;
-                            slide.id = newSlideId;
-                            return { slide, oldSlideId };
-                        });
-
-                        mappedSlides.forEach(({ slide }) => {
-                            const elIdMap = {};
-                            slide.elements.forEach(el => {
-                                const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
-                                const oldElId = el.id || `old-el-${Math.random()}`;
-                                elIdMap[oldElId] = newElId;
-                                el.id = newElId;
-                            });
-
-                            slide.elements.forEach(el => {
-                                if (el.type === 'btn-nav' && el.targetSlideId) {
-                                    if (idMap[el.targetSlideId]) {
-                                        el.targetSlideId = idMap[el.targetSlideId];
-                                    }
-                                }
-                                if (el.type === 'btn-show-ans' && el.targetElementId) {
-                                    if (elIdMap[el.targetElementId]) {
-                                        el.targetElementId = elIdMap[el.targetElementId];
-                                    }
-                                }
-                                if (el.type === 'btn-toggle' && el.actions) {
-                                    el.actions.forEach(act => {
-                                        if (elIdMap[act.targetId]) {
-                                            act.targetId = elIdMap[act.targetId];
-                                        }
-                                    });
-                                }
-                            });
-                        });
-
                         if (!state.project) {
                             state.project = {
                                 id: 'proj-' + Math.random().toString(36).substring(2, 11),
-                                name: promptVal || "AI Presentation",
+                                name: "AI Quiz Project",
                                 slides: []
                             };
                         }
                         
-                        state.project.slides = slidesData;
-                        state.project.name = promptVal;
-                        state.selectedSlideId = slidesData[0].id;
+                        state.project.slides.push(quizSlide);
+                        state.selectedSlideId = quizSlide.id;
                         state.selectedElementId = null;
                         state.selectedElementIds = [];
-                        
+
                         state.markUnsaved();
-                        state.emit('project-loaded', state.project);
                         state.emit('slide-list-changed', state.project.slides);
                         state.emit('slide-changed', state.getActiveSlide());
-                    } else {
-                        const quizSlide = res.slides[0];
-                        if (quizSlide) {
-                            const elIdMap = {};
-                            quizSlide.elements.forEach(el => {
-                                const newElId = 'el-' + Math.random().toString(36).substring(2, 11);
-                                const oldElId = el.id || `old-el-${Math.random()}`;
-                                elIdMap[oldElId] = newElId;
-                                el.id = newElId;
-                            });
-
-                            quizSlide.elements.forEach(el => {
-                                if (el.type === 'btn-show-ans' && el.targetElementId) {
-                                    if (elIdMap[el.targetElementId]) {
-                                        el.targetElementId = elIdMap[el.targetElementId];
-                                    }
-                                }
-                                if (el.type === 'btn-toggle' && el.actions) {
-                                    el.actions.forEach(act => {
-                                        if (elIdMap[act.targetId]) {
-                                            act.targetId = elIdMap[act.targetId];
-                                        }
-                                    });
-                                }
-                            });
-
-                            quizSlide.id = 'slide-' + Math.random().toString(36).substring(2, 11);
-                            
-                            if (!state.project) {
-                                state.project = {
-                                    id: 'proj-' + Math.random().toString(36).substring(2, 11),
-                                    name: "AI Quiz Project",
-                                    slides: []
-                                };
-                            }
-                            
-                            state.project.slides.push(quizSlide);
-                            state.selectedSlideId = quizSlide.id;
-                            state.selectedElementId = null;
-                            state.selectedElementIds = [];
-
-                            state.markUnsaved();
-                            state.emit('slide-list-changed', state.project.slides);
-                            state.emit('slide-changed', state.getActiveSlide());
-                        }
                     }
-
-                    if (progressText) progressText.textContent = "Slides rendered successfully!";
-                    setTimeout(() => {
-                        if (progressContainer) progressContainer.classList.add('hidden');
-                    }, 1000);
-
-                    promptInput.value = '';
-                } else {
-                    throw new Error("Invalid response format. Missing slides array.");
                 }
-            } catch (err) {
-                console.error('[AI Generate Error]:', err);
-                if (errorText) errorText.textContent = err.message || "Failed to generate slides.";
-                if (errorBanner) errorBanner.classList.remove('hidden');
-                if (progressContainer) progressContainer.classList.add('hidden');
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides';
-                if (window.lucide) lucide.createIcons();
+
+                if (progressText) progressText.textContent = "Slides rendered successfully!";
+                setTimeout(() => {
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                }, 1000);
+
+                if (promptInput) promptInput.value = '';
+                const outlineContainer = document.getElementById('ai-outline-container');
+                if (outlineContainer) outlineContainer.classList.add('hidden');
+            } else {
+                throw new Error("Invalid response format. Missing slides array.");
             }
+        } catch (err) {
+            console.error('[AI Generate Error]:', err);
+            if (errorText) errorText.textContent = err.message || "Failed to generate slides.";
+            if (errorBanner) errorBanner.classList.remove('hidden');
+            if (progressContainer) progressContainer.classList.add('hidden');
+        } finally {
+            if (generateBtn) generateBtn.disabled = false;
+            if (generateAllBtn) generateAllBtn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    // Quick Generate button (Instant 1-click)
+    if (generateBtn) {
+        generateBtn.onclick = () => {
+            const promptVal = (promptInput ? promptInput.value : '').trim();
+            const modeVal = modeSelect ? modeSelect.value : 'presentation';
+            const themeVal = themeSelect ? themeSelect.value : 'Obsidian Dark';
+            const countVal = parseInt(slideCountInput ? slideCountInput.value : '4') || 4;
+            executeAISlideGeneration(promptVal, modeVal, themeVal, countVal, null);
+        };
+    }
+
+    // ==========================================
+    // AI OUTLINE PREVIEW WORKFLOW (Gamma Style)
+    // ==========================================
+    let currentOutlineData = [];
+
+    function renderOutlineList() {
+        const listContainer = document.getElementById('ai-outline-list');
+        const countBadge = document.getElementById('ai-outline-count-badge');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = '';
+        if (countBadge) countBadge.textContent = `${currentOutlineData.length} Slides`;
+
+        currentOutlineData.forEach((slide, idx) => {
+            const card = document.createElement('div');
+            card.className = 'ai-outline-card';
+            
+            const layoutTag = (slide.layoutType || 'slide').toUpperCase();
+            
+            card.innerHTML = `
+                <div class="ai-outline-card-top">
+                    <span class="ai-outline-card-tag">Slide ${idx + 1} • ${escapeHtml(layoutTag)}</span>
+                    <button type="button" class="ai-outline-card-del" title="Remove slide" data-idx="${idx}">
+                        <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+                    </button>
+                </div>
+                <input type="text" class="ai-outline-title-input" value="${escapeHtml(slide.title || '')}" placeholder="Slide title..." data-idx="${idx}">
+                <div class="ai-outline-focus-text">${escapeHtml(slide.focus || '')}</div>
+            `;
+            listContainer.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+
+        // Wire inputs to update in-memory outline
+        listContainer.querySelectorAll('.ai-outline-title-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.getAttribute('data-idx'));
+                if (currentOutlineData[idx]) {
+                    currentOutlineData[idx].title = e.target.value;
+                }
+            });
+        });
+
+        // Wire delete buttons
+        listContainer.querySelectorAll('.ai-outline-card-del').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-idx'));
+                if (!isNaN(idx)) {
+                    currentOutlineData.splice(idx, 1);
+                    renderOutlineList();
+                }
+            });
+        });
+    }
+
+    async function generateOutlineFlow(isRedraft = false) {
+        const promptVal = (promptInput ? promptInput.value : '').trim();
+        if (!promptVal) {
+            alert("Please enter a topic or prompt for slide outline generation.");
+            return;
+        }
+
+        const countVal = parseInt(slideCountInput ? slideCountInput.value : '4') || 4;
+        const outlineContainer = document.getElementById('ai-outline-container');
+        const redraftBtn = document.getElementById('btn-ai-outline-redraft');
+
+        if (previewOutlineBtn) previewOutlineBtn.disabled = true;
+        if (redraftBtn) redraftBtn.disabled = true;
+        if (progressContainer) progressContainer.classList.remove('hidden');
+        if (errorBanner) errorBanner.classList.add('hidden');
+        if (progressText) progressText.textContent = isRedraft ? "Re-drafting outline with Gemini..." : "Synthesizing presentation outline with Gemini...";
+
+        try {
+            const res = await window.SlideEngineAPI.generateOutline(promptVal, countVal);
+            if (res.slides && Array.isArray(res.slides) && res.slides.length > 0) {
+                currentOutlineData = res.slides;
+                renderOutlineList();
+                if (outlineContainer) {
+                    outlineContainer.classList.remove('hidden');
+                    outlineContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                if (progressText) progressText.textContent = "Outline ready!";
+                setTimeout(() => {
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                }, 800);
+            } else {
+                throw new Error("Gemini did not return outline slides.");
+            }
+        } catch (err) {
+            console.error('[AI Outline Error]:', err);
+            if (errorText) errorText.textContent = err.message || "Failed to generate outline.";
+            if (errorBanner) errorBanner.classList.remove('hidden');
+            if (progressContainer) progressContainer.classList.add('hidden');
+        } finally {
+            if (previewOutlineBtn) previewOutlineBtn.disabled = false;
+            if (redraftBtn) redraftBtn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    if (previewOutlineBtn) {
+        previewOutlineBtn.onclick = () => generateOutlineFlow(false);
+    }
+
+    // Add Slide to Outline
+    const addOutlineSlideBtn = document.getElementById('btn-ai-outline-add');
+    if (addOutlineSlideBtn) {
+        addOutlineSlideBtn.onclick = () => {
+            currentOutlineData.push({
+                slideIndex: currentOutlineData.length + 1,
+                title: `Key Insight ${currentOutlineData.length + 1}`,
+                focus: "Custom slide focus and key metrics",
+                layoutType: "split"
+            });
+            renderOutlineList();
+        };
+    }
+
+    // Re-draft outline button
+    const redraftBtn = document.getElementById('btn-ai-outline-redraft');
+    if (redraftBtn) {
+        redraftBtn.onclick = () => generateOutlineFlow(true);
+    }
+
+    // Generate Full Deck from Outline
+    const generateAllFromOutlineBtn = document.getElementById('btn-ai-outline-generate-all');
+    if (generateAllFromOutlineBtn) {
+        generateAllFromOutlineBtn.onclick = () => {
+            const promptVal = (promptInput ? promptInput.value : '').trim();
+            const themeVal = themeSelect ? themeSelect.value : 'Obsidian Dark';
+            executeAISlideGeneration(promptVal, 'presentation', themeVal, currentOutlineData.length, currentOutlineData);
         };
     }
 
@@ -3733,92 +4100,121 @@ function initEditorUI() {
     }
 
     // ==========================================
-    // AI ASSET GENERATOR BINDINGS
+    // AI ASSET GENERATOR BINDINGS (Visual Studio)
     // ==========================================
     const generateAssetBtn = document.getElementById('btn-ai-generate-asset');
     const assetPromptInput = document.getElementById('ai-asset-prompt');
-    const assetProgress = document.getElementById('ai-asset-progress');
-    const assetProgressText = document.getElementById('ai-asset-progress-text');
-    const assetError = document.getElementById('ai-asset-error');
-    const assetErrorText = document.getElementById('ai-asset-error-text');
-
-    // Inspiration prompt chips
-    document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            const prompt = chip.getAttribute('data-prompt');
-            if (prompt && assetPromptInput) {
-                assetPromptInput.value = prompt;
-                assetPromptInput.focus();
-            }
-        });
-    });
+    const assetResultCard = document.getElementById('ai-asset-result-card');
+    const assetPreviewImg = document.getElementById('ai-asset-preview-img');
+    const assetAddCanvasBtn = document.getElementById('btn-ai-asset-add-canvas');
+    const assetSetBgBtn = document.getElementById('btn-ai-asset-set-bg');
+    let lastGeneratedAssetUrl = null;
 
     if (generateAssetBtn) {
         generateAssetBtn.onclick = async () => {
-            const promptVal = (assetPromptInput.value || '').trim();
+            const promptVal = (assetPromptInput ? assetPromptInput.value : '').trim();
             if (!promptVal) {
-                alert("Please enter a description for the illustration to generate.");
+                alert("Please enter a description for the visual illustration to synthesize.");
                 return;
             }
 
+            generateAssetBtn.disabled = true;
+            generateAssetBtn.textContent = "Synthesizing Image...";
+            if (progressContainer) progressContainer.classList.remove('hidden');
+            if (errorBanner) errorBanner.classList.add('hidden');
+            if (progressText) progressText.textContent = "Synthesizing AI visual asset (Pollinations/Imagen, ~5s)...";
+
+            try {
+                const res = await window.SlideEngineAPI.generateAsset(promptVal);
+                if (res.success && res.url) {
+                    lastGeneratedAssetUrl = res.url;
+                    if (assetPreviewImg) assetPreviewImg.src = res.url;
+                    if (assetResultCard) assetResultCard.classList.remove('hidden');
+                    
+                    if (progressText) progressText.textContent = "Visual asset synthesized!";
+                    setTimeout(() => {
+                        if (progressContainer) progressContainer.classList.add('hidden');
+                    }, 800);
+                } else {
+                    throw new Error(res.message || "Failed to synthesize visual asset.");
+                }
+            } catch (err) {
+                console.error('[AI Asset Error]:', err);
+                if (errorText) errorText.textContent = err.message || "Failed to generate image.";
+                if (errorBanner) errorBanner.classList.remove('hidden');
+                if (progressContainer) progressContainer.classList.add('hidden');
+            } finally {
+                generateAssetBtn.disabled = false;
+                generateAssetBtn.innerHTML = '<i data-lucide="wand-2" style="width: 15px; height: 15px;"></i> <span>Synthesize Image Asset</span>';
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+
+    if (assetAddCanvasBtn) {
+        assetAddCanvasBtn.onclick = () => {
+            if (!lastGeneratedAssetUrl) return;
             const activeSlide = state.getActiveSlide();
             if (!activeSlide) {
                 alert("Please select or add a slide first.");
                 return;
             }
 
-            generateAssetBtn.disabled = true;
-            generateAssetBtn.textContent = "Generating...";
-            if (assetProgress) assetProgress.classList.remove('hidden');
-            if (assetError) assetError.classList.add('hidden');
-            if (assetProgressText) assetProgressText.textContent = "Generating visual asset (usually takes 5-10s)...";
+            state.pushHistory();
 
-            try {
-                const res = await window.SlideEngineAPI.generateAsset(promptVal);
-                if (res.success && res.url) {
-                    if (assetProgressText) assetProgressText.textContent = "Inserting asset into canvas...";
+            const newElId = 'ai-image-' + Math.random().toString(36).substring(2, 9);
+            const newElement = {
+                id: newElId,
+                type: 'image',
+                x: 460,
+                y: 190,
+                width: 1000,
+                height: 700,
+                visible: true,
+                zIndex: activeSlide.elements.length + 1,
+                url: lastGeneratedAssetUrl,
+                fileData: null
+            };
 
-                    state.pushHistory();
+            activeSlide.elements.push(newElement);
+            state.selectedElementId = newElId;
+            state.selectedElementIds = [newElId];
+            state.markUnsaved();
 
-                    const newElId = 'ai-image-' + Math.random().toString(36).substring(2, 9);
-                    const newElement = {
-                        id: newElId,
-                        type: 'image',
-                        x: 460,
-                        y: 190,
-                        width: 1000,
-                        height: 700,
-                        visible: true,
-                        zIndex: activeSlide.elements.length + 1,
-                        url: res.url,
-                        fileData: null
-                    };
+            state.emit('selection-changed', newElement);
+            state.emit('slide-changed', activeSlide);
 
-                    activeSlide.elements.push(newElement);
-                    state.selectedElementId = newElId;
-                    state.selectedElementIds = [newElId];
-                    state.markUnsaved();
+            if (window.editorCanvas) {
+                window.editorCanvas.renderSlide(activeSlide);
+            }
+        };
+    }
 
-                    state.emit('selection-changed', newElement);
-                    state.emit('slide-changed', activeSlide);
+    if (assetSetBgBtn) {
+        assetSetBgBtn.onclick = () => {
+            if (!lastGeneratedAssetUrl) return;
+            const activeSlide = state.getActiveSlide();
+            if (!activeSlide) {
+                alert("Please select or add a slide first.");
+                return;
+            }
 
-                    if (window.editorCanvas) {
-                        window.editorCanvas.renderSlide(activeSlide);
-                    }
+            state.pushHistory();
 
-                    assetPromptInput.value = '';
-                } else {
-                    throw new Error(res.message || "Failed to generate visual asset.");
-                }
-            } catch (err) {
-                console.error('[AI Asset Error]:', err);
-                if (assetErrorText) assetErrorText.textContent = err.message || "Failed to generate image.";
-                if (assetError) assetError.classList.remove('hidden');
-            } finally {
-                generateAssetBtn.disabled = false;
-                generateAssetBtn.innerHTML = '<i data-lucide="wand-2" style="width: 14px; height: 14px;"></i> <span>Generate & Insert</span>';
-                if (assetProgress) assetProgress.classList.add('hidden');
-                if (window.lucide) lucide.createIcons();
+            activeSlide.background = {
+                type: 'image',
+                imageUrl: lastGeneratedAssetUrl,
+                color: '#000000',
+                gradientStart: '#0b0f19',
+                gradientEnd: '#1e293b',
+                gradientAngle: 135
+            };
+
+            state.markUnsaved();
+            state.emit('slide-changed', activeSlide);
+
+            if (window.editorCanvas) {
+                window.editorCanvas.renderSlide(activeSlide);
             }
         };
     }
@@ -4812,6 +5208,61 @@ function initEditorUI() {
         const lineHeightInput = document.getElementById('elem-line-height');
         const letterSpacingInput = document.getElementById('elem-letter-spacing');
 
+        // Card Architect Mode Switcher & Panels
+        const btnModeCardArchitect = document.getElementById('btn-mode-card-architect');
+        const btnModePlainText = document.getElementById('btn-mode-plain-text');
+        const panelCardArchitect = document.getElementById('magic-card-architect-panel');
+        const panelPlainText = document.getElementById('plain-text-panel');
+
+        // Card Architect Semantic Fields
+        const cardHeadingInput = document.getElementById('card-heading-input');
+        const cardSubtextInput = document.getElementById('card-subtext-input');
+
+        // Card Architect AI Buttons
+        const btnAiAutoStructure = document.getElementById('btn-ai-auto-structure');
+        const btnAiAutoBalance = document.getElementById('btn-ai-auto-balance');
+        const btnAiPunchyTitle = document.getElementById('btn-ai-punchy-title');
+        const btnAiShortenSubtext = document.getElementById('btn-ai-shorten-subtext');
+        const btnAiBulletizeSubtext = document.getElementById('btn-ai-bulletize-subtext');
+        const btnAiPolishSubtext = document.getElementById('btn-ai-polish-subtext');
+
+        // Subtext Typography Scope & Compatibility Elements
+        const typoScopeContainer = document.getElementById('typo-scope-container');
+        const btnScopeHeading = document.getElementById('btn-scope-heading');
+        const btnScopeSubtext = document.getElementById('btn-scope-subtext');
+        const subtextActiveDot = document.getElementById('subtext-active-dot');
+
+        const btnToggleSubtext = document.getElementById('btn-toggle-subtext');
+        const subtextToggleLabel = document.getElementById('subtext-toggle-label');
+        const elemHasSubtext = document.getElementById('elem-has-subtext');
+
+        const groupHeadingStyles = document.getElementById('group-text-styles');
+        const groupSubtextStyles = document.getElementById('group-subtext-styles');
+
+        const subtextGapInput = document.getElementById('elem-subtext-gap');
+        const subtextWeightSelect = document.getElementById('elem-subtext-weight');
+        const subtextSizeInput = document.getElementById('elem-subtext-size');
+        const btnSubtextSizeDec = document.getElementById('btn-subtext-size-dec');
+        const btnSubtextSizeInc = document.getElementById('btn-subtext-size-inc');
+        const subtextSizeScrubWrapper = document.getElementById('subtext-size-scrub-wrapper');
+
+        const subtextAlignBtns = document.querySelectorAll('.btn-subtext-align');
+        const subtextAlignSelect = document.getElementById('elem-subtext-align');
+
+        const subtextBoldBtn = document.getElementById('btn-subtext-format-bold');
+        const subtextItalicBtn = document.getElementById('btn-subtext-format-italic');
+        const subtextUnderlineBtn = document.getElementById('btn-subtext-format-underline');
+        const subtextUppercaseBtn = document.getElementById('btn-subtext-format-uppercase');
+        const subtextStrikethroughBtn = document.getElementById('btn-subtext-format-strikethrough');
+
+        const subtextColorTrigger = document.getElementById('btn-subtext-color-trigger');
+        const subtextColorHex = document.getElementById('elem-subtext-color-hex');
+        const subtextColorNative = document.getElementById('elem-subtext-color');
+        const subtextColorPreview = document.getElementById('subtext-color-swatch-preview');
+
+        const subtextLineHeightInput = document.getElementById('elem-subtext-line-height');
+        const subtextLetterSpacingInput = document.getElementById('elem-subtext-letter-spacing');
+
         // Character counter
         const updateCharCount = () => {
             if (charBadge && textInput) {
@@ -5044,6 +5495,397 @@ function initEditorUI() {
         setupMetricScrubber('.typo-metric-badge[title*="Line Height"]', lineHeightInput, 0.1, 0.5, 3.0, true);
         setupMetricScrubber('.typo-metric-badge[title*="Letter Spacing"]', letterSpacingInput, 1, -10, 50, false);
 
+        // =========================================================================
+        // CARD ARCHITECT MODE & SYNCHRONIZATION
+        // =========================================================================
+        let activeCardMode = 'architect'; // 'architect' | 'plain'
+
+        const setCardMode = (mode) => {
+            activeCardMode = mode;
+            const elem = state.getActiveElement();
+            if (mode === 'plain') {
+                btnModePlainText?.classList.add('active');
+                btnModeCardArchitect?.classList.remove('active');
+                if (panelPlainText) panelPlainText.style.display = 'block';
+                if (panelCardArchitect) panelCardArchitect.style.display = 'none';
+
+                if (elem && textInput) {
+                    if (elem.hasSubtext && elem.subtext) {
+                        textInput.value = (elem.text || '') + '\n\n' + (elem.subtext || '');
+                    } else {
+                        textInput.value = elem.text || '';
+                    }
+                    updateCharCount();
+                }
+            } else {
+                btnModeCardArchitect?.classList.add('active');
+                btnModePlainText?.classList.remove('active');
+                if (panelCardArchitect) panelCardArchitect.style.display = 'flex';
+                if (panelPlainText) panelPlainText.style.display = 'none';
+
+                if (elem) {
+                    // Auto-split if element has multiline text and no explicit subtext
+                    if (elem.text && !elem.subtext && elem.text.includes('\n')) {
+                        const raw = elem.text;
+                        const dIdx = raw.indexOf('\n\n');
+                        let h = raw, s = '';
+                        if (dIdx !== -1) {
+                            h = raw.substring(0, dIdx).trim();
+                            s = raw.substring(dIdx + 2).trim();
+                        } else {
+                            const sIdx = raw.indexOf('\n');
+                            h = raw.substring(0, sIdx).trim();
+                            s = raw.substring(sIdx + 1).trim();
+                        }
+                        elem.text = h;
+                        elem.subtext = s;
+                        elem.hasSubtext = true;
+                        if (cardHeadingInput) cardHeadingInput.value = h;
+                        if (cardSubtextInput) cardSubtextInput.value = s;
+                        updateActiveElemAndSave({ text: h, subtext: s, hasSubtext: true });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    } else {
+                        if (cardHeadingInput) cardHeadingInput.value = elem.text || '';
+                        if (cardSubtextInput) cardSubtextInput.value = elem.subtext || '';
+                    }
+                }
+            }
+        };
+
+        btnModeCardArchitect?.addEventListener('click', () => setCardMode('architect'));
+        btnModePlainText?.addEventListener('click', () => setCardMode('plain'));
+
+        // Heading Input Listener
+        cardHeadingInput?.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const elem = state.getActiveElement();
+            if (!elem) return;
+            elem.text = val;
+            if (textInput) {
+                textInput.value = (elem.hasSubtext && elem.subtext) ? `${val}\n\n${elem.subtext}` : val;
+                updateCharCount();
+            }
+            updateActiveElem({ text: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        cardHeadingInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = e.target.value;
+            updateActiveElemAndSave({ text: val });
+        });
+
+        // Subtext Input Listener
+        cardSubtextInput?.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const elem = state.getActiveElement();
+            if (!elem) return;
+            elem.subtext = val;
+            elem.hasSubtext = true;
+            if (elemHasSubtext) elemHasSubtext.checked = true;
+            if (textInput) {
+                textInput.value = (elem.text || '') + (val ? `\n\n${val}` : '');
+                updateCharCount();
+            }
+            updateActiveElem({ subtext: val, hasSubtext: true });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        cardSubtextInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = e.target.value;
+            updateActiveElemAndSave({ subtext: val, hasSubtext: true });
+        });
+
+        // =========================================================================
+        // AI CARD ACTIONS
+        // =========================================================================
+        const handleAiCardAction = async (actionName, btnEl) => {
+            if (!btnEl) return;
+            const elem = state.getActiveElement();
+            if (!elem) return;
+
+            const originalHtml = btnEl.innerHTML;
+            btnEl.classList.add('loading');
+            btnEl.disabled = true;
+
+            try {
+                const payload = {
+                    action: actionName,
+                    text: elem.text || cardHeadingInput?.value || '',
+                    subtext: elem.subtext || cardSubtextInput?.value || '',
+                    fontSize: elem.fontSize || 28,
+                    subtextSize: elem.subtextSize || 16,
+                    cardType: elem.type || 'text',
+                    currentWeight: elem.fontWeight || '400',
+                    subtextWeight: elem.subtextFontWeight || '400'
+                };
+
+                const resp = await api.executeCardAction(payload);
+                if (resp && resp.success && resp.data) {
+                    state.pushHistory();
+                    const data = resp.data;
+                    const updates = {};
+                    if (data.heading !== undefined) {
+                        updates.text = data.heading;
+                        if (cardHeadingInput) cardHeadingInput.value = data.heading;
+                    }
+                    if (data.subtext !== undefined) {
+                        updates.subtext = data.subtext;
+                        updates.hasSubtext = true;
+                        if (cardSubtextInput) cardSubtextInput.value = data.subtext;
+                    }
+                    if (data.fontSize) {
+                        updates.fontSize = data.fontSize;
+                        if (sizeInput) sizeInput.value = data.fontSize;
+                    }
+                    if (data.subtextSize) {
+                        updates.subtextSize = data.subtextSize;
+                        if (subtextSizeInput) subtextSizeInput.value = data.subtextSize;
+                    }
+                    if (data.gap !== undefined) {
+                        updates.subtextGap = data.gap;
+                        if (subtextGapInput) subtextGapInput.value = data.gap;
+                    }
+                    if (data.fontWeight) {
+                        updates.fontWeight = data.fontWeight;
+                        if (weightSelect) weightSelect.value = data.fontWeight;
+                    }
+                    if (data.subtextFontWeight) {
+                        updates.subtextFontWeight = data.subtextFontWeight;
+                        if (subtextWeightSelect) subtextWeightSelect.value = data.subtextFontWeight;
+                    }
+
+                    updateActiveElemAndSave(updates);
+                    const slide = state.getActiveSlide();
+                    if (slide) canvas.renderSlide(slide);
+                    window.syncTypographyStudioUI?.(state.getActiveElement());
+
+                    if (window.showToast) {
+                        showToast(`AI Card: ${actionName.replace('-', ' ')} applied!`, 'success');
+                    }
+                } else {
+                    if (window.showToast) {
+                        showToast(resp?.error || 'AI card action failed', 'error');
+                    }
+                }
+            } catch (err) {
+                console.error('AI Card Action error:', err);
+                if (window.showToast) {
+                    showToast('AI Card Action failed: ' + err.message, 'error');
+                }
+            } finally {
+                btnEl.classList.remove('loading');
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalHtml;
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+
+        btnAiAutoStructure?.addEventListener('click', () => handleAiCardAction('auto-structure', btnAiAutoStructure));
+        btnAiAutoBalance?.addEventListener('click', () => handleAiCardAction('auto-balance', btnAiAutoBalance));
+        btnAiPunchyTitle?.addEventListener('click', () => handleAiCardAction('punchy-title', btnAiPunchyTitle));
+        btnAiShortenSubtext?.addEventListener('click', () => handleAiCardAction('shorten', btnAiShortenSubtext));
+        btnAiBulletizeSubtext?.addEventListener('click', () => handleAiCardAction('bulletize', btnAiBulletizeSubtext));
+        btnAiPolishSubtext?.addEventListener('click', () => handleAiCardAction('polish', btnAiPolishSubtext));
+
+        // Subtext Weight Select
+        subtextWeightSelect?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = e.target.value;
+            const isBold = parseInt(val) >= 700;
+            updateActiveElemAndSave({ subtextFontWeight: val, subtextIsBold: isBold });
+            if (subtextBoldBtn) subtextBoldBtn.classList.toggle('active', isBold);
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        // Subtext Font Size Steppers & Scrubbing
+        const changeSubtextSize = (delta) => {
+            if (!subtextSizeInput) return;
+            state.pushHistory();
+            const cur = parseInt(subtextSizeInput.value) || 18;
+            const newVal = Math.max(8, Math.min(144, cur + delta));
+            subtextSizeInput.value = newVal;
+            updateActiveElemAndSave({ subtextSize: newVal });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        };
+        btnSubtextSizeDec?.addEventListener('click', () => changeSubtextSize(-2));
+        btnSubtextSizeInc?.addEventListener('click', () => changeSubtextSize(2));
+
+        subtextSizeInput?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val)) {
+                updateActiveElem({ subtextSize: val });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        subtextSizeInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = parseInt(e.target.value) || 18;
+            updateActiveElemAndSave({ subtextSize: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        if (subtextSizeScrubWrapper && subtextSizeInput) {
+            let startX = 0;
+            let startVal = 18;
+            let isScrubbing = false;
+
+            subtextSizeScrubWrapper.addEventListener('pointerdown', (e) => {
+                if (e.target === subtextSizeInput) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseInt(subtextSizeInput.value) || 18;
+                isScrubbing = false;
+                subtextSizeScrubWrapper.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const multiplier = ev.shiftKey ? 5 : (ev.altKey ? 0.5 : 1);
+                        const delta = Math.round(dx / 3) * multiplier;
+                        const newVal = Math.max(8, Math.min(144, Math.round(startVal + delta)));
+                        subtextSizeInput.value = newVal;
+                        updateActiveElem({ subtextSize: newVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                const onUp = (ev) => {
+                    subtextSizeScrubWrapper.removeEventListener('pointermove', onMove);
+                    subtextSizeScrubWrapper.removeEventListener('pointerup', onUp);
+                    subtextSizeScrubWrapper.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        const finalVal = parseInt(subtextSizeInput.value) || 18;
+                        updateActiveElemAndSave({ subtextSize: finalVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                subtextSizeScrubWrapper.addEventListener('pointermove', onMove);
+                subtextSizeScrubWrapper.addEventListener('pointerup', onUp);
+                subtextSizeScrubWrapper.addEventListener('pointercancel', onUp);
+            });
+        }
+
+        // Subtext Alignment Segmented Control
+        subtextAlignBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const alignVal = btn.getAttribute('data-align');
+                state.pushHistory();
+                subtextAlignBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if (subtextAlignSelect) subtextAlignSelect.value = alignVal;
+                updateActiveElemAndSave({ subtextAlign: alignVal });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        });
+
+        // Subtext Format Toggles
+        bindFormatToggle(subtextBoldBtn, 'subtextIsBold', (active) => {
+            const weightVal = active ? '700' : '400';
+            if (subtextWeightSelect) subtextWeightSelect.value = weightVal;
+            return { subtextFontWeight: weightVal };
+        });
+        bindFormatToggle(subtextItalicBtn, 'subtextItalic');
+        bindFormatToggle(subtextUnderlineBtn, 'subtextUnderline');
+        bindFormatToggle(subtextUppercaseBtn, 'subtextUppercase');
+        bindFormatToggle(subtextStrikethroughBtn, 'subtextStrikethrough');
+
+        // Subtext Color Trigger
+        subtextColorTrigger?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.pushHistory();
+            openCustomColorPicker(subtextColorTrigger, subtextColorHex, (col) => {
+                if (subtextColorPreview) subtextColorPreview.style.backgroundColor = col === 'transparent' ? 'transparent' : col;
+                if (subtextColorNative) subtextColorNative.value = col === 'transparent' ? '#000000' : col;
+                if (subtextColorHex) subtextColorHex.value = col;
+                updateActiveElem({ subtextColor: col });
+                canvas.renderSlide(state.getActiveSlide());
+                canvas.drawSelectionUI();
+            });
+        });
+
+        subtextColorHex?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const col = e.target.value.trim();
+            if (subtextColorPreview) subtextColorPreview.style.backgroundColor = col;
+            if (subtextColorNative) subtextColorNative.value = col;
+            updateActiveElemAndSave({ subtextColor: col });
+            canvas.renderSlide(state.getActiveSlide());
+        });
+
+        // Subtext Gap
+        subtextGapInput?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val)) {
+                updateActiveElem({ subtextGap: val });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        subtextGapInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = parseInt(e.target.value);
+            const finalVal = !isNaN(val) ? val : 16;
+            updateActiveElemAndSave({ subtextGap: finalVal });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        // Subtext Line Height & Letter Spacing
+        subtextLineHeightInput?.addEventListener('input', (e) => {
+            const raw = parseFloat(e.target.value);
+            if (!isNaN(raw)) {
+                updateActiveElem({ subtextLineHeight: raw });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        subtextLineHeightInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const raw = parseFloat(e.target.value);
+            const val = !isNaN(raw) ? raw : 1.4;
+            updateActiveElemAndSave({ subtextLineHeight: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        subtextLetterSpacingInput?.addEventListener('input', (e) => {
+            const raw = parseFloat(e.target.value);
+            if (!isNaN(raw)) {
+                updateActiveElem({ subtextLetterSpacing: raw });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        subtextLetterSpacingInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const raw = parseFloat(e.target.value);
+            const val = !isNaN(raw) ? raw : 0;
+            updateActiveElemAndSave({ subtextLetterSpacing: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        setupMetricScrubber('.typo-metric-badge[title*="Subtext Line Height"]', subtextLineHeightInput, 0.1, 0.5, 3.0, true);
+        setupMetricScrubber('.typo-metric-badge[title*="Subtext Letter Spacing"]', subtextLetterSpacingInput, 1, -10, 50, false);
+
         // Global sync function for Studio UI
         window.syncTypographyStudioUI = function(element) {
             if (!element) return;
@@ -5081,6 +5923,82 @@ function initEditorUI() {
             // Typeface trigger sync
             if (window.updateStudioFontTrigger) {
                 window.updateStudioFontTrigger(element.fontFamily || 'Outfit');
+            }
+
+            // Subtext Status & Indicators
+            const isSubtextActive = !!(element.hasSubtext || element.subtext || element.subtextSize || element.subtextColor || element.subtextFontWeight);
+            if (subtextActiveDot) {
+                subtextActiveDot.style.display = isSubtextActive ? 'inline-block' : 'none';
+            }
+            if (btnToggleSubtext) {
+                btnToggleSubtext.classList.toggle('active', isSubtextActive);
+            }
+            if (subtextToggleLabel) {
+                subtextToggleLabel.textContent = isSubtextActive ? 'Subtext: Active' : 'Subtext: Off';
+            }
+            if (elemHasSubtext) {
+                elemHasSubtext.checked = isSubtextActive;
+            }
+
+            // Subtext Values Sync
+            const subWeight = element.subtextFontWeight ? String(element.subtextFontWeight) : (element.subtextIsBold ? '700' : '400');
+            if (subtextWeightSelect) subtextWeightSelect.value = subWeight;
+
+            const subSize = element.subtextSize || Math.max(12, Math.round((element.fontSize || 24) * 0.65));
+            if (subtextSizeInput) subtextSizeInput.value = subSize;
+
+            const subAlign = element.subtextAlign || element.align || 'left';
+            if (subtextAlignSelect) subtextAlignSelect.value = subAlign;
+            subtextAlignBtns.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === subAlign);
+            });
+
+            if (subtextBoldBtn) subtextBoldBtn.classList.toggle('active', !!(element.subtextIsBold || (element.subtextFontWeight && parseInt(element.subtextFontWeight) >= 700)));
+            if (subtextItalicBtn) subtextItalicBtn.classList.toggle('active', !!element.subtextItalic);
+            if (subtextUnderlineBtn) subtextUnderlineBtn.classList.toggle('active', !!element.subtextUnderline);
+            if (subtextUppercaseBtn) subtextUppercaseBtn.classList.toggle('active', !!element.subtextUppercase);
+            if (subtextStrikethroughBtn) subtextStrikethroughBtn.classList.toggle('active', !!element.subtextStrikethrough);
+
+            const subCol = element.subtextColor || '#94a3b8';
+            if (subtextColorPreview) subtextColorPreview.style.backgroundColor = subCol === 'transparent' ? 'transparent' : subCol;
+            if (subtextColorHex) subtextColorHex.value = subCol;
+            if (subtextColorNative) subtextColorNative.value = subCol === 'transparent' ? '#000000' : subCol;
+
+            if (subtextGapInput) subtextGapInput.value = element.subtextGap !== undefined ? element.subtextGap : 16;
+            if (subtextLineHeightInput) subtextLineHeightInput.value = element.subtextLineHeight !== undefined ? element.subtextLineHeight : 1.4;
+            if (subtextLetterSpacingInput) subtextLetterSpacingInput.value = element.subtextLetterSpacing !== undefined ? element.subtextLetterSpacing : 0;
+
+            // Sync Card Architect Inputs
+            if (element.hasSubtext || element.subtext) {
+                if (cardHeadingInput) cardHeadingInput.value = element.text || '';
+                if (cardSubtextInput) cardSubtextInput.value = element.subtext || '';
+            } else if (element.text && element.text.includes('\n')) {
+                const raw = element.text;
+                const dIdx = raw.indexOf('\n\n');
+                if (dIdx !== -1) {
+                    if (cardHeadingInput) cardHeadingInput.value = raw.substring(0, dIdx).trim();
+                    if (cardSubtextInput) cardSubtextInput.value = raw.substring(dIdx + 2).trim();
+                } else {
+                    const sIdx = raw.indexOf('\n');
+                    if (cardHeadingInput) cardHeadingInput.value = raw.substring(0, sIdx).trim();
+                    if (cardSubtextInput) cardSubtextInput.value = raw.substring(sIdx + 1).trim();
+                }
+            } else {
+                if (cardHeadingInput) cardHeadingInput.value = element.text || '';
+                if (cardSubtextInput) cardSubtextInput.value = element.subtext || '';
+            }
+
+            // Sync Card Architect mode
+            if (activeCardMode === 'plain') {
+                if (panelPlainText) panelPlainText.style.display = 'block';
+                if (panelCardArchitect) panelCardArchitect.style.display = 'none';
+                btnModePlainText?.classList.add('active');
+                btnModeCardArchitect?.classList.remove('active');
+            } else {
+                if (panelCardArchitect) panelCardArchitect.style.display = 'flex';
+                if (panelPlainText) panelPlainText.style.display = 'none';
+                btnModeCardArchitect?.classList.add('active');
+                btnModePlainText?.classList.remove('active');
             }
         };
 

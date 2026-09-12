@@ -32,6 +32,10 @@ window.SlideEngineAPI = {
         if (this.token) {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
+        const geminiKey = localStorage.getItem('slide_engine_gemini_api_key');
+        if (geminiKey) {
+            headers['X-Gemini-Api-Key'] = geminiKey;
+        }
 
         const url = `${this.baseUrl}${path}`;
 
@@ -109,16 +113,28 @@ window.SlideEngineAPI = {
     },
 
     async updateGeminiKey(geminiApiKey) {
+        if (geminiApiKey) {
+            localStorage.setItem('slide_engine_gemini_api_key', geminiApiKey);
+        } else {
+            localStorage.removeItem('slide_engine_gemini_api_key');
+        }
         return await this.request('/api/auth/update-gemini-key', {
             method: 'POST',
             body: JSON.stringify({ geminiApiKey })
         });
     },
 
-    async generateAI(prompt, mode, theme, slideCount) {
+    async generateOutline(prompt, slideCount) {
+        return await this.request('/api/ai/outline', {
+            method: 'POST',
+            body: JSON.stringify({ prompt, slideCount })
+        });
+    },
+
+    async generateAI(prompt, mode, theme, slideCount, outline = null) {
         return await this.request('/api/ai/generate', {
             method: 'POST',
-            body: JSON.stringify({ prompt, mode, theme, slideCount })
+            body: JSON.stringify({ prompt, mode, theme, slideCount, outline })
         });
     },
 
@@ -133,6 +149,13 @@ window.SlideEngineAPI = {
         return await this.request('/api/ai/generate-asset', {
             method: 'POST',
             body: JSON.stringify({ prompt })
+        });
+    },
+
+    async executeCardAction(payload) {
+        return await this.request('/api/ai/card-action', {
+            method: 'POST',
+            body: JSON.stringify(payload)
         });
     },
 

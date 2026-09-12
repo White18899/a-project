@@ -501,54 +501,205 @@ class SlideCanvas {
             });
             
             const rawText = elem.text || '';
-            const displayText = elem.isUppercase ? rawText.toUpperCase() : rawText;
-            const pixiText = new PIXI.Text(displayText, textStyle);
-            
-            // Alignments
-            pixiText.x = padding;
-            if (resolvedAlign === 'center') {
-                pixiText.x = contentWidth / 2;
-                pixiText.anchor.x = 0.5;
-            } else if (resolvedAlign === 'right') {
-                pixiText.x = contentWidth - padding;
-                pixiText.anchor.x = 1;
-            }
-            
-            // Center text vertically
-            pixiText.y = (contentHeight - pixiText.height) / 2;
-            if (pixiText.y < padding) pixiText.y = padding;
-            
-            container.addChild(pixiText);
-            container.textNode = pixiText; // Ref for runtime update
+            const hasSubtextStyling = Boolean(
+                elem.hasSubtext || 
+                elem.subtext || 
+                (elem.subtextSize && elem.subtextSize !== elem.fontSize) || 
+                (elem.subtextColor && elem.subtextColor !== elem.textColor) ||
+                elem.subtextFontWeight
+            );
 
-            // Decorative underline & strikethrough lines (rendered on top of text)
-            if (elem.isUnderline || elem.isStrikethrough) {
-                const decoGraphics = new PIXI.Graphics();
-                container.addChild(decoGraphics);
+            let headingText = rawText;
+            let subtextContent = elem.subtext || '';
 
-                const parseColor = (colStr) => {
-                    if (!colStr || colStr === 'transparent') return 0xffffff;
-                    return parseInt(colStr.replace('#', '0x')) || 0xffffff;
-                };
-                const textCol = parseColor(elem.textColor);
-                const textLineW = Math.max(2, Math.round((elem.fontSize || 24) / 14));
-                
-                let startX = pixiText.x;
-                if (resolvedAlign === 'center') startX = (contentWidth - pixiText.width) / 2;
-                else if (resolvedAlign === 'right') startX = contentWidth - padding - pixiText.width;
-                const endX = startX + pixiText.width;
-
-                if (elem.isUnderline) {
-                    decoGraphics.lineStyle(textLineW, textCol, 1);
-                    const lineY = Math.min(contentHeight - 2, pixiText.y + pixiText.height - 2);
-                    decoGraphics.moveTo(startX, lineY);
-                    decoGraphics.lineTo(endX, lineY);
+            if (hasSubtextStyling && !subtextContent && headingText.includes('\n')) {
+                // Auto-split first line/paragraph as heading, and remainder as subtext
+                const doubleNewlineIdx = headingText.indexOf('\n\n');
+                if (doubleNewlineIdx !== -1) {
+                    subtextContent = headingText.substring(doubleNewlineIdx + 2).trim();
+                    headingText = headingText.substring(0, doubleNewlineIdx).trim();
+                } else {
+                    const singleNewlineIdx = headingText.indexOf('\n');
+                    subtextContent = headingText.substring(singleNewlineIdx + 1).trim();
+                    headingText = headingText.substring(0, singleNewlineIdx).trim();
                 }
-                if (elem.isStrikethrough) {
-                    decoGraphics.lineStyle(textLineW, textCol, 1);
-                    const lineY = pixiText.y + (pixiText.height / 2);
-                    decoGraphics.moveTo(startX, lineY);
-                    decoGraphics.lineTo(endX, lineY);
+            }
+
+            if (hasSubtextStyling && subtextContent) {
+                // Dual-node rendering: Heading + Subtext
+                const displayHeading = elem.isUppercase ? headingText.toUpperCase() : headingText;
+                const headingPixiText = new PIXI.Text(displayHeading, textStyle);
+
+                // Subtext style
+                const subtextSizeVal = typeof elem.subtextSize === 'number' ? elem.subtextSize : (parseFloat(elem.subtextSize) || Math.max(12, Math.round((elem.fontSize || 24) * 0.65)));
+                const subtextWeightVal = elem.subtextFontWeight ? String(elem.subtextFontWeight) : (elem.subtextBold ? 'bold' : 'normal');
+                const subtextStyleVal = elem.subtextItalic ? 'italic' : 'normal';
+                const subtextLetterSpacingVal = typeof elem.subtextLetterSpacing === 'number' ? elem.subtextLetterSpacing : (parseFloat(elem.subtextLetterSpacing) || 0);
+                const rawSubLh = typeof elem.subtextLineHeight === 'number' ? elem.subtextLineHeight : parseFloat(elem.subtextLineHeight);
+                const subtextResolvedLh = !isNaN(rawSubLh) && rawSubLh > 0
+                    ? (rawSubLh < 5 ? Math.round(subtextSizeVal * rawSubLh) : Math.round(rawSubLh))
+                    : Math.round(subtextSizeVal * 1.35);
+
+                const subtextResolvedAlign = elem.subtextAlign || resolvedAlign;
+
+                const subtextTextStyle = new PIXI.TextStyle({
+                    fontFamily: elem.subtextFontFamily || (isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit')),
+                    fontSize: isRpg ? Math.max(subtextSizeVal - 6, 10) : subtextSizeVal,
+                    fontWeight: subtextWeightVal,
+                    fontStyle: subtextStyleVal,
+                    letterSpacing: subtextLetterSpacingVal,
+                    lineHeight: subtextResolvedLh,
+                    fill: elem.subtextColor || elem.textColor || '#ffffff',
+                    align: subtextResolvedAlign,
+                    wordWrap: true,
+                    wordWrapWidth: contentWidth - (padding * 2)
+                });
+
+                const displaySubtext = elem.subtextUppercase ? subtextContent.toUpperCase() : subtextContent;
+                const subtextPixiText = new PIXI.Text(displaySubtext, subtextTextStyle);
+
+                // Heading Horizontal alignment
+                headingPixiText.x = padding;
+                if (resolvedAlign === 'center') {
+                    headingPixiText.x = contentWidth / 2;
+                    headingPixiText.anchor.x = 0.5;
+                } else if (resolvedAlign === 'right') {
+                    headingPixiText.x = contentWidth - padding;
+                    headingPixiText.anchor.x = 1;
+                }
+
+                // Subtext Horizontal alignment
+                subtextPixiText.x = padding;
+                if (subtextResolvedAlign === 'center') {
+                    subtextPixiText.x = contentWidth / 2;
+                    subtextPixiText.anchor.x = 0.5;
+                } else if (subtextResolvedAlign === 'right') {
+                    subtextPixiText.x = contentWidth - padding;
+                    subtextPixiText.anchor.x = 1;
+                }
+
+                // Vertical positioning with subtextGap
+                const gap = typeof elem.subtextGap === 'number' ? elem.subtextGap : (parseFloat(elem.subtextGap) || 16);
+                const totalTextHeight = headingPixiText.height + gap + subtextPixiText.height;
+
+                let startY = (contentHeight - totalTextHeight) / 2;
+                if (startY < padding) startY = padding;
+
+                headingPixiText.y = startY;
+                subtextPixiText.y = headingPixiText.y + headingPixiText.height + gap;
+
+                container.addChild(headingPixiText);
+                container.addChild(subtextPixiText);
+                container.textNode = headingPixiText;
+                container.subtextNode = subtextPixiText;
+
+                // Underline / Strikethrough decorations
+                if (elem.isUnderline || elem.isStrikethrough || elem.subtextUnderline || elem.subtextStrikethrough) {
+                    const decoGraphics = new PIXI.Graphics();
+                    container.addChild(decoGraphics);
+
+                    const parseColor = (colStr) => {
+                        if (!colStr || colStr === 'transparent') return 0xffffff;
+                        return parseInt(colStr.replace('#', '0x')) || 0xffffff;
+                    };
+
+                    // Heading decorations
+                    if (elem.isUnderline || elem.isStrikethrough) {
+                        const textCol = parseColor(elem.textColor);
+                        const textLineW = Math.max(2, Math.round((elem.fontSize || 24) / 14));
+                        let startX = headingPixiText.x;
+                        if (resolvedAlign === 'center') startX = (contentWidth - headingPixiText.width) / 2;
+                        else if (resolvedAlign === 'right') startX = contentWidth - padding - headingPixiText.width;
+                        const endX = startX + headingPixiText.width;
+
+                        if (elem.isUnderline) {
+                            decoGraphics.lineStyle(textLineW, textCol, 1);
+                            const lineY = headingPixiText.y + headingPixiText.height - 2;
+                            decoGraphics.moveTo(startX, lineY);
+                            decoGraphics.lineTo(endX, lineY);
+                        }
+                        if (elem.isStrikethrough) {
+                            decoGraphics.lineStyle(textLineW, textCol, 1);
+                            const lineY = headingPixiText.y + (headingPixiText.height / 2);
+                            decoGraphics.moveTo(startX, lineY);
+                            decoGraphics.lineTo(endX, lineY);
+                        }
+                    }
+
+                    // Subtext decorations
+                    if (elem.subtextUnderline || elem.subtextStrikethrough) {
+                        const subCol = parseColor(elem.subtextColor || elem.textColor);
+                        const subLineW = Math.max(1, Math.round(subtextSizeVal / 14));
+                        let startX = subtextPixiText.x;
+                        if (subtextResolvedAlign === 'center') startX = (contentWidth - subtextPixiText.width) / 2;
+                        else if (subtextResolvedAlign === 'right') startX = contentWidth - padding - subtextPixiText.width;
+                        const endX = startX + subtextPixiText.width;
+
+                        if (elem.subtextUnderline) {
+                            decoGraphics.lineStyle(subLineW, subCol, 1);
+                            const lineY = subtextPixiText.y + subtextPixiText.height - 2;
+                            decoGraphics.moveTo(startX, lineY);
+                            decoGraphics.lineTo(endX, lineY);
+                        }
+                        if (elem.subtextStrikethrough) {
+                            decoGraphics.lineStyle(subLineW, subCol, 1);
+                            const lineY = subtextPixiText.y + (subtextPixiText.height / 2);
+                            decoGraphics.moveTo(startX, lineY);
+                            decoGraphics.lineTo(endX, lineY);
+                        }
+                    }
+                }
+            } else {
+                // Original single text node
+                const displayText = elem.isUppercase ? rawText.toUpperCase() : rawText;
+                const pixiText = new PIXI.Text(displayText, textStyle);
+                
+                // Alignments
+                pixiText.x = padding;
+                if (resolvedAlign === 'center') {
+                    pixiText.x = contentWidth / 2;
+                    pixiText.anchor.x = 0.5;
+                } else if (resolvedAlign === 'right') {
+                    pixiText.x = contentWidth - padding;
+                    pixiText.anchor.x = 1;
+                }
+                
+                // Center text vertically
+                pixiText.y = (contentHeight - pixiText.height) / 2;
+                if (pixiText.y < padding) pixiText.y = padding;
+                
+                container.addChild(pixiText);
+                container.textNode = pixiText; // Ref for runtime update
+
+                // Decorative underline & strikethrough lines (rendered on top of text)
+                if (elem.isUnderline || elem.isStrikethrough) {
+                    const decoGraphics = new PIXI.Graphics();
+                    container.addChild(decoGraphics);
+
+                    const parseColor = (colStr) => {
+                        if (!colStr || colStr === 'transparent') return 0xffffff;
+                        return parseInt(colStr.replace('#', '0x')) || 0xffffff;
+                    };
+                    const textCol = parseColor(elem.textColor);
+                    const textLineW = Math.max(2, Math.round((elem.fontSize || 24) / 14));
+                    
+                    let startX = pixiText.x;
+                    if (resolvedAlign === 'center') startX = (contentWidth - pixiText.width) / 2;
+                    else if (resolvedAlign === 'right') startX = contentWidth - padding - pixiText.width;
+                    const endX = startX + pixiText.width;
+
+                    if (elem.isUnderline) {
+                        decoGraphics.lineStyle(textLineW, textCol, 1);
+                        const lineY = Math.min(contentHeight - 2, pixiText.y + pixiText.height - 2);
+                        decoGraphics.moveTo(startX, lineY);
+                        decoGraphics.lineTo(endX, lineY);
+                    }
+                    if (elem.isStrikethrough) {
+                        decoGraphics.lineStyle(textLineW, textCol, 1);
+                        const lineY = pixiText.y + (pixiText.height / 2);
+                        decoGraphics.moveTo(startX, lineY);
+                        decoGraphics.lineTo(endX, lineY);
+                    }
                 }
             }
             

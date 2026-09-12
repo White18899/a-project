@@ -7,8 +7,100 @@
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Filename',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Filename, X-Gemini-Api-Key',
 };
+
+// Robust JSON extractor from model text response
+function extractJson(text) {
+    if (!text || typeof text !== 'string') return null;
+    let clean = text.trim();
+    if (clean.startsWith('```json')) {
+        clean = clean.replace(/^```json\s*/i, '').replace(/\s*```$/i, '');
+    } else if (clean.startsWith('```')) {
+        clean = clean.replace(/^```[a-zA-Z]*\s*/i, '').replace(/\s*```$/i, '');
+    }
+    clean = clean.trim();
+
+    try {
+        return JSON.parse(clean);
+    } catch (_) {}
+
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        try {
+            return JSON.parse(clean.substring(firstBrace, lastBrace + 1));
+        } catch (_) {}
+    }
+
+    const firstBracket = clean.indexOf('[');
+    const lastBracket = clean.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+        try {
+            return JSON.parse(clean.substring(firstBracket, lastBracket + 1));
+        } catch (_) {}
+    }
+
+    throw new Error('Failed to parse structured JSON from AI response.');
+}
+
+// Helper to call Google Gemini GenerateContent API with modern models (gemini-3.6-flash) and fallback
+async function callGeminiGenerate(apiKey, payload, env = {}) {
+    const primaryModel = (env && env.GEMINI_MODEL) || 'gemini-3.6-flash';
+    const modelsToTry = [
+        primaryModel,
+        'gemini-3.6-flash',
+        'gemini-2.5-flash',
+        'gemini-1.5-flash'
+    ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
+
+    let lastError = null;
+    for (const model of modelsToTry) {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        try {
+            const response = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!textResponse) {
+                    throw new Error('Empty response from Gemini.');
+                }
+                return textResponse;
+            }
+
+            const errorText = await response.text();
+            let errMsg = errorText;
+            try {
+                const errJson = JSON.parse(errorText);
+                if (errJson.error && errJson.error.message) errMsg = errJson.error.message;
+            } catch (_) {}
+
+            lastError = new Error(`Gemini API error: ${errMsg}`);
+
+            // If the model is deprecated, unavailable to new users, or not found, try fallback models
+            if (errMsg.includes('no longer available') || errMsg.includes('not found') || errMsg.includes('unsupported') || response.status === 404) {
+                console.warn(`[Gemini Fallback] Model '${model}' unavailable: ${errMsg}. Trying next model...`);
+                continue;
+            }
+
+            // For bad auth, quotas, or policies, throw immediately
+            throw lastError;
+        } catch (err) {
+            if (err.message && (err.message.includes('no longer available') || err.message.includes('not found') || err.message.includes('unsupported'))) {
+                lastError = err;
+                continue;
+            }
+            throw err;
+        }
+    }
+
+    throw lastError || new Error('All configured Gemini models failed.');
+}
 
 // Response helper
 function sendJson(status, data) {
@@ -71,7 +163,9 @@ async function getAuthenticatedUser(request, KV) {
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
-        const pathname = url.pathname;
+        const pathname = (url.pathname.length > 1 && url.pathname.endsWith('/'))
+            ? url.pathname.slice(0, -1)
+            : url.pathname;
 
         // Handle CORS preflight options
         if (request.method === 'OPTIONS') {
@@ -619,13 +713,100 @@ export default {
                 return sendJson(200, { success: true });
             }
 
+            // AI Outline Generation Endpoint
+            if (pathname === '/api/ai/outline' && request.method === 'POST') {
+                const body = await request.json().catch(() => ({}));
+                const { prompt, topic, slideCount } = body;
+                const headerKey = request.headers.get('x-gemini-api-key');
+                const userData = currentUser ? await KV.get(`user:${currentUser}`, 'json') : null;
+                let apiKey = (body && (body.geminiApiKey || body.apiKey)) || headerKey || (userData && userData.geminiApiKey) || env.GEMINI_API_KEY;
+
+                if (!apiKey) {
+                    return sendJson(400, {
+                        success: false,
+                        message: 'No Google Gemini API Key configured. Please enter your Gemini API Key in the AI Studio.'
+                    });
+                }
+
+                const cleanPrompt = ((prompt || topic || '') + '').trim();
+                if (!cleanPrompt) {
+                    return sendJson(400, { success: false, message: 'Topic or prompt is required.' });
+                }
+
+                const count = parseInt(slideCount) || 4;
+                const maxCount = Math.min(10, Math.max(2, count));
+
+                const systemInstruction = `You are an elite presentation architect. Given a topic and target slide count, generate a high-impact, narrative-driven presentation outline.
+For each slide provide:
+- "slideIndex": integer starting from 1
+- "title": a punchy, engaging slide headline (under 8 words)
+- "focus": 1-2 sentences describing the specific content focus and narrative hook
+- "layoutType": one of "hero", "split", "cards", "timeline", "metrics", "summary"
+
+Return your output STRICTLY as a JSON object matching this schema:
+{
+  "slides": [
+    {
+      "slideIndex": 1,
+      "title": "Title Here",
+      "focus": "Focus description here",
+      "layoutType": "hero"
+    }
+  ]
+}`;
+
+                try {
+                    const textResponse = await callGeminiGenerate(apiKey, {
+                        contents: [{
+                            parts: [{
+                                text: `Draft a compelling ${maxCount}-slide presentation outline on: "${cleanPrompt}". Ensure logical narrative progression from hook to core insights to takeaways.`
+                            }]
+                        }],
+                        systemInstruction: {
+                            parts: [{
+                                text: systemInstruction
+                            }]
+                        },
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    }, env);
+
+                    const parsedData = extractJson(textResponse);
+                    
+                    let rawSlides = [];
+                    if (Array.isArray(parsedData)) {
+                        rawSlides = parsedData;
+                    } else if (parsedData && Array.isArray(parsedData.slides)) {
+                        rawSlides = parsedData.slides;
+                    } else if (parsedData && Array.isArray(parsedData.outline)) {
+                        rawSlides = parsedData.outline;
+                    } else if (parsedData && typeof parsedData === 'object') {
+                        const foundArray = Object.values(parsedData).find(v => Array.isArray(v));
+                        if (foundArray) rawSlides = foundArray;
+                    }
+
+                    const formattedSlides = rawSlides.map((item, idx) => ({
+                        slideIndex: item.slideIndex || idx + 1,
+                        title: item.title || item.heading || item.name || `Slide ${idx + 1}`,
+                        focus: item.focus || item.description || item.summary || item.content || 'Key insights and talking points.',
+                        layoutType: item.layoutType || item.layout || (idx === 0 ? 'hero' : 'split')
+                    }));
+
+                    return sendJson(200, { success: true, slides: formattedSlides });
+                } catch (err) {
+                    console.error('[AI Outline Generation Error]:', err);
+                    return sendJson(500, { success: false, message: `AI outline generation failed: ${err.message}` });
+                }
+            }
+
             // AI Generation Endpoint
             if (pathname === '/api/ai/generate' && request.method === 'POST') {
-                const { prompt, mode, theme, slideCount } = await request.json().catch(() => ({}));
-                
-                // 1. Get user API Key from KV profile
-                const userData = await KV.get(`user:${currentUser}`, 'json');
-                let apiKey = (userData && userData.geminiApiKey) || env.GEMINI_API_KEY;
+                const body = await request.json().catch(() => ({}));
+                const { prompt, topic, mode, theme, slideCount, outline } = body;
+                const headerKey = request.headers.get('x-gemini-api-key');
+                const userData = currentUser ? await KV.get(`user:${currentUser}`, 'json') : null;
+                let apiKey = (body && (body.geminiApiKey || body.apiKey)) || headerKey || (userData && userData.geminiApiKey) || env.GEMINI_API_KEY;
 
                 if (!apiKey) {
                     return sendJson(400, { 
@@ -634,34 +815,43 @@ export default {
                     });
                 }
 
-                const cleanPrompt = (prompt || '').trim();
+                const cleanPrompt = ((prompt || topic || '') + '').trim();
                 if (!cleanPrompt) {
-                    return sendJson(400, { success: false, message: 'Prompt is required.' });
+                    return sendJson(400, { success: false, message: 'Topic or prompt is required.' });
                 }
 
                 const count = parseInt(slideCount) || 3;
                 const maxCount = Math.min(10, Math.max(1, count));
+                const activeTheme = theme || 'Obsidian Dark';
+                const activeMode = mode || 'presentation';
 
-                 const systemInstruction = `You are a professional WebGL slide layout designer. Your goal is to generate visually rich, premium-looking vector presentations and interactive quizzes.
+                const systemInstruction = `You are a professional WebGL slide layout designer. Your goal is to generate visually rich, premium-looking vector presentations and interactive quizzes.
 The standard canvas dimensions are 1920x1080 (16:9 aspect ratio). All coordinates and sizes must fit inside this resolution without clipping.
 
 Design Requirements:
 1. BACKGROUNDS: Use premium gradient color palettes matching the theme. Set "type" to "gradient", and provide distinct, harmonious colors for "gradientStart" and "gradientEnd". Set "gradientAngle" to 135.
 2. SLIDE VARIETY (AI Presentation Mode):
-   - Slide 1: Title/Hero layout. Large centered title (fontSize 64-80) and a smaller subtitle below it.
+   - Slide 1: Title/Hero layout. Large centered title (fontSize 64-80) at y: 300, and a smaller subtitle below it at y: 440.
    - Slide 2: Two-column card comparison or split-screen content.
-   - Slide 3: Three-column timeline, steps, or feature list.
-   - Subsequent slides: Alternating layout (e.g., image placeholders, quotes, or cards).
+   - Slide 3: Three-column timeline, steps, or feature cards.
+   - Subsequent slides: Alternating layout (e.g. data callouts, metric blocks, or summary).
 3. CARD LAYOUTS: To create structured cards, generate text elements with:
    - "bgAlpha": 0.85 or 1 (solid or semi-transparent background).
    - "bgColor": A contrasting dark or light shade matching the theme.
    - "borderRadius": 12.
-   - "padding": 20.
-   - "textColor": High contrast text color.
+   - "padding": 24.
+   - "textColor": High contrast title color (e.g. #ffffff).
+   - "text": A concise title (fontSize 22-26, fontWeight "700" or isBold: true).
+   - "hasSubtext": true
+   - "subtext": The descriptive body paragraph explaining the card concept.
+   - "subtextSize": 16 (distinctly smaller than title for crisp visual hierarchy).
+   - "subtextColor": Secondary readable tone (e.g. #94a3b8 or #cbd5e1).
+   - "subtextFontWeight": "400".
+   - "subtextGap": 14.
 4. FONT PAIRING & THEMES:
    - "Obsidian Dark": Dark slate/indigo gradient (e.g., #0b0f19 to #1e293b). Text color #ffffff. Heading font "Outfit", body font "Inter". Accent buttons #3b82f6 (blue).
    - "Neon Cyberpunk": Deep violet/indigo gradient (e.g., #09090e to #250a3a). Neon highlights (cyan #00ffff, pink #ff007f). Heading font "Space Grotesk" or "VT323", body font "Fira Code". Accent buttons #ff007f.
-   - "Classic Serif": Warm cream gradient (e.g., #faf6ee to #e8e2d5). Text color #1c1917. Heading font "Playfair Display" or "Cinzel", body font "Cardo". Accent buttons #8b5cf6 (violet).
+   - "Classic Serif": Warm cream gradient (e.g., #faf6ee to #e8e2d5). Text color #1c1917. Heading font "Playfair Display" or "Cinzel", body font "Cardo". Accent buttons #c5a059 (gold).
    - "Minimalist Light": Soft gray/slate gradient (e.g., #f8fafc to #cbd5e1). Text color #0f172a. Heading font "Unbounded" or "Outfit", body font "Inter". Accent buttons #10b981 (emerald).
    - "Retro Game": Dark green/black gradient (e.g., #070f0a to #121e16). Pixelated fonts ("Press Start 2P" or "Silkscreen" or "VT323"). Text color #f1c40f (yellow) or #2ecc71. Accent buttons #f1c40f.
 5. QUIZ SLIDES:
@@ -672,7 +862,7 @@ Design Requirements:
    - A btn-show-ans element at x: 860, y: 750, width: 200, height: 60, targeting the correct option element ID.
 
 JSON Output Format:
-Return your output STRICTLY as a JSON object matching this schema. Do NOT include markdown code blocks (e.g., \`\`\`json).
+Return your output STRICTLY as a JSON object matching this schema:
 {
   "slides": [
     {
@@ -689,57 +879,266 @@ Return your output STRICTLY as a JSON object matching this schema. Do NOT includ
         "imageUrl": ""
       },
       "elements": [
-        // Each element must have: id (unique e.g. text-1, opt-1), type, x, y, width, height, visible: true, zIndex: integer.
-        // Elements can be:
-        // 1. type "text": text, fontFamily, fontSize (e.g. 24-48), align ("left", "center", "right"), textColor (hex), bgColor (hex), bgAlpha (0 to 1), borderRadius, borderWidth, borderColor.
-        // 2. type "btn-nav": text, targetSlideId (must match another slide's id to link slides), textColor, bgColor, bgAlpha, borderRadius.
-        // 3. type "btn-option": text, isCorrect (boolean), group (string), textColor, bgColor, bgAlpha, borderRadius.
-        // 4. type "btn-show-ans": text, targetElementId (id of correct btn-option element), textColor, bgColor, bgAlpha, borderRadius.
-        // 5. type "timer": text (initial e.g. "30"), duration (integer), textColor, bgColor, bgAlpha, borderRadius.
+        {
+          "id": "el_1",
+          "type": "text",
+          "text": "Heading Text",
+          "hasSubtext": true,
+          "subtext": "Body description or paragraph text",
+          "subtextSize": 16,
+          "subtextColor": "#94a3b8",
+          "subtextFontWeight": "400",
+          "subtextGap": 14,
+          "x": 200,
+          "y": 150,
+          "width": 1520,
+          "height": 90,
+          "fontSize": 54,
+          "fontFamily": "Outfit",
+          "align": "center",
+          "textColor": "#ffffff",
+          "bgColor": "transparent",
+          "bgAlpha": 0,
+          "borderRadius": 0,
+          "borderWidth": 0,
+          "borderColor": "transparent",
+          "padding": 0,
+          "zIndex": 1,
+          "visible": true
+        }
       ]
     }
   ]
 }`;
 
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
                 try {
-                    const response = await fetch(geminiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    let userPromptText = `Generate a presentation deck or quiz in "${activeMode}" mode on the topic: "${cleanPrompt}". Apply theme: "${activeTheme}". Number of slides: ${maxCount}.`;
+                    if (Array.isArray(outline) && outline.length > 0) {
+                        userPromptText += `\nFollow this structured slide outline strictly:\n` + outline.map((s, idx) => `Slide ${idx+1}: Title: "${s.title || ''}" - Focus: ${s.focus || ''} - Layout archetype: ${s.layoutType || 'standard'}`).join('\n');
+                    }
+
+                    const textResponse = await callGeminiGenerate(apiKey, {
+                        contents: [{
+                            parts: [{
+                                text: userPromptText
+                            }]
+                        }],
+                        systemInstruction: {
+                            parts: [{
+                                text: systemInstruction
+                            }]
+                        },
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    }, env);
+
+                    const parsedData = extractJson(textResponse);
+                    
+                    let rawSlides = [];
+                    if (Array.isArray(parsedData)) {
+                        rawSlides = parsedData;
+                    } else if (parsedData && Array.isArray(parsedData.slides)) {
+                        rawSlides = parsedData.slides;
+                    } else if (parsedData && parsedData.presentation && Array.isArray(parsedData.presentation.slides)) {
+                        rawSlides = parsedData.presentation.slides;
+                    } else if (parsedData && typeof parsedData === 'object') {
+                        const foundArray = Object.values(parsedData).find(v => Array.isArray(v));
+                        if (foundArray) rawSlides = foundArray;
+                    }
+
+                    const formattedSlides = rawSlides.map((s, sIdx) => {
+                        const slideId = s.id || `slide-${Date.now()}-${sIdx}`;
+                        const rawElements = Array.isArray(s.elements) ? s.elements : [];
+
+                        const normalizedElements = rawElements.map((el, elIdx) => {
+                            const elId = el.id || `el-${sIdx}-${elIdx}`;
+                            const elType = el.type || 'text';
+                            return {
+                                id: elId,
+                                type: elType,
+                                text: el.text !== undefined ? String(el.text) : (elType === 'text' ? 'Slide Content' : ''),
+                                x: typeof el.x === 'number' ? el.x : 160,
+                                y: typeof el.y === 'number' ? el.y : (160 + elIdx * 120),
+                                width: typeof el.width === 'number' && el.width > 0 ? el.width : 1600,
+                                height: typeof el.height === 'number' && el.height > 0 ? el.height : 100,
+                                fontSize: typeof el.fontSize === 'number' ? el.fontSize : 28,
+                                fontFamily: el.fontFamily || 'Inter',
+                                align: el.align || (elType.startsWith('btn-') || elType === 'timer' ? 'center' : 'left'),
+                                textColor: el.textColor || '#ffffff',
+                                bgColor: el.bgColor !== undefined ? el.bgColor : (elType === 'text' ? 'transparent' : '#1e293b'),
+                                bgAlpha: el.bgAlpha !== undefined ? el.bgAlpha : (el.bgColor === 'transparent' ? 0 : 1),
+                                borderRadius: el.borderRadius !== undefined ? el.borderRadius : 8,
+                                borderWidth: el.borderWidth !== undefined ? el.borderWidth : 0,
+                                borderColor: el.borderColor || 'transparent',
+                                padding: el.padding !== undefined ? el.padding : 16,
+                                visible: el.visible !== undefined ? el.visible : true,
+                                zIndex: typeof el.zIndex === 'number' ? el.zIndex : (elIdx + 1),
+                                targetSlideId: el.targetSlideId || null,
+                                targetElementId: el.targetElementId || null,
+                                isCorrect: el.isCorrect !== undefined ? Boolean(el.isCorrect) : false,
+                                group: el.group || null,
+                                duration: typeof el.duration === 'number' ? el.duration : 30
+                            };
+                        });
+
+                        return {
+                            id: slideId,
+                            name: s.name || `Slide ${sIdx + 1}`,
+                            rpgTheme: Boolean(s.rpgTheme),
+                            transition: s.transition || 'none',
+                            background: s.background || {
+                                type: 'gradient',
+                                color: '#050507',
+                                gradientStart: '#0b0f19',
+                                gradientEnd: '#1e293b',
+                                gradientAngle: 135,
+                                imageUrl: ''
+                            },
+                            elements: normalizedElements
+                        };
+                    });
+
+                    return sendJson(200, { success: true, slides: formattedSlides });
+                } catch (err) {
+                    console.error('[AI Generation Error]:', err);
+                    return sendJson(500, { success: false, message: `AI generation failed: ${err.message}` });
+                }
+            }
+
+            if (pathname === '/api/ai/card-action' && request.method === 'POST') {
+                try {
+                    const body = await parseBody(request);
+                    const { action, text, heading, subtext, cardWidth, cardHeight, theme } = body;
+                    const headerKey = request.headers.get('x-gemini-api-key');
+                    const userData = currentUser ? await KV.get(`user:${currentUser}`, 'json') : null;
+                    let apiKey = (body && (body.geminiApiKey || body.apiKey)) || headerKey || (userData && userData.geminiApiKey) || env.GEMINI_API_KEY;
+
+                    const rawText = ((text || '') + '').trim();
+                    const currentHeading = ((heading || '') + '').trim();
+                    const currentSubtext = ((subtext || '') + '').trim();
+                    const targetAction = action || 'auto-structure';
+
+                    const executeLocalHeuristic = () => {
+                        const combined = rawText || `${currentHeading}\n\n${currentSubtext}`.trim();
+                        if (targetAction === 'auto-structure') {
+                            let h = '';
+                            let s = '';
+                            if (combined.includes('\n\n')) {
+                                const p = combined.split(/\n\n+/);
+                                h = p[0].trim();
+                                s = p.slice(1).join('\n\n').trim();
+                            } else if (combined.includes('\n')) {
+                                const p = combined.split(/\n+/);
+                                h = p[0].trim();
+                                s = p.slice(1).join('\n').trim();
+                            } else {
+                                h = combined;
+                                s = '';
+                            }
+                            return {
+                                heading: h || 'CARD TITLE',
+                                subtext: s || 'Descriptive body text providing context.',
+                                suggestedHeadingSize: 24,
+                                suggestedSubtextSize: 16,
+                                suggestedGap: 14,
+                                headingColor: '#ffffff',
+                                subtextColor: '#94a3b8'
+                            };
+                        } else if (targetAction === 'punchy-title') {
+                            const h = currentHeading || combined.split('\n')[0] || 'Card Title';
+                            const clean = h.replace(/^0?\d+[\.\:\-\s]+/, '').trim();
+                            return { heading: clean.toUpperCase() };
+                        } else if (targetAction === 'shorten') {
+                            const s = currentSubtext || combined;
+                            const sentences = s.split(/[.!?]+/).filter(Boolean);
+                            const short = (sentences.slice(0, 2).join('. ') + (sentences.length > 0 ? '.' : '')).trim();
+                            return { subtext: short || s };
+                        } else if (targetAction === 'bulletize') {
+                            const s = currentSubtext || combined;
+                            const lines = s.split(/[\n;]+|(?<=[.!?])\s+/).map(l => l.trim()).filter(l => l.length > 3);
+                            const bullets = lines.map(l => l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`).join('\n');
+                            return { subtext: bullets || `• ${s}` };
+                        } else if (targetAction === 'polish') {
+                            return { subtext: currentSubtext || combined };
+                        } else if (targetAction === 'auto-balance') {
+                            const w = parseInt(cardWidth) || 450;
+                            const subLen = (currentSubtext || '').length;
+                            const calcHSize = Math.max(20, Math.min(32, Math.round(w / 18)));
+                            const calcSubSize = subLen > 180 ? 14 : (subLen > 80 ? 15 : 16);
+                            return {
+                                suggestedHeadingSize: calcHSize,
+                                suggestedSubtextSize: calcSubSize,
+                                suggestedGap: 14,
+                                lineHeight: 1.35
+                            };
+                        }
+                        return { heading: currentHeading, subtext: currentSubtext };
+                    };
+
+                    if (!apiKey) {
+                        const fallbackResult = executeLocalHeuristic();
+                        return sendJson(200, { success: true, result: fallbackResult, fallback: true });
+                    }
+
+                    const systemInstruction = `You are an elite UX & Typography Designer for presentations.
+Canvas resolution is 1920x1080.
+Your task is to perform the requested card typography/copy action: "${targetAction}".
+
+Action Guidelines:
+- "auto-structure": Given raw or unstructured text, cleanly split into a punchy, concise Title ("heading") and a descriptive paragraph or bullet list ("subtext"). Suggest proportional "suggestedHeadingSize" (22-28), "suggestedSubtextSize" (14-17), "suggestedGap" (12-16), "headingColor" (high contrast), and "subtextColor" (secondary tone e.g. #94a3b8).
+- "punchy-title": Transform the title into a crisp, high-impact, modern headline under 7 words. Return {"heading": "..."}.
+- "shorten": Summarize or compress the subtext so it fits comfortably in a presentation card without losing clarity. Return {"subtext": "..."}.
+- "bulletize": Convert the subtext paragraph into 2-4 clean, scannable bullet points prefixed with "• ". Return {"subtext": "..."}.
+- "polish": Refine the subtext tone for professional elegance and clarity. Return {"subtext": "..."}.
+- "auto-balance": Given card width (${cardWidth || 450}) and height (${cardHeight || 300}), calculate optimal "suggestedHeadingSize", "suggestedSubtextSize", and "suggestedGap" so text fits with breathing room.
+
+JSON Output format:
+Return ONLY valid JSON matching:
+{
+  "heading": "...",
+  "subtext": "...",
+  "suggestedHeadingSize": 24,
+  "suggestedSubtextSize": 16,
+  "suggestedGap": 14,
+  "headingColor": "#ffffff",
+  "subtextColor": "#94a3b8"
+}`;
+
+                    const promptContent = `Perform action "${targetAction}" on the following card content:
+Heading: "${currentHeading}"
+Subtext: "${currentSubtext}"
+Raw Text: "${rawText}"
+Theme: "${theme || 'Obsidian Dark'}"
+Card Dimensions: ${cardWidth || 450}x${cardHeight || 300}`;
+
+                    try {
+                        const textResponse = await callGeminiGenerate(apiKey, {
                             contents: [{
-                                parts: [{
-                                    text: `Generate a presentation deck or quiz in "${mode}" mode on the topic: "${cleanPrompt}". Apply theme: "${theme}". Number of slides: ${maxCount}.`
-                                }]
+                                parts: [{ text: promptContent }]
                             }],
                             systemInstruction: {
-                                parts: [{
-                                    text: systemInstruction
-                                }]
+                                parts: [{ text: systemInstruction }]
                             },
                             generationConfig: {
                                 responseMimeType: "application/json"
                             }
-                        })
-                    });
+                        }, env);
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Gemini API error: ${errorText}`);
+                        const parsedData = extractJson(textResponse);
+                        if (!parsedData || typeof parsedData !== 'object') {
+                            throw new Error('Failed to parse structured JSON from Gemini response');
+                        }
+
+                        return sendJson(200, { success: true, result: parsedData, data: parsedData });
+                    } catch (geminiErr) {
+                        console.warn('[AI Card Action Gemini Error, using heuristic]:', geminiErr.message);
+                        const heuristicResult = executeLocalHeuristic();
+                        return sendJson(200, { success: true, result: heuristicResult, data: heuristicResult, fallback: true });
                     }
-
-                    const result = await response.json();
-                    const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (!textResponse) {
-                        throw new Error('Empty response from Gemini.');
-                    }
-
-                    const parsedData = JSON.parse(textResponse);
-                    return sendJson(200, parsedData);
                 } catch (err) {
-                    console.error('[AI Generation Error]:', err);
-                    return sendJson(500, { success: false, message: `AI generation failed: ${err.message}` });
+                    console.error('[AI Card Action Error]:', err);
+                    return sendJson(500, { success: false, message: `AI card action failed: ${err.message}` });
                 }
             }
 
@@ -792,43 +1191,26 @@ Return the modified elements STRICTLY as a JSON object containing an "elements" 
   ]
 }`;
 
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
                 try {
-                    const response = await fetch(geminiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{
-                                    text: `Align/refine these elements based on this instruction: "${refinementPrompt}".
+                    const textResponse = await callGeminiGenerate(apiKey, {
+                        contents: [{
+                            parts: [{
+                                text: `Align/refine these elements based on this instruction: "${refinementPrompt}".
 Elements list:
 ${JSON.stringify(elements, null, 2)}`
-                                }]
-                            }],
-                            systemInstruction: {
-                                parts: [{
-                                    text: systemInstruction
-                                }]
-                            },
-                            generationConfig: {
-                                responseMimeType: "application/json"
-                            }
-                        })
-                    });
+                            }]
+                        }],
+                        systemInstruction: {
+                            parts: [{
+                                text: systemInstruction
+                            }]
+                        },
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    }, env);
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Gemini API error: ${errorText}`);
-                    }
-
-                    const result = await response.json();
-                    const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (!textResponse) {
-                        throw new Error('Empty response from Gemini.');
-                    }
-
-                    const parsedData = JSON.parse(textResponse);
+                    const parsedData = extractJson(textResponse);
                     return sendJson(200, parsedData);
                 } catch (err) {
                     console.error('[AI Refinement Error]:', err);
