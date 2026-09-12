@@ -739,25 +739,49 @@
                                             <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
                                         <div class="accordion-body">
-                                            <!-- Position & Size -->
-                                            <div class="row-fields">
-                                                <div class="form-group">
-                                                    <label for="elem-x">Pos X</label>
-                                                    <input type="number" id="elem-x">
+                                            <!-- Studio Pro Geometry Matrix (Position & Dimensions) -->
+                                            <div class="geometry-matrix-container" id="geometry-matrix-container">
+                                                <!-- Row 1: Position Coordinates (X, Y) -->
+                                                <div class="geometry-row geometry-row-coords">
+                                                    <div class="geometry-field" id="field-geo-x">
+                                                        <div class="geometry-badge" id="badge-geo-x" title="Click and drag horizontally to scrub X position, or click input to edit">
+                                                            <span class="geo-badge-letter">X</span>
+                                                        </div>
+                                                        <input type="text" id="elem-x" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Horizontal Position X (px). Supports math expressions e.g. +20, -50, *2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+
+                                                    <div class="geometry-field" id="field-geo-y">
+                                                        <div class="geometry-badge" id="badge-geo-y" title="Click and drag horizontally to scrub Y position, or click input to edit">
+                                                            <span class="geo-badge-letter">Y</span>
+                                                        </div>
+                                                        <input type="text" id="elem-y" value="0" class="geometry-input" autocomplete="off" spellcheck="false" title="Vertical Position Y (px). Supports math expressions e.g. +20, -50, *2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="elem-y">Pos Y</label>
-                                                    <input type="number" id="elem-y">
-                                                </div>
-                                            </div>
-                                            <div class="row-fields">
-                                                <div class="form-group">
-                                                    <label for="elem-w">Width</label>
-                                                    <input type="number" id="elem-w">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="elem-h">Height</label>
-                                                    <input type="number" id="elem-h">
+
+                                                <!-- Row 2: Dimensions & Proportional Lock (W, Lock, H) -->
+                                                <div class="geometry-row geometry-row-dims">
+                                                    <div class="geometry-field" id="field-geo-w">
+                                                        <div class="geometry-badge" id="badge-geo-w" title="Click and drag horizontally to scrub Width, or click input to edit">
+                                                            <span class="geo-badge-letter">W</span>
+                                                        </div>
+                                                        <input type="text" id="elem-w" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Width (px). Supports math expressions e.g. +50, /2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
+
+                                                    <!-- Constrain Proportions Aspect Ratio Lock Button -->
+                                                    <button type="button" class="btn-aspect-ratio-lock" id="btn-aspect-ratio-lock" title="Constrain Proportions (Lock Aspect Ratio)">
+                                                        <i data-lucide="unlock" class="lock-icon" id="icon-aspect-ratio-lock"></i>
+                                                    </button>
+
+                                                    <div class="geometry-field" id="field-geo-h">
+                                                        <div class="geometry-badge" id="badge-geo-h" title="Click and drag horizontally to scrub Height, or click input to edit">
+                                                            <span class="geo-badge-letter">H</span>
+                                                        </div>
+                                                        <input type="text" id="elem-h" value="100" class="geometry-input" autocomplete="off" spellcheck="false" title="Height (px). Supports math expressions e.g. +50, /2">
+                                                        <span class="geometry-unit">px</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <!-- Studio Rotation Control Widget -->
@@ -914,73 +938,192 @@
                                             <i data-lucide="chevron-down" class="accordion-chevron"></i>
                                         </div>
                                         <div class="accordion-body">
-                                            <!-- Text content field (conditional) -->
-                                            <div class="form-group inspector-field" id="field-elem-text">
-                                                <label for="elem-text">Text Content</label>
-                                                <textarea id="elem-text" rows="3"></textarea>
-                                            </div>
+                                            <div class="typography-studio-container">
+                                                <!-- GROUP 1: CONTENT & CHAR COUNT -->
+                                                <div class="form-group inspector-field typo-studio-field" id="field-elem-text">
+                                                    <div class="typo-label-row">
+                                                        <label for="elem-text">Content</label>
+                                                        <div class="typo-content-actions">
+                                                            <span id="elem-text-char-count" class="typo-char-badge" title="Character Count">0 chars</span>
+                                                            <button type="button" id="btn-text-clear" class="btn-typo-clear" title="Clear text">
+                                                                <i data-lucide="x"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="typo-textarea-wrapper">
+                                                        <textarea id="elem-text" rows="3" placeholder="Type slide text here..."></textarea>
+                                                    </div>
+                                                </div>
 
-                                            <!-- Font Style (conditional for text and button elements) -->
-                                            <div class="inspector-field" id="group-text-styles">
-                                                <div class="form-group">
-                                                    <label for="elem-font-family">Font Family</label>
-                                                    <select id="elem-font-family">
-                                                        <option value="Outfit" style="font-family: 'Outfit';">Outfit (Clean)</option>
-                                                        <option value="Inter" style="font-family: 'Inter';">Inter (Sleek)</option>
-                                                        <option value="Montserrat" style="font-family: 'Montserrat';">Montserrat (Modern Sans)</option>
-                                                        <option value="Space Grotesk" style="font-family: 'Space Grotesk';">Space Grotesk (Tech Geometric)</option>
-                                                        <option value="Unbounded" style="font-family: 'Unbounded';">Unbounded (Wide Futurist)</option>
-                                                        <option value="Comfortaa" style="font-family: 'Comfortaa';">Comfortaa (Soft Rounded)</option>
-                                                        <option value="Quicksand" style="font-family: 'Quicksand';">Quicksand (Friendly Rounded)</option>
-                                                        <option value="Bebas Neue" style="font-family: 'Bebas Neue';">Bebas Neue (Impact Heading)</option>
-                                                        <option value="Playfair Display" style="font-family: 'Playfair Display';">Playfair Display (Elegant Serif)</option>
-                                                        <option value="Cinzel" style="font-family: 'Cinzel';">Cinzel (Roman Editorial)</option>
-                                                        <option value="Cinzel Decorative" style="font-family: 'Cinzel Decorative';">Cinzel Decorative (Classic Ornate)</option>
-                                                        <option value="Cormorant Garamond" style="font-family: 'Cormorant Garamond';">Cormorant Garamond (Graceful Garamond)</option>
-                                                        <option value="Abril Fatface" style="font-family: 'Abril Fatface';">Abril Fatface (High Contrast Serif)</option>
-                                                        <option value="Cardo" style="font-family: 'Cardo';">Cardo (Classic Academic)</option>
-                                                        <option value="Oswald" style="font-family: 'Oswald';">Oswald (Condensed Sans)</option>
-                                                        <option value="Josefin Sans" style="font-family: 'Josefin Sans';">Josefin Sans (Vintage Geometric)</option>
-                                                        <option value="Rajdhani" style="font-family: 'Rajdhani';">Rajdhani (Squared Tech)</option>
-                                                        <option value="Righteous" style="font-family: 'Righteous';">Righteous (Art Deco Retro)</option>
-                                                        <option value="Russo One" style="font-family: 'Russo One';">Russo One (Heavy Tech)</option>
-                                                        <option value="Lobster" style="font-family: 'Lobster';">Lobster (Retro Bold Script)</option>
-                                                        <option value="Satisfy" style="font-family: 'Satisfy';">Satisfy (Script Cursive)</option>
-                                                        <option value="Dancing Script" style="font-family: 'Dancing Script';">Dancing Script (Casual Script)</option>
-                                                        <option value="Courgette" style="font-family: 'Courgette';">Courgette (Elegant Script)</option>
-                                                        <option value="Pacifico" style="font-family: 'Pacifico';">Pacifico (Brush Cursive)</option>
-                                                        <option value="Kaushan Script" style="font-family: 'Kaushan Script';">Kaushan Script (Brush Calligraphy)</option>
-                                                        <option value="Permanent Marker" style="font-family: 'Permanent Marker';">Permanent Marker (Marker Brush)</option>
-                                                        <option value="Shadows Into Light" style="font-family: 'Shadows Into Light';">Shadows Into Light (Casual Writing)</option>
-                                                        <option value="Fira Code" style="font-family: 'Fira Code';">Fira Code (Code Mono)</option>
-                                                        <option value="Space Mono" style="font-family: 'Space Mono';">Space Mono (Geometric Mono)</option>
-                                                        <option value="Courier New" style="font-family: 'Courier New';">Monospace (System)</option>
-                                                        <option value="Press Start 2P" style="font-family: 'Press Start 2P'; font-size: 10px;">Press Start 2P (8-bit Pixel)</option>
-                                                        <option value="VT323" style="font-family: 'VT323'; font-size: 14px;">VT323 (8-bit Arcade)</option>
-                                                        <option value="Silkscreen" style="font-family: 'Silkscreen';">Silkscreen (8-bit Classic)</option>
-                                                        <option value="Arial" style="font-family: 'Arial';">Arial (Sans-Serif)</option>
-                                                        <option value="Georgia" style="font-family: 'Georgia';">Georgia (Serif)</option>
-                                                    </select>
-                                                </div>
-                                                <div class="row-fields">
-                                                    <div class="form-group">
-                                                        <label for="elem-font-size">Font Size</label>
-                                                        <input type="number" id="elem-font-size" value="24" min="8" max="120">
+                                                <!-- FONT & STYLING CONTAINER (conditional for text/button elements) -->
+                                                <div class="inspector-field typo-styles-group" id="group-text-styles">
+                                                    <!-- GROUP 2: TYPEFACE & WEIGHT -->
+                                                    <div class="typo-group">
+                                                        <div class="typo-label-row">
+                                                            <span class="typo-group-label">Typeface & Weight</span>
+                                                        </div>
+                                                        <div class="typo-font-grid-pro">
+                                                            <!-- Studio Font Picker Trigger Button -->
+                                                            <button type="button" class="btn-font-picker-trigger" id="btn-font-picker-trigger" title="Browse Typefaces">
+                                                                <span class="font-trigger-glyph" id="font-trigger-glyph">Aa</span>
+                                                                <div class="font-trigger-info">
+                                                                    <span class="font-trigger-name" id="selected-font-name">Outfit</span>
+                                                                    <span class="font-trigger-badge" id="selected-font-badge">Sans</span>
+                                                                </div>
+                                                                <i data-lucide="chevron-down" class="font-trigger-chevron"></i>
+                                                            </button>
+
+                                                            <!-- Preserved Select for Complete Backward Compatibility & Headless Tests -->
+                                                            <select id="elem-font-family" class="sr-only" style="display: none;" tabindex="-1" aria-hidden="true">
+                                                                <option value="Outfit">Outfit (Clean)</option>
+                                                                <option value="Inter">Inter (Sleek)</option>
+                                                                <option value="Montserrat">Montserrat (Modern Sans)</option>
+                                                                <option value="Space Grotesk">Space Grotesk (Tech Geometric)</option>
+                                                                <option value="Unbounded">Unbounded (Wide Futurist)</option>
+                                                                <option value="Comfortaa">Comfortaa (Soft Rounded)</option>
+                                                                <option value="Quicksand">Quicksand (Friendly Rounded)</option>
+                                                                <option value="Bebas Neue">Bebas Neue (Impact Heading)</option>
+                                                                <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                                                                <option value="Cinzel">Cinzel (Roman Editorial)</option>
+                                                                <option value="Cinzel Decorative">Cinzel Decorative (Classic Ornate)</option>
+                                                                <option value="Cormorant Garamond">Cormorant Garamond (Graceful Garamond)</option>
+                                                                <option value="Abril Fatface">Abril Fatface (High Contrast Serif)</option>
+                                                                <option value="Cardo">Cardo (Classic Academic)</option>
+                                                                <option value="Oswald">Oswald (Condensed Sans)</option>
+                                                                <option value="Josefin Sans">Josefin Sans (Vintage Geometric)</option>
+                                                                <option value="Rajdhani">Rajdhani (Squared Tech)</option>
+                                                                <option value="Righteous">Righteous (Art Deco Retro)</option>
+                                                                <option value="Russo One">Russo One (Heavy Tech)</option>
+                                                                <option value="Lobster">Lobster (Retro Bold Script)</option>
+                                                                <option value="Satisfy">Satisfy (Script Cursive)</option>
+                                                                <option value="Dancing Script">Dancing Script (Casual Script)</option>
+                                                                <option value="Courgette">Courgette (Elegant Script)</option>
+                                                                <option value="Pacifico">Pacifico (Brush Cursive)</option>
+                                                                <option value="Kaushan Script">Kaushan Script (Brush Calligraphy)</option>
+                                                                <option value="Permanent Marker">Permanent Marker (Marker Brush)</option>
+                                                                <option value="Shadows Into Light">Shadows Into Light (Casual Writing)</option>
+                                                                <option value="Fira Code">Fira Code (Code Mono)</option>
+                                                                <option value="Space Mono">Space Mono (Geometric Mono)</option>
+                                                                <option value="Courier New">Monospace (System)</option>
+                                                                <option value="Press Start 2P">Press Start 2P (8-bit Pixel)</option>
+                                                                <option value="VT323">VT323 (8-bit Arcade)</option>
+                                                                <option value="Silkscreen">Silkscreen (8-bit Classic)</option>
+                                                                <option value="Arial">Arial (Sans-Serif)</option>
+                                                                <option value="Georgia">Georgia (Serif)</option>
+                                                            </select>
+
+                                                            <!-- Streamlined Font Weight Dropdown -->
+                                                            <div class="typo-weight-wrapper">
+                                                                <select id="elem-font-weight" class="typo-select-weight-pro" title="Font Weight">
+                                                                    <option value="300">Light</option>
+                                                                    <option value="400" selected>Regular</option>
+                                                                    <option value="500">Medium</option>
+                                                                    <option value="600">SemiBold</option>
+                                                                    <option value="700">Bold</option>
+                                                                    <option value="800">ExtraBold</option>
+                                                                    <option value="900">Black</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div class="form-group">
-                                                        <label for="elem-align">Align</label>
-                                                        <select id="elem-align">
-                                                            <option value="left">Left</option>
-                                                            <option value="center">Center</option>
-                                                            <option value="right">Right</option>
-                                                        </select>
+
+                                                    <!-- GROUP 3: SIZE & ALIGNMENT -->
+                                                    <div class="typo-group">
+                                                        <div class="typo-dual-labels">
+                                                            <span class="typo-group-label">Size</span>
+                                                            <span class="typo-group-label">Alignment</span>
+                                                        </div>
+                                                        <div class="typo-dual-row">
+                                                            <!-- Font Size Stepper & Scrub Badge -->
+                                                            <div class="typo-size-stepper">
+                                                                <button type="button" class="btn-typo-step" id="btn-font-size-dec" title="Decrease font size (-2px)">
+                                                                    <i data-lucide="minus"></i>
+                                                                </button>
+                                                                <div class="typo-size-scrub-wrapper" id="font-size-scrub-wrapper" title="Drag horizontally to scrub size">
+                                                                    <input type="number" id="elem-font-size" value="24" min="8" max="144">
+                                                                    <span class="typo-unit">px</span>
+                                                                </div>
+                                                                <button type="button" class="btn-typo-step" id="btn-font-size-inc" title="Increase font size (+2px)">
+                                                                    <i data-lucide="plus"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Segmented Alignment Control (Left, Center, Right) -->
+                                                            <div class="typo-segmented-control" id="typo-align-segmented">
+                                                                <button type="button" class="btn-typo-align" id="btn-text-align-left" data-align="left" title="Align Text Left">
+                                                                    <i data-lucide="align-left"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align active" id="btn-text-align-center" data-align="center" title="Align Text Center">
+                                                                    <i data-lucide="align-center"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align" id="btn-text-align-right" data-align="right" title="Align Text Right">
+                                                                    <i data-lucide="align-right"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Keep #elem-align in DOM (hidden) for 100% backward compatibility -->
+                                                            <select id="elem-align" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                                <option value="left">Left</option>
+                                                                <option value="center">Center</option>
+                                                                <option value="right">Right</option>
+                                                            </select>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="elem-text-color">Text Color</label>
-                                                    <div class="color-picker-wrapper">
-                                                        <input type="color" id="elem-text-color" value="#ffffff">
-                                                        <input type="text" id="elem-text-color-hex" value="#ffffff">
+
+                                                    <!-- GROUP 4: TEXT FORMATTING BAR -->
+                                                    <div class="typo-group">
+                                                        <div class="typo-label-row">
+                                                            <span class="typo-group-label">Formatting</span>
+                                                        </div>
+                                                        <div class="typo-format-toolbar">
+                                                            <button type="button" class="btn-typo-format" id="btn-text-format-bold" title="Bold (Ctrl+B)">
+                                                                <i data-lucide="bold"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-typo-format" id="btn-text-format-italic" title="Italic (Ctrl+I)">
+                                                                <i data-lucide="italic"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-typo-format" id="btn-text-format-underline" title="Underline (Ctrl+U)">
+                                                                <i data-lucide="underline"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-typo-format" id="btn-text-format-uppercase" title="Uppercase (Caps)">
+                                                                <i data-lucide="case-upper"></i>
+                                                            </button>
+                                                            <button type="button" class="btn-typo-format" id="btn-text-format-strikethrough" title="Strikethrough">
+                                                                <i data-lucide="strikethrough"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- GROUP 5: COLOR & ADVANCED METRICS -->
+                                                    <div class="typo-group">
+                                                        <div class="typo-dual-labels">
+                                                            <span class="typo-group-label">Color</span>
+                                                            <span class="typo-group-label">Spacing (Line / Char)</span>
+                                                        </div>
+                                                        <div class="typo-dual-row">
+                                                            <!-- Color Trigger with Hex & Popover Anchor -->
+                                                            <div class="typo-color-card" id="typo-color-wrapper">
+                                                                <button type="button" class="typo-color-swatch-btn" id="btn-text-color-trigger" title="Open Color Editor">
+                                                                    <span class="typo-color-swatch-preview" id="text-color-swatch-preview"></span>
+                                                                </button>
+                                                                <input type="text" id="elem-text-color-hex" value="#ffffff" spellcheck="false" title="Hex Color">
+                                                                <!-- Hidden native input to preserve ID -->
+                                                                <input type="color" id="elem-text-color" value="#ffffff" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                            </div>
+
+                                                            <!-- Spacing Metrics (Line Height & Letter Spacing) -->
+                                                            <div class="typo-spacing-grid">
+                                                                <div class="typo-metric-badge" title="Line Height (Leading)">
+                                                                    <i data-lucide="move-vertical" class="metric-icon"></i>
+                                                                    <input type="number" id="elem-line-height" value="1.2" step="0.1" min="0.8" max="3.0">
+                                                                </div>
+                                                                <div class="typo-metric-badge" title="Letter Spacing (Tracking in px)">
+                                                                    <i data-lucide="move-horizontal" class="metric-icon"></i>
+                                                                    <input type="number" id="elem-letter-spacing" value="0" step="1" min="-10" max="50">
+                                                                    <span class="metric-unit">px</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1014,44 +1157,137 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Background & Border styling -->
-                                            <div class="inspector-field" id="group-bg-styles">
-                                                <div class="form-group">
-                                                    <label for="elem-bg-color">Background Color</label>
-                                                    <div class="color-picker-wrapper">
-                                                        <input type="color" id="elem-bg-color" value="#334155">
-                                                        <input type="text" id="elem-bg-color-hex" value="#334155">
+                                            <!-- STUDIO PRO FILL & STROKE ENGINE -->
+                                            <div class="inspector-field appearance-studio-container" id="group-bg-styles">
+                                                <!-- SUB-GROUP 1: SURFACE (FILL) -->
+                                                <div class="appearance-group">
+                                                    <div class="appearance-label-row">
+                                                        <span class="appearance-group-label">Surface (Fill)</span>
+                                                    </div>
+                                                    <div class="appearance-dual-row appearance-surface-row">
+                                                        <!-- Custom Fill Color Swatch Trigger Button -->
+                                                        <button type="button" class="btn-appearance-color-trigger" id="btn-bg-color-trigger" title="Choose Fill Color">
+                                                            <div class="appearance-swatch-preview" id="bg-color-swatch-preview"></div>
+                                                            <span class="appearance-hex-label" id="bg-color-hex-label">#16161A</span>
+                                                            <i data-lucide="pipette" class="appearance-trigger-icon"></i>
+                                                        </button>
+
+                                                        <!-- Preserved Hidden Color Inputs for 100% Backward Compatibility -->
+                                                        <input type="color" id="elem-bg-color" class="sr-only" style="display: none;" value="#334155" tabindex="-1" aria-hidden="true">
+                                                        <input type="text" id="elem-bg-color-hex" class="sr-only" style="display: none;" value="#334155" tabindex="-1" aria-hidden="true">
+
+                                                        <!-- Opacity Scrub Badge & Readout -->
+                                                        <div class="appearance-opacity-badge" id="bg-opacity-scrub-wrapper" title="Drag to adjust opacity">
+                                                            <svg class="opacity-icon-svg" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                                <circle cx="8" cy="8" r="6.5" />
+                                                                <path d="M8 1.5A6.5 6.5 0 0 1 8 14.5Z" fill="currentColor" />
+                                                            </svg>
+                                                            <span class="opacity-pct-label" id="bg-opacity-pct-label">100%</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Studio Alpha Gradient Track Slider Row -->
+                                                    <div class="appearance-opacity-slider-row" id="bg-opacity-slider-container">
+                                                        <div class="appearance-opacity-track-wrap">
+                                                            <div class="appearance-opacity-gradient-fill" id="bg-opacity-gradient-fill"></div>
+                                                            <input type="range" class="appearance-opacity-slider" id="elem-bg-alpha-slider" min="0" max="1" step="0.01" value="1" title="Surface Opacity (0% - 100%)">
+                                                        </div>
+                                                        <!-- Preserved Hidden Native Slider -->
+                                                        <input type="range" id="elem-bg-alpha" class="sr-only" style="display: none;" min="0" max="1" step="0.1" value="1" tabindex="-1" aria-hidden="true">
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="elem-bg-alpha">Background Opacity</label>
-                                                    <input type="range" id="elem-bg-alpha" min="0" max="1" step="0.1" value="1">
+
+                                                <!-- SUB-GROUP 2: STROKE (BORDER) -->
+                                                <div class="appearance-group">
+                                                    <div class="appearance-label-row">
+                                                        <span class="appearance-group-label">Stroke (Border)</span>
+                                                    </div>
+                                                    <!-- Segmented Stroke Style Pills -->
+                                                    <div class="appearance-stroke-segmented" id="border-style-segmented" role="radiogroup" aria-label="Stroke Style">
+                                                        <button type="button" class="btn-stroke-style active" data-style="none" title="No Border">
+                                                            <i data-lucide="ban" class="stroke-icon"></i>
+                                                            <span>None</span>
+                                                        </button>
+                                                        <button type="button" class="btn-stroke-style" data-style="solid" title="Solid Border">
+                                                            <span class="stroke-line-preview solid"></span>
+                                                            <span>Solid</span>
+                                                        </button>
+                                                        <button type="button" class="btn-stroke-style" data-style="dashed" title="Dashed Border">
+                                                            <span class="stroke-line-preview dashed"></span>
+                                                            <span>Dash</span>
+                                                        </button>
+                                                        <button type="button" class="btn-stroke-style" data-style="dotted" title="Dotted Border">
+                                                            <span class="stroke-line-preview dotted"></span>
+                                                            <span>Dot</span>
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- Preserved Hidden Border Style Select -->
+                                                    <select id="elem-border-style" class="sr-only" style="display: none;" tabindex="-1" aria-hidden="true">
+                                                        <option value="none">None</option>
+                                                        <option value="solid">Solid</option>
+                                                        <option value="dashed">Dashed</option>
+                                                        <option value="dotted">Dotted</option>
+                                                    </select>
+
+                                                    <!-- Stroke Color & Width Stepper Row -->
+                                                    <div class="appearance-dual-row appearance-stroke-row">
+                                                        <!-- Custom Border Color Swatch Trigger Button -->
+                                                        <button type="button" class="btn-appearance-color-trigger" id="btn-border-color-trigger" title="Choose Border Color">
+                                                            <div class="appearance-swatch-preview" id="border-color-swatch-preview"></div>
+                                                            <span class="appearance-hex-label" id="border-color-hex-label">#FFFFFF</span>
+                                                            <i data-lucide="pipette" class="appearance-trigger-icon"></i>
+                                                        </button>
+
+                                                        <!-- Preserved Hidden Border Color Inputs -->
+                                                        <input type="color" id="elem-border-color" class="sr-only" style="display: none;" value="#ffffff" tabindex="-1" aria-hidden="true">
+                                                        <input type="text" id="elem-border-color-hex" class="sr-only" style="display: none;" value="#ffffff" tabindex="-1" aria-hidden="true">
+
+                                                        <!-- Tactile Border Width Stepper -->
+                                                        <div class="appearance-stepper" id="border-width-stepper">
+                                                            <button type="button" class="btn-appearance-step" id="btn-border-width-dec" title="Decrease border width (-1px)">
+                                                                <i data-lucide="minus"></i>
+                                                            </button>
+                                                            <div class="appearance-stepper-input-wrapper" id="border-width-scrub-wrapper" title="Drag to scrub border width">
+                                                                <span class="stepper-icon">─</span>
+                                                                <input type="number" id="elem-border-width" value="3" min="0" max="50" class="stepper-input" title="Border Width (px)">
+                                                                <span class="stepper-unit">px</span>
+                                                            </div>
+                                                            <button type="button" class="btn-appearance-step" id="btn-border-width-inc" title="Increase border width (+1px)">
+                                                                <i data-lucide="plus"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="row-fields">
-                                                    <div class="form-group">
-                                                        <label for="elem-border-radius">Border Radius</label>
-                                                        <input type="number" id="elem-border-radius" value="8" min="0" max="100">
+
+                                                <!-- SUB-GROUP 3: CORNERS (RADIUS) -->
+                                                <div class="appearance-group">
+                                                    <div class="appearance-label-row">
+                                                        <span class="appearance-group-label">Corners (Radius)</span>
                                                     </div>
-                                                    <div class="form-group">
-                                                        <label for="elem-border-width">Border Width</label>
-                                                        <input type="number" id="elem-border-width" value="0" min="0" max="50">
-                                                    </div>
-                                                </div>
-                                                <div class="row-fields">
-                                                    <div class="form-group">
-                                                        <label for="elem-border-style">Border Type</label>
-                                                        <select id="elem-border-style">
-                                                            <option value="none">None</option>
-                                                            <option value="solid">Solid</option>
-                                                            <option value="dashed">Dashed</option>
-                                                            <option value="dotted">Dotted</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label for="elem-border-color">Border Color</label>
-                                                        <div class="color-picker-wrapper">
-                                                            <input type="color" id="elem-border-color" value="#ffffff">
-                                                            <input type="text" id="elem-border-color-hex" value="#ffffff">
+                                                    <div class="appearance-dual-row appearance-corners-row">
+                                                        <!-- Tactile Corner Radius Stepper -->
+                                                        <div class="appearance-stepper appearance-stepper-wide" id="border-radius-stepper">
+                                                            <button type="button" class="btn-appearance-step" id="btn-border-radius-dec" title="Decrease corner radius (-2px)">
+                                                                <i data-lucide="minus"></i>
+                                                            </button>
+                                                            <div class="appearance-stepper-input-wrapper" id="border-radius-scrub-wrapper" title="Drag to scrub corner radius">
+                                                                <span class="stepper-icon">╭</span>
+                                                                <input type="number" id="elem-border-radius" value="8" min="0" max="100" class="stepper-input" title="Corner Radius (px)">
+                                                                <span class="stepper-unit">px</span>
+                                                            </div>
+                                                            <button type="button" class="btn-appearance-step" id="btn-border-radius-inc" title="Increase corner radius (+2px)">
+                                                                <i data-lucide="plus"></i>
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- 1-Click Corner Presets Strip -->
+                                                        <div class="radius-preset-pills" role="toolbar" aria-label="Corner Radius Presets">
+                                                            <button type="button" class="btn-radius-preset" data-radius="0" title="Sharp (0px)">0</button>
+                                                            <button type="button" class="btn-radius-preset" data-radius="4" title="Subtle (4px)">4</button>
+                                                            <button type="button" class="btn-radius-preset active" data-radius="8" title="Smooth (8px)">8</button>
+                                                            <button type="button" class="btn-radius-preset" data-radius="16" title="Round (16px)">16</button>
+                                                            <button type="button" class="btn-radius-preset" data-radius="50" title="Pill / Full (50px)">Pill</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1626,6 +1862,55 @@
                 <div class="presets-grid" id="picker-presets-grid">
                     <!-- Generated dynamically in Javascript -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDIO FONT PICKER POPOVER -->
+    <div id="studio-font-picker-popover" class="studio-font-popover hidden" role="dialog" aria-label="Typeface Browser">
+        <div class="font-popover-header">
+            <div class="font-search-bar">
+                <i data-lucide="search" class="font-search-icon"></i>
+                <input type="text" id="font-picker-search-input" placeholder="Search fonts..." autocomplete="off" spellcheck="false">
+                <button type="button" class="btn-clear-font-search hidden" id="btn-clear-font-search" title="Clear search">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="font-category-pills" id="font-picker-categories">
+                <button type="button" class="font-pill active" data-cat="all">All</button>
+                <button type="button" class="font-pill" data-cat="sans">Sans</button>
+                <button type="button" class="font-pill" data-cat="serif">Serif</button>
+                <button type="button" class="font-pill" data-cat="display">Display</button>
+                <button type="button" class="font-pill" data-cat="script">Script</button>
+                <button type="button" class="font-pill" data-cat="mono">Mono</button>
+                <button type="button" class="font-pill" data-cat="pixel">Pixel</button>
+            </div>
+        </div>
+
+        <div class="font-popover-body" id="font-popover-scroll-body">
+            <!-- RECENT FONTS SECTION -->
+            <div class="font-section-group" id="font-picker-recents-section">
+                <div class="font-section-title">
+                    <span>Recent</span>
+                    <button type="button" class="btn-clear-recents" id="btn-clear-recent-fonts" title="Clear recent fonts">Clear</button>
+                </div>
+                <div class="font-card-list" id="font-picker-recent-list">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- ALL FONTS / FILTERED FONTS SECTION -->
+            <div class="font-section-group">
+                <div class="font-section-title" id="font-picker-catalog-title">All Fonts</div>
+                <div class="font-card-list" id="font-picker-catalog-list">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div class="font-picker-empty hidden" id="font-picker-empty">
+                <i data-lucide="type" class="empty-icon"></i>
+                <span>No matching fonts found</span>
             </div>
         </div>
     </div>

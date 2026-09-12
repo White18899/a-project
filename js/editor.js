@@ -303,6 +303,9 @@ function initEditorUI() {
             if (element.text !== undefined) {
                 document.getElementById('elem-text').value = element.text;
                 document.getElementById('field-elem-text').classList.remove('hidden');
+                if (window.syncTypographyStudioUI) {
+                    window.syncTypographyStudioUI(element);
+                }
             } else {
                 document.getElementById('field-elem-text').classList.add('hidden');
             }
@@ -311,6 +314,9 @@ function initEditorUI() {
             document.getElementById('elem-y').value = element.y;
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
+            if (window.syncGeometryMatrixUI) {
+                window.syncGeometryMatrixUI(element);
+            }
             const rotVal = element.rotation || 0;
             if (window.syncRotationUI) {
                 window.syncRotationUI(rotVal, false);
@@ -343,6 +349,9 @@ function initEditorUI() {
                 document.getElementById('elem-text-color').value = txtCol === 'transparent' ? '#000000' : txtCol;
                 document.getElementById('elem-text-color-hex').value = txtCol;
                 syncColorSwatchTransparentClass(document.getElementById('elem-text-color'), txtCol);
+                if (window.syncTypographyStudioUI) {
+                    window.syncTypographyStudioUI(element);
+                }
             }
 
             // Bind background formatting inputs
@@ -360,6 +369,10 @@ function initEditorUI() {
                 document.getElementById('elem-border-color').value = borCol === 'transparent' ? '#000000' : borCol;
                 document.getElementById('elem-border-color-hex').value = borCol;
                 syncColorSwatchTransparentClass(document.getElementById('elem-border-color'), borCol);
+
+                if (window.syncAppearanceStudioUI) {
+                    window.syncAppearanceStudioUI(element);
+                }
             }
 
             // Image URL properties
@@ -461,6 +474,9 @@ function initEditorUI() {
             document.getElementById('elem-y').value = element.y;
             document.getElementById('elem-w').value = element.width;
             document.getElementById('elem-h').value = element.height;
+            if (window.syncGeometryMatrixUI) {
+                window.syncGeometryMatrixUI(element);
+            }
             const rotVal = element.rotation || 0;
             if (window.syncRotationUI) {
                 window.syncRotationUI(rotVal, false);
@@ -943,7 +959,9 @@ function initEditorUI() {
                     const textAndBoxKeys = [
                         'text', 'fontFamily', 'fontSize', 'align', 'textColor', 
                         'bgColor', 'bgAlpha', 'borderRadius', 'borderWidth', 
-                        'borderStyle', 'borderColor', 'useMarkupColor', 'markupColor'
+                        'borderStyle', 'borderColor', 'useMarkupColor', 'markupColor',
+                        'fontWeight', 'isBold', 'isItalic', 'isUnderline', 'isUppercase', 'isStrikethrough',
+                        'lineHeight', 'letterSpacing'
                     ];
                     
                     for (const key in props) {
@@ -971,19 +989,256 @@ function initEditorUI() {
         updateActiveElem({ text: e.target.value });
     });
 
-    // Coordinates pos
-    document.getElementById('elem-x').addEventListener('input', (e) => {
-        updateActiveElem({ x: parseInt(e.target.value) || 0 });
-    });
-    document.getElementById('elem-y').addEventListener('input', (e) => {
-        updateActiveElem({ y: parseInt(e.target.value) || 0 });
-    });
-    document.getElementById('elem-w').addEventListener('input', (e) => {
-        updateActiveElem({ width: parseInt(e.target.value) || 40 });
-    });
-    document.getElementById('elem-h').addEventListener('input', (e) => {
-        updateActiveElem({ height: parseInt(e.target.value) || 30 });
-    });
+    // ==========================================
+    // STUDIO PRO GEOMETRY MATRIX (X, Y, W, H + LOCK + SCRUB + MATH)
+    // ==========================================
+    function initGeometryMatrix() {
+        const inputX = document.getElementById('elem-x');
+        const inputY = document.getElementById('elem-y');
+        const inputW = document.getElementById('elem-w');
+        const inputH = document.getElementById('elem-h');
+
+        const badgeX = document.getElementById('badge-geo-x');
+        const badgeY = document.getElementById('badge-geo-y');
+        const badgeW = document.getElementById('badge-geo-w');
+        const badgeH = document.getElementById('badge-geo-h');
+
+        const btnLock = document.getElementById('btn-aspect-ratio-lock');
+        let isAspectLocked = false;
+
+        if (!inputX || !inputY || !inputW || !inputH) return;
+
+        function evaluateMathExpression(str, currentVal) {
+            if (!str) return currentVal;
+            let clean = String(str).trim();
+            // Support relative expressions like +20, -50, *2, /2
+            if (/^[+\-*/]/.test(clean)) {
+                clean = `${currentVal}${clean}`;
+            }
+            // Only allow digits, +, -, *, /, (, ), ., and spaces for safety
+            if (!/^[0-9+\-*/().\s]+$/.test(clean)) {
+                const num = parseFloat(clean);
+                return isNaN(num) ? currentVal : Math.round(num);
+            }
+            try {
+                const result = Function(`'use strict'; return (${clean})`)();
+                if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+                    return Math.round(result);
+                }
+            } catch (e) {
+                // Fallback
+            }
+            const num = parseFloat(clean);
+            return isNaN(num) ? currentVal : Math.round(num);
+        }
+
+        // Toggle Aspect Ratio Lock
+        btnLock?.addEventListener('click', () => {
+            isAspectLocked = !isAspectLocked;
+            btnLock.classList.toggle('locked', isAspectLocked);
+            btnLock.innerHTML = `<i data-lucide="${isAspectLocked ? 'lock' : 'unlock'}" class="lock-icon" id="icon-aspect-ratio-lock"></i>`;
+            if (window.lucide) lucide.createIcons();
+
+            const activeElem = state.getActiveElement ? state.getActiveElement() : null;
+            if (activeElem) {
+                updateActiveElem({ aspectRatioLocked: isAspectLocked });
+            }
+        });
+
+        // Input commit handler for Enter and Blur
+        function handleInputCommit(inputEl, key, minVal = null) {
+            const raw = inputEl.value.trim();
+            const activeElem = state.getActiveElement ? state.getActiveElement() : null;
+            const curVal = activeElem ? (activeElem[key] !== undefined ? activeElem[key] : (parseFloat(raw) || 0)) : (parseFloat(raw) || 0);
+            let evaluated = evaluateMathExpression(raw, curVal);
+            if (minVal !== null) {
+                evaluated = Math.max(minVal, evaluated);
+            }
+            inputEl.value = evaluated;
+
+            state.pushHistory();
+            const updates = { [key]: evaluated };
+
+            // Aspect ratio constraint
+            if (isAspectLocked && activeElem && (key === 'width' || key === 'height')) {
+                const ratio = (activeElem.width || 1) / (activeElem.height || 1);
+                if (key === 'width' && ratio > 0) {
+                    const newH = Math.max(10, Math.round(evaluated / ratio));
+                    updates.height = newH;
+                    if (inputH) inputH.value = newH;
+                } else if (key === 'height' && ratio > 0) {
+                    const newW = Math.max(10, Math.round(evaluated * ratio));
+                    updates.width = newW;
+                    if (inputW) inputW.value = newW;
+                }
+            }
+
+            updateActiveElemAndSave(updates);
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        }
+
+        // Realtime typing handler
+        function handleInputLive(inputEl, key, minVal = null) {
+            const raw = inputEl.value.trim();
+            // If typing math expression operators, wait for commit
+            if (/[+\-*/]/.test(raw)) return;
+
+            const val = parseInt(raw);
+            if (isNaN(val)) return;
+
+            const activeElem = state.getActiveElement ? state.getActiveElement() : null;
+            let clamped = minVal !== null ? Math.max(minVal, val) : val;
+            const updates = { [key]: clamped };
+
+            if (isAspectLocked && activeElem && (key === 'width' || key === 'height')) {
+                const ratio = (activeElem.width || 1) / (activeElem.height || 1);
+                if (key === 'width' && ratio > 0) {
+                    const newH = Math.max(10, Math.round(clamped / ratio));
+                    updates.height = newH;
+                    if (inputH) inputH.value = newH;
+                } else if (key === 'height' && ratio > 0) {
+                    const newW = Math.max(10, Math.round(clamped * ratio));
+                    updates.width = newW;
+                    if (inputW) inputW.value = newW;
+                }
+            }
+
+            updateActiveElem(updates);
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        }
+
+        const setupInputField = (inputEl, key, minVal = null) => {
+            if (!inputEl) return;
+            inputEl.addEventListener('input', () => handleInputLive(inputEl, key, minVal));
+            inputEl.addEventListener('blur', () => handleInputCommit(inputEl, key, minVal));
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleInputCommit(inputEl, key, minVal);
+                    inputEl.blur();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const step = e.shiftKey ? 10 : 1;
+                    const cur = parseInt(inputEl.value) || 0;
+                    inputEl.value = cur + step;
+                    handleInputCommit(inputEl, key, minVal);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const step = e.shiftKey ? 10 : 1;
+                    const cur = parseInt(inputEl.value) || 0;
+                    inputEl.value = cur - step;
+                    handleInputCommit(inputEl, key, minVal);
+                }
+            });
+        };
+
+        setupInputField(inputX, 'x');
+        setupInputField(inputY, 'y');
+        setupInputField(inputW, 'width', 10);
+        setupInputField(inputH, 'height', 10);
+
+        // Tactile Badge Scrubbing
+        function setupBadgeScrub(badgeEl, inputEl, key, minVal = null) {
+            if (!badgeEl || !inputEl) return;
+            let startX = 0;
+            let startVal = 0;
+            let isScrubbing = false;
+
+            badgeEl.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startX = e.clientX;
+                const activeElem = state.getActiveElement ? state.getActiveElement() : null;
+                startVal = activeElem ? (activeElem[key] !== undefined ? activeElem[key] : (parseInt(inputEl.value) || 0)) : (parseInt(inputEl.value) || 0);
+                isScrubbing = false;
+                badgeEl.setPointerCapture(e.pointerId);
+                badgeEl.classList.add('scrubbing');
+
+                const onPointerMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (!isScrubbing && Math.abs(dx) > 2) {
+                        isScrubbing = true;
+                        state.pushHistory();
+                    }
+                    if (isScrubbing) {
+                        let step = ev.altKey ? 0.5 : (ev.shiftKey ? 10 : 1);
+                        let delta = Math.round(dx * step);
+                        let newVal = startVal + delta;
+                        if (minVal !== null) {
+                            newVal = Math.max(minVal, newVal);
+                        }
+                        inputEl.value = newVal;
+                        const updates = { [key]: newVal };
+
+                        if (isAspectLocked && activeElem && (key === 'width' || key === 'height')) {
+                            const ratio = (activeElem.width || 1) / (activeElem.height || 1);
+                            if (key === 'width' && ratio > 0) {
+                                const newH = Math.max(10, Math.round(newVal / ratio));
+                                updates.height = newH;
+                                if (inputH) inputH.value = newH;
+                            } else if (key === 'height' && ratio > 0) {
+                                const newW = Math.max(10, Math.round(newVal * ratio));
+                                updates.width = newW;
+                                if (inputW) inputW.value = newW;
+                            }
+                        }
+
+                        updateActiveElem(updates);
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                const onPointerUp = (ev) => {
+                    badgeEl.removeEventListener('pointermove', onPointerMove);
+                    badgeEl.removeEventListener('pointerup', onPointerUp);
+                    badgeEl.removeEventListener('pointercancel', onPointerUp);
+                    badgeEl.classList.remove('scrubbing');
+                    if (isScrubbing) {
+                        const finalVal = parseInt(inputEl.value) || 0;
+                        const finalUpdates = { [key]: finalVal };
+                        if (isAspectLocked && activeElem && (key === 'width' || key === 'height')) {
+                            const ratio = (activeElem.width || 1) / (activeElem.height || 1);
+                            if (key === 'width' && ratio > 0) {
+                                finalUpdates.height = Math.max(10, Math.round(finalVal / ratio));
+                            } else if (key === 'height' && ratio > 0) {
+                                finalUpdates.width = Math.max(10, Math.round(finalVal * ratio));
+                            }
+                        }
+                        updateActiveElemAndSave(finalUpdates);
+                    }
+                };
+
+                badgeEl.addEventListener('pointermove', onPointerMove);
+                badgeEl.addEventListener('pointerup', onPointerUp);
+                badgeEl.addEventListener('pointercancel', onPointerUp);
+            });
+        }
+
+        setupBadgeScrub(badgeX, inputX, 'x');
+        setupBadgeScrub(badgeY, inputY, 'y');
+        setupBadgeScrub(badgeW, inputW, 'width', 10);
+        setupBadgeScrub(badgeH, inputH, 'height', 10);
+
+        // Global Sync Function
+        window.syncGeometryMatrixUI = function(element) {
+            if (!element) return;
+            if (document.activeElement !== inputX) inputX.value = element.x !== undefined ? element.x : 0;
+            if (document.activeElement !== inputY) inputY.value = element.y !== undefined ? element.y : 0;
+            if (document.activeElement !== inputW) inputW.value = element.width !== undefined ? element.width : 100;
+            if (document.activeElement !== inputH) inputH.value = element.height !== undefined ? element.height : 100;
+
+            isAspectLocked = !!element.aspectRatioLocked;
+            if (btnLock) {
+                btnLock.classList.toggle('locked', isAspectLocked);
+                btnLock.innerHTML = `<i data-lucide="${isAspectLocked ? 'lock' : 'unlock'}" class="lock-icon" id="icon-aspect-ratio-lock"></i>`;
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+
+    initGeometryMatrix();
     // ==========================================
     // STUDIO ROTATION WIDGET (DIAL + SCRUB + 90°)
     // ==========================================
@@ -4000,7 +4255,7 @@ function initEditorUI() {
             const primaryElem = state.getActiveElement();
             if (!primaryElem) return;
             state.pushHistory();
-            const widths = [0, 2, 4, 8];
+            const widths = [0, 3, 6, 12];
             const curW = primaryElem.borderWidth || 0;
             const nextIdx = (widths.indexOf(curW) + 1) % widths.length;
             const newW = widths[nextIdx];
@@ -4095,8 +4350,1027 @@ function initEditorUI() {
         }
     }
 
+    // =========================================================================
+    // STUDIO PRO FONT PICKER CATALOG & POPOVER ENGINE
+    // =========================================================================
+    const GOOGLE_FONTS_CATALOG = [
+        // Sans (9)
+        { name: 'Outfit', category: 'sans', tag: 'Clean', sample: 'Modern & clean geometry' },
+        { name: 'Inter', category: 'sans', tag: 'Sleek', sample: 'Hyper-legible interface font' },
+        { name: 'Montserrat', category: 'sans', tag: 'Modern', sample: 'Bold geometric statement' },
+        { name: 'Space Grotesk', category: 'sans', tag: 'Tech', sample: 'Futuristic monospace rhythm' },
+        { name: 'Comfortaa', category: 'sans', tag: 'Rounded', sample: 'Smooth rounded curves' },
+        { name: 'Quicksand', category: 'sans', tag: 'Friendly', sample: 'Friendly approachable warmth' },
+        { name: 'Oswald', category: 'sans', tag: 'Condensed', sample: 'Impactful condensed headlines' },
+        { name: 'Josefin Sans', category: 'sans', tag: 'Vintage', sample: 'Elegant vintage geometry' },
+        { name: 'Arial', category: 'sans', tag: 'System', sample: 'Universal neutral standard' },
+
+        // Serif (7)
+        { name: 'Playfair Display', category: 'serif', tag: 'Editorial', sample: 'High-contrast luxury elegance' },
+        { name: 'Cinzel', category: 'serif', tag: 'Classic', sample: 'Roman inscription authority' },
+        { name: 'Cinzel Decorative', category: 'serif', tag: 'Ornate', sample: 'Majestic classical capitals' },
+        { name: 'Cormorant Garamond', category: 'serif', tag: 'Garamond', sample: 'Graceful Renaissance poetry' },
+        { name: 'Abril Fatface', category: 'serif', tag: 'Contrast', sample: 'Dramatic editorial display' },
+        { name: 'Cardo', category: 'serif', tag: 'Academic', sample: 'Scholarly humanist elegance' },
+        { name: 'Georgia', category: 'serif', tag: 'System', sample: 'Refined book typography' },
+
+        // Display (5)
+        { name: 'Unbounded', category: 'display', tag: 'Futurist', sample: 'Expansive sci-fi presence' },
+        { name: 'Bebas Neue', category: 'display', tag: 'Impact', sample: 'MONUMENTAL ALL-CAPS' },
+        { name: 'Righteous', category: 'display', tag: 'Retro', sample: 'Neon grid art deco' },
+        { name: 'Russo One', category: 'display', tag: 'Heavy', sample: 'Bold cybernetic power' },
+        { name: 'Permanent Marker', category: 'display', tag: 'Brush', sample: 'Expressive raw marker strokes' },
+
+        // Script (7)
+        { name: 'Lobster', category: 'script', tag: 'Bold Script', sample: 'Playful vintage script charm' },
+        { name: 'Satisfy', category: 'script', tag: 'Cursive', sample: 'Flourished handwriting flair' },
+        { name: 'Dancing Script', category: 'script', tag: 'Casual', sample: 'Lively bouncing rhythm' },
+        { name: 'Courgette', category: 'script', tag: 'Calligraphy', sample: 'Compact calligraphic touch' },
+        { name: 'Pacifico', category: 'script', tag: 'Brush', sample: 'Breezy Californian cursive' },
+        { name: 'Kaushan Script', category: 'script', tag: 'Expressive', sample: 'Dynamic energetic paintbrush' },
+        { name: 'Shadows Into Light', category: 'script', tag: 'Handwritten', sample: 'Delicate personal signature' },
+
+        // Mono (4)
+        { name: 'Fira Code', category: 'mono', tag: 'Code', sample: 'const future = true => dev;' },
+        { name: 'Space Mono', category: 'mono', tag: 'Geometric', sample: '0101 TECH PROTOCOL' },
+        { name: 'Courier New', category: 'mono', tag: 'System', sample: 'Classic typewriter precision' },
+        { name: 'Rajdhani', category: 'mono', tag: 'Squared', sample: 'Squared aerospace HUD specs' },
+
+        // Pixel (3)
+        { name: 'Press Start 2P', category: 'pixel', tag: '8-Bit', sample: 'GAME OVER! INSERT COIN' },
+        { name: 'VT323', category: 'pixel', tag: 'Arcade', sample: 'TERMINAL READY > RUN APP' },
+        { name: 'Silkscreen', category: 'pixel', tag: 'Retro Grid', sample: 'MICRO PIXEL DISPLAY 1984' }
+    ];
+
+    function initStudioFontPicker() {
+        const triggerBtn = document.getElementById('btn-font-picker-trigger');
+        const popover = document.getElementById('studio-font-picker-popover');
+        const searchInput = document.getElementById('font-picker-search-input');
+        const btnClearSearch = document.getElementById('btn-clear-font-search');
+        const categoriesContainer = document.getElementById('font-picker-categories');
+        const categoryPills = categoriesContainer ? categoriesContainer.querySelectorAll('.font-pill') : document.querySelectorAll('.font-pill');
+        const recentsSection = document.getElementById('font-picker-recents-section');
+        const recentList = document.getElementById('font-picker-recent-list');
+        const catalogList = document.getElementById('font-picker-catalog-list');
+        const catalogTitle = document.getElementById('font-picker-catalog-title');
+        const emptyState = document.getElementById('font-picker-empty');
+        const btnClearRecents = document.getElementById('btn-clear-recent-fonts');
+        const fontSelect = document.getElementById('elem-font-family');
+        const selectedFontNameEl = document.getElementById('selected-font-name');
+        const selectedFontBadgeEl = document.getElementById('selected-font-badge');
+        const fontTriggerGlyph = document.getElementById('font-trigger-glyph');
+
+        if (!triggerBtn || !popover) return;
+
+        let activeCategory = 'all';
+        let searchQuery = '';
+
+        const STORAGE_KEY = 'studio_recent_fonts';
+
+        function getRecentFonts() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            } catch (e) {}
+            return ['Outfit', 'Inter', 'Playfair Display'];
+        }
+
+        function saveRecentFont(fontName) {
+            try {
+                let recents = getRecentFonts().filter(f => f.toLowerCase() !== fontName.toLowerCase());
+                recents.unshift(fontName);
+                if (recents.length > 5) recents = recents.slice(0, 5);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(recents));
+            } catch (e) {}
+        }
+
+        function getCurrentFont() {
+            const elem = state.getActiveElement ? state.getActiveElement() : null;
+            if (elem && elem.fontFamily) return elem.fontFamily;
+            if (fontSelect && fontSelect.value) return fontSelect.value;
+            return 'Outfit';
+        }
+
+        function updateTriggerUI(fontName) {
+            const font = fontName || getCurrentFont();
+            if (selectedFontNameEl) selectedFontNameEl.textContent = font;
+            const meta = GOOGLE_FONTS_CATALOG.find(f => f.name.toLowerCase() === font.toLowerCase());
+            if (selectedFontBadgeEl) {
+                selectedFontBadgeEl.textContent = meta ? meta.category.toUpperCase() : 'FONT';
+            }
+            if (fontTriggerGlyph) {
+                fontTriggerGlyph.style.fontFamily = `'${font}', sans-serif`;
+            }
+        }
+
+        function selectFont(fontName) {
+            state.pushHistory();
+            saveRecentFont(fontName);
+
+            if (fontSelect) {
+                fontSelect.value = fontName;
+                fontSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                updateActiveElemAndSave({ fontFamily: fontName });
+            }
+
+            updateTriggerUI(fontName);
+            closeFontPickerPopover();
+
+            const slide = state.getActiveSlide ? state.getActiveSlide() : null;
+            if (slide && canvas && canvas.renderSlide) {
+                canvas.renderSlide(slide);
+            }
+        }
+
+        function createFontCard(fontObj, isActive) {
+            const card = document.createElement('div');
+            card.className = `font-specimen-card${isActive ? ' active' : ''}`;
+            card.setAttribute('data-font', fontObj.name);
+            card.innerHTML = `
+                <div class="font-card-main">
+                    <div class="font-card-name-row">
+                        <span class="font-card-name">${fontObj.name}</span>
+                        <span class="font-card-tag">${fontObj.tag}</span>
+                    </div>
+                    <div class="font-card-sample" style="font-family: '${fontObj.name}', sans-serif;">
+                        ${fontObj.sample}
+                    </div>
+                </div>
+                <i data-lucide="check" class="font-card-check"></i>
+            `;
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectFont(fontObj.name);
+            });
+            return card;
+        }
+
+        function renderFontLists() {
+            const currentFont = getCurrentFont().toLowerCase();
+            const query = searchQuery.trim().toLowerCase();
+
+            // Filter catalog
+            const filteredCatalog = GOOGLE_FONTS_CATALOG.filter(font => {
+                const matchesCat = (activeCategory === 'all' || font.category === activeCategory);
+                const matchesQuery = !query || font.name.toLowerCase().includes(query) || font.tag.toLowerCase().includes(query) || font.category.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            // Recents section: show only if no search query
+            const recents = getRecentFonts();
+            if (!query && activeCategory === 'all' && recents.length > 0) {
+                recentsSection.style.display = 'block';
+                recentList.innerHTML = '';
+                recents.forEach(fontName => {
+                    const fontObj = GOOGLE_FONTS_CATALOG.find(f => f.name.toLowerCase() === fontName.toLowerCase()) || {
+                        name: fontName,
+                        category: 'custom',
+                        tag: 'Recent',
+                        sample: 'The quick brown fox jumps'
+                    };
+                    const isCur = fontObj.name.toLowerCase() === currentFont;
+                    recentList.appendChild(createFontCard(fontObj, isCur));
+                });
+            } else {
+                recentsSection.style.display = 'none';
+            }
+
+            // Catalog list
+            catalogList.innerHTML = '';
+            if (catalogTitle) {
+                if (query) {
+                    catalogTitle.textContent = `Search Results (${filteredCatalog.length})`;
+                } else if (activeCategory !== 'all') {
+                    catalogTitle.textContent = `${activeCategory.toUpperCase()} Fonts (${filteredCatalog.length})`;
+                } else {
+                    catalogTitle.textContent = `All Fonts (${filteredCatalog.length})`;
+                }
+            }
+
+            if (filteredCatalog.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filteredCatalog.forEach(fontObj => {
+                    const isCur = fontObj.name.toLowerCase() === currentFont;
+                    catalogList.appendChild(createFontCard(fontObj, isCur));
+                });
+            }
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        function repositionFontPicker() {
+            if (popover.classList.contains('hidden') || !triggerBtn) return;
+            const rect = triggerBtn.getBoundingClientRect();
+
+            let top = rect.bottom + 6;
+            let left = rect.left;
+
+            const popoverWidth = popover.offsetWidth || 320;
+            const popoverHeight = popover.offsetHeight || 420;
+
+            if (left + popoverWidth > window.innerWidth - 12) {
+                left = window.innerWidth - popoverWidth - 12;
+            }
+            if (left < 12) left = 12;
+
+            const viewportBottom = window.innerHeight;
+            if (top + popoverHeight > viewportBottom - 12) {
+                const topPlacement = rect.top - popoverHeight - 6;
+                if (topPlacement >= 12) {
+                    top = topPlacement;
+                } else {
+                    top = Math.max(12, viewportBottom - popoverHeight - 12);
+                }
+            }
+
+            popover.style.top = `${top}px`;
+            popover.style.left = `${left}px`;
+        }
+
+        function openFontPickerPopover() {
+            popover.classList.remove('hidden');
+            triggerBtn.classList.add('active');
+            searchQuery = '';
+            if (searchInput) searchInput.value = '';
+            if (btnClearSearch) btnClearSearch.classList.add('hidden');
+            activeCategory = 'all';
+            categoryPills.forEach(p => p.classList.toggle('active', p.getAttribute('data-cat') === 'all'));
+            renderFontLists();
+            repositionFontPicker();
+            setTimeout(() => {
+                if (searchInput) searchInput.focus();
+            }, 50);
+        }
+
+        function closeFontPickerPopover() {
+            popover.classList.add('hidden');
+            triggerBtn.classList.remove('active');
+        }
+
+        triggerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (popover.classList.contains('hidden')) {
+                openFontPickerPopover();
+            } else {
+                closeFontPickerPopover();
+            }
+        });
+
+        // Search input events
+        searchInput?.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            if (btnClearSearch) {
+                btnClearSearch.classList.toggle('hidden', !searchQuery);
+            }
+            renderFontLists();
+        });
+
+        btnClearSearch?.addEventListener('click', () => {
+            if (searchInput) {
+                searchInput.value = '';
+                searchQuery = '';
+                btnClearSearch.classList.add('hidden');
+                searchInput.focus();
+                renderFontLists();
+            }
+        });
+
+        // Category pills events
+        categoryPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                categoryPills.forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                activeCategory = pill.getAttribute('data-cat') || 'all';
+                renderFontLists();
+            });
+        });
+
+        // Clear recents
+        btnClearRecents?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (err) {}
+            renderFontLists();
+        });
+
+        // Close on outside click
+        document.addEventListener('mousedown', (e) => {
+            if (!popover.classList.contains('hidden')) {
+                if (!popover.contains(e.target) && !triggerBtn.contains(e.target)) {
+                    closeFontPickerPopover();
+                }
+            }
+        });
+
+        // Reposition on window resize
+        window.addEventListener('resize', () => {
+            if (!popover.classList.contains('hidden')) {
+                repositionFontPicker();
+            }
+        });
+
+        // Initialize trigger text
+        updateTriggerUI();
+
+        // Also update trigger whenever elem-font-family changes
+        fontSelect?.addEventListener('change', (e) => {
+            updateTriggerUI(e.target.value);
+        });
+
+        // Expose helper to window
+        window.updateStudioFontTrigger = updateTriggerUI;
+    }
+
+    // =========================================================================
+    // STUDIO PRO TYPOGRAPHY & CONTENT ENGINE
+    // =========================================================================
+    function initTypographyStudio() {
+        const textInput = document.getElementById('elem-text');
+        const charBadge = document.getElementById('elem-text-char-count');
+        const clearBtn = document.getElementById('btn-text-clear');
+        const weightSelect = document.getElementById('elem-font-weight');
+        const sizeInput = document.getElementById('elem-font-size');
+        const decBtn = document.getElementById('btn-font-size-dec');
+        const incBtn = document.getElementById('btn-font-size-inc');
+        const scrubWrapper = document.getElementById('font-size-scrub-wrapper');
+        const alignSelect = document.getElementById('elem-align');
+        const alignBtns = document.querySelectorAll('.btn-typo-align');
+        const alignLeftBtn = document.getElementById('btn-text-align-left');
+        const alignCenterBtn = document.getElementById('btn-text-align-center');
+        const alignRightBtn = document.getElementById('btn-text-align-right');
+        const boldBtn = document.getElementById('btn-text-format-bold');
+        const italicBtn = document.getElementById('btn-text-format-italic');
+        const underlineBtn = document.getElementById('btn-text-format-underline');
+        const uppercaseBtn = document.getElementById('btn-text-format-uppercase');
+        const strikethroughBtn = document.getElementById('btn-text-format-strikethrough');
+        const colorTrigger = document.getElementById('btn-text-color-trigger');
+        const colorHex = document.getElementById('elem-text-color-hex');
+        const colorNative = document.getElementById('elem-text-color');
+        const colorPreview = document.getElementById('text-color-swatch-preview');
+        const lineHeightInput = document.getElementById('elem-line-height');
+        const letterSpacingInput = document.getElementById('elem-letter-spacing');
+
+        // Character counter
+        const updateCharCount = () => {
+            if (charBadge && textInput) {
+                const len = textInput.value ? textInput.value.length : 0;
+                charBadge.textContent = `${len} char${len === 1 ? '' : 's'}`;
+            }
+        };
+        textInput?.addEventListener('input', updateCharCount);
+
+        // Quick clear text button
+        clearBtn?.addEventListener('click', () => {
+            if (!textInput) return;
+            state.pushHistory();
+            textInput.value = '';
+            updateCharCount();
+            updateActiveElemAndSave({ text: '' });
+        });
+
+        // Font weight selector
+        weightSelect?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const val = e.target.value;
+            const isBold = parseInt(val) >= 700;
+            updateActiveElemAndSave({ fontWeight: val, isBold });
+            if (boldBtn) boldBtn.classList.toggle('active', isBold);
+        });
+
+        // Font size stepper buttons
+        const changeFontSize = (delta) => {
+            if (!sizeInput) return;
+            state.pushHistory();
+            const cur = parseInt(sizeInput.value) || 24;
+            const newVal = Math.max(8, Math.min(144, cur + delta));
+            sizeInput.value = newVal;
+            updateActiveElemAndSave({ fontSize: newVal });
+        };
+        decBtn?.addEventListener('click', () => changeFontSize(-2));
+        incBtn?.addEventListener('click', () => changeFontSize(2));
+
+        // Horizontal size drag scrubbing
+        if (scrubWrapper && sizeInput) {
+            let startX = 0;
+            let startVal = 24;
+            let isScrubbing = false;
+
+            scrubWrapper.addEventListener('pointerdown', (e) => {
+                if (e.target === sizeInput) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseInt(sizeInput.value) || 24;
+                isScrubbing = false;
+                scrubWrapper.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const multiplier = ev.shiftKey ? 5 : (ev.altKey ? 0.5 : 1);
+                        const delta = Math.round(dx / 3) * multiplier;
+                        const newVal = Math.max(8, Math.min(144, Math.round(startVal + delta)));
+                        sizeInput.value = newVal;
+                        updateActiveElem({ fontSize: newVal });
+                    }
+                };
+
+                const onUp = (ev) => {
+                    scrubWrapper.removeEventListener('pointermove', onMove);
+                    scrubWrapper.removeEventListener('pointerup', onUp);
+                    scrubWrapper.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        const finalVal = parseInt(sizeInput.value) || 24;
+                        updateActiveElemAndSave({ fontSize: finalVal });
+                    }
+                };
+
+                scrubWrapper.addEventListener('pointermove', onMove);
+                scrubWrapper.addEventListener('pointerup', onUp);
+                scrubWrapper.addEventListener('pointercancel', onUp);
+            });
+        }
+
+        // Segmented alignment toolbar
+        alignBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const alignVal = btn.getAttribute('data-align');
+                state.pushHistory();
+                alignBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if (alignSelect) alignSelect.value = alignVal;
+                updateActiveElemAndSave({ align: alignVal });
+            });
+        });
+
+        // Sync when alignSelect changes externally (e.g. from Floating Mini-Inspector)
+        alignSelect?.addEventListener('change', () => {
+            const val = alignSelect.value;
+            alignBtns.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === val);
+            });
+        });
+
+        // Formatting Toggles: Bold, Italic, Underline, Uppercase, Strikethrough
+        const bindFormatToggle = (btn, propKey, extraUpdates) => {
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                const elem = state.getActiveElement();
+                const curState = elem ? !!elem[propKey] : btn.classList.contains('active');
+                const nextState = !curState;
+                state.pushHistory();
+                btn.classList.toggle('active', nextState);
+                const updates = { [propKey]: nextState };
+                if (extraUpdates) Object.assign(updates, extraUpdates(nextState, elem));
+                updateActiveElemAndSave(updates);
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        };
+
+        bindFormatToggle(boldBtn, 'isBold', (active) => {
+            const weightVal = active ? '700' : '400';
+            if (weightSelect) weightSelect.value = weightVal;
+            return { fontWeight: weightVal };
+        });
+        bindFormatToggle(italicBtn, 'isItalic');
+        bindFormatToggle(underlineBtn, 'isUnderline');
+        bindFormatToggle(uppercaseBtn, 'isUppercase');
+        bindFormatToggle(strikethroughBtn, 'isStrikethrough');
+
+        // Custom Color Editor Anchor for Typography
+        colorTrigger?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.pushHistory();
+            openCustomColorPicker(colorTrigger, colorHex, (col) => {
+                if (colorPreview) colorPreview.style.backgroundColor = col === 'transparent' ? 'transparent' : col;
+                if (colorNative) colorNative.value = col === 'transparent' ? '#000000' : col;
+                if (colorHex) colorHex.value = col;
+                updateActiveElem({ textColor: col });
+                canvas.renderSlide(state.getActiveSlide());
+                canvas.drawSelectionUI();
+            });
+        });
+
+        // Advanced Metrics: Line Height & Letter Spacing
+        lineHeightInput?.addEventListener('input', (e) => {
+            const raw = parseFloat(e.target.value);
+            if (!isNaN(raw)) {
+                updateActiveElem({ lineHeight: raw });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        lineHeightInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const raw = parseFloat(e.target.value);
+            const val = !isNaN(raw) ? raw : 1.2;
+            updateActiveElemAndSave({ lineHeight: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        letterSpacingInput?.addEventListener('input', (e) => {
+            const raw = parseFloat(e.target.value);
+            if (!isNaN(raw)) {
+                updateActiveElem({ letterSpacing: raw });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        });
+        letterSpacingInput?.addEventListener('change', (e) => {
+            state.pushHistory();
+            const raw = parseFloat(e.target.value);
+            const val = !isNaN(raw) ? raw : 0;
+            updateActiveElemAndSave({ letterSpacing: val });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        });
+
+        // Scrubbing on metric badges
+        const setupMetricScrubber = (badgeSelector, inputElem, step, min, max, isFloat = false) => {
+            const badge = document.querySelector(badgeSelector);
+            if (!badge || !inputElem) return;
+            let startX = 0;
+            let startVal = 0;
+            let isScrubbing = false;
+
+            badge.addEventListener('pointerdown', (e) => {
+                if (e.target === inputElem) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = isFloat ? (parseFloat(inputElem.value) || 1.2) : (parseInt(inputElem.value) || 0);
+                isScrubbing = false;
+                badge.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const delta = (dx / 10) * step;
+                        let newVal = startVal + delta;
+                        if (min !== undefined) newVal = Math.max(min, newVal);
+                        if (max !== undefined) newVal = Math.min(max, newVal);
+                        newVal = isFloat ? Math.round(newVal * 10) / 10 : Math.round(newVal);
+                        inputElem.value = newVal;
+                        inputElem.dispatchEvent(new Event('input'));
+                    }
+                };
+
+                const onUp = (ev) => {
+                    badge.removeEventListener('pointermove', onMove);
+                    badge.removeEventListener('pointerup', onUp);
+                    badge.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        inputElem.dispatchEvent(new Event('change'));
+                    }
+                };
+
+                badge.addEventListener('pointermove', onMove);
+                badge.addEventListener('pointerup', onUp);
+                badge.addEventListener('pointercancel', onUp);
+            });
+        };
+
+        setupMetricScrubber('.typo-metric-badge[title*="Line Height"]', lineHeightInput, 0.1, 0.5, 3.0, true);
+        setupMetricScrubber('.typo-metric-badge[title*="Letter Spacing"]', letterSpacingInput, 1, -10, 50, false);
+
+        // Global sync function for Studio UI
+        window.syncTypographyStudioUI = function(element) {
+            if (!element) return;
+            updateCharCount();
+
+            // Font weight
+            if (weightSelect) {
+                const wt = element.fontWeight ? String(element.fontWeight) : (element.isBold ? '700' : '400');
+                weightSelect.value = wt;
+            }
+
+            // Alignment buttons
+            const currentAlign = element.align || (element.type && element.type.startsWith('btn-') ? 'center' : 'left');
+            alignBtns.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === currentAlign);
+            });
+
+            // Format toggles
+            if (boldBtn) boldBtn.classList.toggle('active', !!(element.isBold || (element.fontWeight && parseInt(element.fontWeight) >= 700)));
+            if (italicBtn) italicBtn.classList.toggle('active', !!element.isItalic);
+            if (underlineBtn) underlineBtn.classList.toggle('active', !!element.isUnderline);
+            if (uppercaseBtn) uppercaseBtn.classList.toggle('active', !!element.isUppercase);
+            if (strikethroughBtn) strikethroughBtn.classList.toggle('active', !!element.isStrikethrough);
+
+            // Color preview & inputs
+            const col = element.textColor || '#ffffff';
+            if (colorPreview) colorPreview.style.backgroundColor = col === 'transparent' ? 'transparent' : col;
+            if (colorHex) colorHex.value = col;
+            if (colorNative) colorNative.value = col === 'transparent' ? '#000000' : col;
+
+            // Advanced metrics
+            if (lineHeightInput) lineHeightInput.value = element.lineHeight !== undefined ? element.lineHeight : 1.2;
+            if (letterSpacingInput) letterSpacingInput.value = element.letterSpacing !== undefined ? element.letterSpacing : 0;
+
+            // Typeface trigger sync
+            if (window.updateStudioFontTrigger) {
+                window.updateStudioFontTrigger(element.fontFamily || 'Outfit');
+            }
+        };
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    // =========================================================================
+    // STUDIO PRO FILL & STROKE (APPEARANCE & STYLE) ENGINE
+    // =========================================================================
+    function initAppearanceStudio() {
+        const bgTrigger = document.getElementById('btn-bg-color-trigger');
+        const bgSwatch = document.getElementById('bg-color-swatch-preview');
+        const bgHexLabel = document.getElementById('bg-color-hex-label');
+        const bgNative = document.getElementById('elem-bg-color');
+        const bgHexInput = document.getElementById('elem-bg-color-hex');
+
+        const opacitySlider = document.getElementById('elem-bg-alpha-slider');
+        const opacityBadge = document.getElementById('bg-opacity-scrub-wrapper');
+        const opacityPctLabel = document.getElementById('bg-opacity-pct-label');
+        const opacityNative = document.getElementById('elem-bg-alpha');
+        const opacityGradientFill = document.getElementById('bg-opacity-gradient-fill');
+
+        const updateOpacityGradientTrack = (color) => {
+            if (!opacityGradientFill) return;
+            const effectiveColor = (!color || color === 'transparent') ? '#ffffff' : color;
+            opacityGradientFill.style.background = `linear-gradient(to right, transparent, ${effectiveColor})`;
+        };
+
+        const borderStyleSegmented = document.getElementById('border-style-segmented');
+        const borderStyleButtons = borderStyleSegmented ? borderStyleSegmented.querySelectorAll('.btn-stroke-style') : [];
+        const borderStyleSelect = document.getElementById('elem-border-style');
+
+        const borderTrigger = document.getElementById('btn-border-color-trigger');
+        const borderSwatch = document.getElementById('border-color-swatch-preview');
+        const borderHexLabel = document.getElementById('border-color-hex-label');
+        const borderNative = document.getElementById('elem-border-color');
+        const borderHexInput = document.getElementById('elem-border-color-hex');
+
+        const borderWidthInput = document.getElementById('elem-border-width');
+        const borderWidthDec = document.getElementById('btn-border-width-dec');
+        const borderWidthInc = document.getElementById('btn-border-width-inc');
+        const borderWidthScrub = document.getElementById('border-width-scrub-wrapper');
+
+        const borderRadiusInput = document.getElementById('elem-border-radius');
+        const borderRadiusDec = document.getElementById('btn-border-radius-dec');
+        const borderRadiusInc = document.getElementById('btn-border-radius-inc');
+        const borderRadiusScrub = document.getElementById('border-radius-scrub-wrapper');
+        const radiusPresetBtns = document.querySelectorAll('.btn-radius-preset');
+
+        const updateSwatchPreview = (swatchEl, hexLabelEl, color) => {
+            const isTransparent = !color || color === 'transparent';
+            if (swatchEl) {
+                swatchEl.style.backgroundColor = isTransparent ? 'transparent' : color;
+            }
+            if (hexLabelEl) {
+                hexLabelEl.textContent = isTransparent ? 'None' : color.toUpperCase();
+            }
+        };
+
+        // --- 1. FILL (SURFACE) COLOR PICKER TRIGGER ---
+        bgTrigger?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.pushHistory();
+            openCustomColorPicker(bgTrigger, bgHexInput, (col) => {
+                updateSwatchPreview(bgSwatch, bgHexLabel, col);
+                if (bgNative) bgNative.value = col === 'transparent' ? '#000000' : col;
+                if (bgHexInput) bgHexInput.value = col;
+                updateOpacityGradientTrack(col);
+                updateActiveElem({ bgColor: col });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        });
+
+        // --- 2. OPACITY SLIDER & SCRUBBING ---
+        const updateOpacityUI = (val, emitState = false) => {
+            const clamped = Math.max(0, Math.min(1, Math.round(val * 100) / 100));
+            const pct = Math.round(clamped * 100);
+            if (opacityPctLabel) opacityPctLabel.textContent = `${pct}%`;
+            if (opacitySlider) opacitySlider.value = clamped;
+            if (opacityNative) opacityNative.value = clamped;
+
+            if (emitState) {
+                updateActiveElem({ bgAlpha: clamped });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            }
+        };
+
+        opacitySlider?.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value) || 0;
+            updateOpacityUI(val, true);
+        });
+        opacitySlider?.addEventListener('change', () => {
+            state.pushHistory();
+        });
+
+        if (opacityBadge && opacitySlider) {
+            let startX = 0;
+            let startVal = 1;
+            let isScrubbing = false;
+
+            opacityBadge.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseFloat(opacitySlider.value) || 1;
+                isScrubbing = false;
+                opacityBadge.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const delta = (dx / 150);
+                        let newVal = Math.max(0, Math.min(1, startVal + delta));
+                        updateOpacityUI(newVal, true);
+                    }
+                };
+
+                const onUp = () => {
+                    opacityBadge.removeEventListener('pointermove', onMove);
+                    opacityBadge.removeEventListener('pointerup', onUp);
+                    opacityBadge.removeEventListener('pointercancel', onUp);
+                };
+
+                opacityBadge.addEventListener('pointermove', onMove);
+                opacityBadge.addEventListener('pointerup', onUp);
+                opacityBadge.addEventListener('pointercancel', onUp);
+            });
+        }
+
+        // --- 3. STROKE (BORDER) STYLE SEGMENTED PILLS ---
+        borderStyleButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const styleVal = btn.getAttribute('data-style') || 'none';
+                state.pushHistory();
+                borderStyleButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (borderStyleSelect) {
+                    borderStyleSelect.value = styleVal;
+                }
+                const updates = { borderStyle: styleVal };
+                if (styleVal !== 'none') {
+                    const curW = parseInt(borderWidthInput ? borderWidthInput.value : 0) || 0;
+                    if (curW === 0) {
+                        if (borderWidthInput) borderWidthInput.value = 3;
+                        updates.borderWidth = 3;
+                    }
+                }
+                updateActiveElemAndSave(updates);
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        });
+
+        // --- 4. BORDER COLOR PICKER TRIGGER ---
+        borderTrigger?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.pushHistory();
+            openCustomColorPicker(borderTrigger, borderHexInput, (col) => {
+                updateSwatchPreview(borderSwatch, borderHexLabel, col);
+                if (borderNative) borderNative.value = col === 'transparent' ? '#000000' : col;
+                if (borderHexInput) borderHexInput.value = col;
+                updateActiveElem({ borderColor: col });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        });
+
+        // --- 5. BORDER WIDTH STEPPER & SCRUB ---
+        const changeBorderWidth = (delta) => {
+            if (!borderWidthInput) return;
+            state.pushHistory();
+            const cur = parseInt(borderWidthInput.value) || 0;
+            let newVal;
+            if (cur === 0 && delta > 0) {
+                newVal = 3;
+            } else {
+                newVal = Math.max(0, Math.min(50, cur + delta));
+            }
+            borderWidthInput.value = newVal;
+
+            const updates = { borderWidth: newVal };
+            const elem = state.getActiveElement ? state.getActiveElement() : null;
+            if (newVal > 0 && (!elem || !elem.borderStyle || elem.borderStyle === 'none')) {
+                updates.borderStyle = 'solid';
+                if (borderStyleSelect) borderStyleSelect.value = 'solid';
+                borderStyleButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-style') === 'solid'));
+            }
+            updateActiveElemAndSave(updates);
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        };
+
+        borderWidthDec?.addEventListener('click', () => changeBorderWidth(-1));
+        borderWidthInc?.addEventListener('click', () => changeBorderWidth(1));
+
+        if (borderWidthScrub && borderWidthInput) {
+            let startX = 0;
+            let startVal = 0;
+            let isScrubbing = false;
+
+            borderWidthScrub.addEventListener('pointerdown', (e) => {
+                if (e.target === borderWidthInput) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseInt(borderWidthInput.value) || 0;
+                isScrubbing = false;
+                borderWidthScrub.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const delta = Math.round(dx / 5);
+                        let newVal = Math.max(0, Math.min(50, startVal + delta));
+                        borderWidthInput.value = newVal;
+                        updateActiveElem({ borderWidth: newVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                const onUp = () => {
+                    borderWidthScrub.removeEventListener('pointermove', onMove);
+                    borderWidthScrub.removeEventListener('pointerup', onUp);
+                    borderWidthScrub.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        const finalVal = parseInt(borderWidthInput.value) || 0;
+                        updateActiveElemAndSave({ borderWidth: finalVal });
+                    }
+                };
+
+                borderWidthScrub.addEventListener('pointermove', onMove);
+                borderWidthScrub.addEventListener('pointerup', onUp);
+                borderWidthScrub.addEventListener('pointercancel', onUp);
+            });
+        }
+
+        // --- 6. CORNER RADIUS STEPPER, SCRUB & PRESETS ---
+        const syncRadiusPresets = (radiusVal) => {
+            radiusPresetBtns.forEach(btn => {
+                const pVal = parseInt(btn.getAttribute('data-radius')) || 0;
+                btn.classList.toggle('active', pVal === radiusVal);
+            });
+        };
+
+        const changeBorderRadius = (delta) => {
+            if (!borderRadiusInput) return;
+            state.pushHistory();
+            const cur = parseInt(borderRadiusInput.value) || 0;
+            const newVal = Math.max(0, Math.min(100, cur + delta));
+            borderRadiusInput.value = newVal;
+            syncRadiusPresets(newVal);
+            updateActiveElemAndSave({ borderRadius: newVal });
+            const slide = state.getActiveSlide();
+            if (slide) canvas.renderSlide(slide);
+        };
+
+        borderRadiusDec?.addEventListener('click', () => changeBorderRadius(-2));
+        borderRadiusInc?.addEventListener('click', () => changeBorderRadius(2));
+
+        radiusPresetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const rVal = parseInt(btn.getAttribute('data-radius')) || 0;
+                state.pushHistory();
+                syncRadiusPresets(rVal);
+                if (borderRadiusInput) borderRadiusInput.value = rVal;
+                updateActiveElemAndSave({ borderRadius: rVal });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+            });
+        });
+
+        if (borderRadiusScrub && borderRadiusInput) {
+            let startX = 0;
+            let startVal = 0;
+            let isScrubbing = false;
+
+            borderRadiusScrub.addEventListener('pointerdown', (e) => {
+                if (e.target === borderRadiusInput) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseInt(borderRadiusInput.value) || 0;
+                isScrubbing = false;
+                borderRadiusScrub.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const delta = Math.round(dx / 4);
+                        let newVal = Math.max(0, Math.min(100, startVal + delta));
+                        borderRadiusInput.value = newVal;
+                        syncRadiusPresets(newVal);
+                        updateActiveElem({ borderRadius: newVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                const onUp = () => {
+                    borderRadiusScrub.removeEventListener('pointermove', onMove);
+                    borderRadiusScrub.removeEventListener('pointerup', onUp);
+                    borderRadiusScrub.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        const finalVal = parseInt(borderRadiusInput.value) || 0;
+                        updateActiveElemAndSave({ borderRadius: finalVal });
+                    }
+                };
+
+                borderRadiusScrub.addEventListener('pointermove', onMove);
+                borderRadiusScrub.addEventListener('pointerup', onUp);
+                borderRadiusScrub.addEventListener('pointercancel', onUp);
+            });
+        }
+
+        // --- 7. GLOBAL SYNC FUNCTION FOR APPEARANCE STUDIO ---
+        window.syncAppearanceStudioUI = function(element) {
+            if (!element) return;
+
+            // Fill color
+            const bgCol = element.bgColor || '#334155';
+            updateSwatchPreview(bgSwatch, bgHexLabel, bgCol);
+            if (bgNative) bgNative.value = bgCol === 'transparent' ? '#000000' : bgCol;
+            if (bgHexInput) bgHexInput.value = bgCol;
+            updateOpacityGradientTrack(bgCol);
+
+            // Opacity
+            const alpha = element.bgAlpha !== undefined ? element.bgAlpha : 1;
+            updateOpacityUI(alpha, false);
+
+            // Border style
+            const bStyle = element.borderStyle || 'none';
+            borderStyleButtons.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-style') === bStyle);
+            });
+            if (borderStyleSelect) borderStyleSelect.value = bStyle;
+
+            // Border color
+            const borCol = element.borderColor || '#ffffff';
+            updateSwatchPreview(borderSwatch, borderHexLabel, borCol);
+            if (borderNative) borderNative.value = borCol === 'transparent' ? '#000000' : borCol;
+            if (borderHexInput) borderHexInput.value = borCol;
+
+            // Border width
+            let bWidth = element.borderWidth !== undefined ? element.borderWidth : 0;
+            if (bStyle !== 'none' && bWidth === 0) {
+                bWidth = 3;
+            }
+            if (borderWidthInput) borderWidthInput.value = bWidth;
+
+            // Border radius
+            const bRadius = element.borderRadius !== undefined ? element.borderRadius : 0;
+            if (borderRadiusInput) borderRadiusInput.value = bRadius;
+            syncRadiusPresets(bRadius);
+        };
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
     initFloatingMiniInspector();
     initInspectorAccordions();
+    initTypographyStudio();
+    initStudioFontPicker();
+    initAppearanceStudio();
 }
 
 function updateTransitionIcon(val) {

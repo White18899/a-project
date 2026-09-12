@@ -272,7 +272,7 @@ const ElementTemplates = {
         rotation: 0,
         bgColor: '#3b82f6',
         bgAlpha: 1.0,
-        borderWidth: 2,
+        borderWidth: 3,
         borderStyle: 'solid',
         borderColor: '#ffffff',
         borderRadius: 0,

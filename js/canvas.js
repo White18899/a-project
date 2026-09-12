@@ -478,16 +478,31 @@ class SlideCanvas {
             const defaultAlign = (elem.type.startsWith('btn-') || elem.type === 'timer') ? 'center' : 'left';
             const resolvedAlign = elem.align || defaultAlign;
 
+            // Typography formatting options
+            const resolvedWeight = elem.fontWeight ? String(elem.fontWeight) : (elem.isBold ? 'bold' : 'normal');
+            const resolvedStyle = elem.isItalic ? 'italic' : 'normal';
+            const resolvedLetterSpacing = typeof elem.letterSpacing === 'number' ? elem.letterSpacing : (parseFloat(elem.letterSpacing) || 0);
+            const rawLh = typeof elem.lineHeight === 'number' ? elem.lineHeight : parseFloat(elem.lineHeight);
+            const resolvedLineHeight = !isNaN(rawLh) && rawLh > 0 
+                ? (rawLh < 5 ? Math.round((elem.fontSize || 24) * rawLh) : Math.round(rawLh)) 
+                : undefined;
+
             const textStyle = new PIXI.TextStyle({
                 fontFamily: isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit'),
                 fontSize: isRpg ? Math.max(elem.fontSize - 8, 12) : (elem.fontSize || 24),
+                fontWeight: resolvedWeight,
+                fontStyle: resolvedStyle,
+                letterSpacing: resolvedLetterSpacing,
+                lineHeight: resolvedLineHeight,
                 fill: elem.textColor || '#ffffff',
                 align: resolvedAlign,
                 wordWrap: true,
                 wordWrapWidth: contentWidth - (padding * 2)
             });
             
-            const pixiText = new PIXI.Text(elem.text, textStyle);
+            const rawText = elem.text || '';
+            const displayText = elem.isUppercase ? rawText.toUpperCase() : rawText;
+            const pixiText = new PIXI.Text(displayText, textStyle);
             
             // Alignments
             pixiText.x = padding;
@@ -505,6 +520,37 @@ class SlideCanvas {
             
             container.addChild(pixiText);
             container.textNode = pixiText; // Ref for runtime update
+
+            // Decorative underline & strikethrough lines (rendered on top of text)
+            if (elem.isUnderline || elem.isStrikethrough) {
+                const decoGraphics = new PIXI.Graphics();
+                container.addChild(decoGraphics);
+
+                const parseColor = (colStr) => {
+                    if (!colStr || colStr === 'transparent') return 0xffffff;
+                    return parseInt(colStr.replace('#', '0x')) || 0xffffff;
+                };
+                const textCol = parseColor(elem.textColor);
+                const textLineW = Math.max(2, Math.round((elem.fontSize || 24) / 14));
+                
+                let startX = pixiText.x;
+                if (resolvedAlign === 'center') startX = (contentWidth - pixiText.width) / 2;
+                else if (resolvedAlign === 'right') startX = contentWidth - padding - pixiText.width;
+                const endX = startX + pixiText.width;
+
+                if (elem.isUnderline) {
+                    decoGraphics.lineStyle(textLineW, textCol, 1);
+                    const lineY = Math.min(contentHeight - 2, pixiText.y + pixiText.height - 2);
+                    decoGraphics.moveTo(startX, lineY);
+                    decoGraphics.lineTo(endX, lineY);
+                }
+                if (elem.isStrikethrough) {
+                    decoGraphics.lineStyle(textLineW, textCol, 1);
+                    const lineY = pixiText.y + (pixiText.height / 2);
+                    decoGraphics.moveTo(startX, lineY);
+                    decoGraphics.lineTo(endX, lineY);
+                }
+            }
             
         } else if (elem.type === 'shape') {
             const shapeType = elem.shapeType || 'rectangle';
