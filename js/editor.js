@@ -603,22 +603,31 @@ function initEditorUI() {
                     const isButtonOrTimer = elem.type.startsWith('btn-') || elem.type === 'timer';
                     const resolvedAlign = elem.align || (isButtonOrTimer ? 'center' : 'left');
 
-                    // Modern flex layout: Buttons & short single-line badges center vertically, multiline text & cards align to top
+                    // Modern flex layout: Align items horizontally and vertically according to element properties
                     mini.style.display = 'flex';
                     mini.style.flexDirection = 'column';
                     mini.style.alignItems = resolvedAlign === 'center' ? 'center' : (resolvedAlign === 'right' ? 'flex-end' : 'flex-start');
-                    mini.style.justifyContent = (isButtonOrTimer || ((elem.height || 0) <= 90 && !(elem.text || '').includes('\n'))) ? 'center' : 'flex-start';
+                    const vAlign = elem.verticalAlign || 'middle';
+                    mini.style.justifyContent = vAlign === 'top' ? 'flex-start' : (vAlign === 'bottom' || vAlign === 'down' ? 'flex-end' : 'center');
                     
                     if (elem.text) {
-                        const hasSubtextStyling = !!(elem.hasSubtext || elem.subtext || elem.subtextSize || elem.subtextColor || elem.subtextFontWeight);
                         let headingText = elem.text || '';
                         let subtextContent = elem.subtext || '';
 
-                        if (hasSubtextStyling && !elem.subtext && headingText.includes('\n')) {
+                        if (elem.hasSubtext !== false && !subtextContent && headingText.includes('\n')) {
                             const parts = headingText.includes('\n\n') ? headingText.split(/\n\n+/) : headingText.split(/\n+/);
                             headingText = parts[0] || '';
                             subtextContent = parts.slice(1).join('\n\n');
                         }
+
+                        const hasSubtextStyling = elem.hasSubtext !== false && !!(
+                            elem.hasSubtext || 
+                            subtextContent || 
+                            elem.subtextAlign || 
+                            elem.subtextSize || 
+                            elem.subtextColor || 
+                            elem.subtextFontWeight
+                        );
 
                         const textSpan = document.createElement('span');
                         const rawText = headingText;
@@ -663,7 +672,7 @@ function initEditorUI() {
 
                             subSpan.style.display = 'block';
                             subSpan.style.width = '100%';
-                            subSpan.style.textAlign = elem.subtextAlign || resolvedAlign;
+                            subSpan.style.textAlign = elem.subtextAlign || 'left';
                             subSpan.style.whiteSpace = 'pre-wrap';
                             subSpan.style.wordBreak = 'break-word';
                             subSpan.style.overflow = 'hidden';
@@ -1114,7 +1123,7 @@ function initEditorUI() {
                         'hasSubtext', 'subtext', 'subtextSize', 'subtextColor',
                         'subtextFontWeight', 'subtextIsBold', 'subtextItalic', 'subtextUnderline',
                         'subtextUppercase', 'subtextStrikethrough', 'subtextLineHeight',
-                        'subtextLetterSpacing', 'subtextGap', 'subtextAlign'
+                        'subtextLetterSpacing', 'subtextGap', 'subtextAlign', 'verticalAlign'
                     ];
                     
                     for (const key in props) {
@@ -4556,6 +4565,18 @@ function initEditorUI() {
                         if (primaryElem.textColor === 'transparent') textBtn.classList.add('color-transparent');
                         else textBtn.classList.remove('color-transparent');
                     }
+
+                    // Sync HUD horizontal alignment
+                    const curAlign = primaryElem.align || (primaryElem.type.startsWith('btn-') || primaryElem.type === 'timer' ? 'center' : 'left');
+                    document.getElementById('hud-align-left')?.classList.toggle('active', curAlign === 'left');
+                    document.getElementById('hud-align-center')?.classList.toggle('active', curAlign === 'center');
+                    document.getElementById('hud-align-right')?.classList.toggle('active', curAlign === 'right');
+
+                    // Sync HUD vertical alignment
+                    const curVAlign = primaryElem.verticalAlign || 'middle';
+                    document.getElementById('hud-valign-top')?.classList.toggle('active', curVAlign === 'top');
+                    document.getElementById('hud-valign-middle')?.classList.toggle('active', curVAlign === 'middle');
+                    document.getElementById('hud-valign-bottom')?.classList.toggle('active', curVAlign === 'bottom' || curVAlign === 'down');
                 } else {
                     textGroup.classList.add('hidden');
                 }
@@ -4663,30 +4684,67 @@ function initEditorUI() {
 
         document.getElementById('hud-align-left')?.addEventListener('click', () => {
             state.pushHistory();
-            updateActiveElem({ align: 'left' });
+            updateActiveElemAndSave({ align: 'left' });
             const sideAlign = document.getElementById('elem-align');
             if (sideAlign) sideAlign.value = 'left';
+            document.querySelectorAll('#typo-align-segmented .btn-heading-align, #typo-align-segmented .btn-typo-align').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === 'left');
+            });
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
             canvas.renderSlide(state.getActiveSlide());
             canvas.drawSelectionUI();
         });
 
         document.getElementById('hud-align-center')?.addEventListener('click', () => {
             state.pushHistory();
-            updateActiveElem({ align: 'center' });
+            updateActiveElemAndSave({ align: 'center' });
             const sideAlign = document.getElementById('elem-align');
             if (sideAlign) sideAlign.value = 'center';
+            document.querySelectorAll('#typo-align-segmented .btn-heading-align, #typo-align-segmented .btn-typo-align').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === 'center');
+            });
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
             canvas.renderSlide(state.getActiveSlide());
             canvas.drawSelectionUI();
         });
 
         document.getElementById('hud-align-right')?.addEventListener('click', () => {
             state.pushHistory();
-            updateActiveElem({ align: 'right' });
+            updateActiveElemAndSave({ align: 'right' });
             const sideAlign = document.getElementById('elem-align');
             if (sideAlign) sideAlign.value = 'right';
+            document.querySelectorAll('#typo-align-segmented .btn-heading-align, #typo-align-segmented .btn-typo-align').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-align') === 'right');
+            });
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
             canvas.renderSlide(state.getActiveSlide());
             canvas.drawSelectionUI();
         });
+
+        const handleHudValign = (val) => {
+            state.pushHistory();
+            updateActiveElemAndSave({ verticalAlign: val });
+            const sideValign = document.getElementById('elem-valign');
+            if (sideValign) sideValign.value = val;
+            document.querySelectorAll('.btn-valign').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-valign') === val);
+            });
+            if (typeof window.updateFloatingMiniInspector === 'function') {
+                window.updateFloatingMiniInspector();
+            }
+            canvas.renderSlide(state.getActiveSlide());
+            canvas.drawSelectionUI();
+        };
+
+        document.getElementById('hud-valign-top')?.addEventListener('click', () => handleHudValign('top'));
+        document.getElementById('hud-valign-middle')?.addEventListener('click', () => handleHudValign('middle'));
+        document.getElementById('hud-valign-bottom')?.addEventListener('click', () => handleHudValign('bottom'));
 
         // Shape HUD Tools: Exclusively uses Custom Color Editor
         const hudBtnShapeFill = document.getElementById('hud-btn-shape-fill');
@@ -5192,10 +5250,12 @@ function initEditorUI() {
         const incBtn = document.getElementById('btn-font-size-inc');
         const scrubWrapper = document.getElementById('font-size-scrub-wrapper');
         const alignSelect = document.getElementById('elem-align');
-        const alignBtns = document.querySelectorAll('.btn-typo-align');
+        const alignBtns = document.querySelectorAll('#typo-align-segmented .btn-heading-align, #typo-align-segmented .btn-typo-align, .plain-text-panel .btn-heading-align');
         const alignLeftBtn = document.getElementById('btn-text-align-left');
         const alignCenterBtn = document.getElementById('btn-text-align-center');
         const alignRightBtn = document.getElementById('btn-text-align-right');
+        const valignSelect = document.getElementById('elem-valign');
+        const valignBtns = document.querySelectorAll('.btn-valign');
         const boldBtn = document.getElementById('btn-text-format-bold');
         const italicBtn = document.getElementById('btn-text-format-italic');
         const underlineBtn = document.getElementById('btn-text-format-underline');
@@ -5246,7 +5306,7 @@ function initEditorUI() {
         const btnSubtextSizeInc = document.getElementById('btn-subtext-size-inc');
         const subtextSizeScrubWrapper = document.getElementById('subtext-size-scrub-wrapper');
 
-        const subtextAlignBtns = document.querySelectorAll('.btn-subtext-align');
+        const subtextAlignBtns = document.querySelectorAll('#typo-subtext-align-segmented .btn-subtext-align, #typo-subtext-align-segmented .btn-typo-align');
         const subtextAlignSelect = document.getElementById('elem-subtext-align');
 
         const subtextBoldBtn = document.getElementById('btn-subtext-format-bold');
@@ -5347,15 +5407,35 @@ function initEditorUI() {
             });
         }
 
-        // Segmented alignment toolbar
+        // Segmented alignment toolbar (Heading / Content Alignment)
         alignBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 const alignVal = btn.getAttribute('data-align');
                 state.pushHistory();
                 alignBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                document.querySelectorAll(`.btn-heading-align[data-align="${alignVal}"]`).forEach(b => b.classList.add('active'));
                 if (alignSelect) alignSelect.value = alignVal;
-                updateActiveElemAndSave({ align: alignVal });
+                
+                const elem = state.getActiveElement();
+                const updates = { align: alignVal };
+                // Ensure subtext is preserved as dual-node if card architect has subtext
+                const subVal = cardSubtextInput?.value || elem?.subtext || '';
+                if (subVal && (!elem?.subtext || !elem?.hasSubtext)) {
+                    updates.subtext = subVal;
+                    updates.hasSubtext = true;
+                    if (!elem?.subtextAlign) updates.subtextAlign = 'left';
+                }
+                const headVal = cardHeadingInput?.value || elem?.text || '';
+                if (headVal && (!elem?.text || elem?.text.includes('\n'))) {
+                    updates.text = headVal;
+                }
+                updateActiveElemAndSave(updates);
+                if (typeof window.updateFloatingMiniInspector === 'function') {
+                    window.updateFloatingMiniInspector();
+                }
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+                canvas.drawSelectionUI();
             });
         });
 
@@ -5364,6 +5444,31 @@ function initEditorUI() {
             const val = alignSelect.value;
             alignBtns.forEach(b => {
                 b.classList.toggle('active', b.getAttribute('data-align') === val);
+            });
+        });
+
+        // Segmented vertical alignment toolbar (Top, Middle, Bottom/Down)
+        valignBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const valignVal = btn.getAttribute('data-valign');
+                state.pushHistory();
+                valignBtns.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll(`.btn-valign[data-valign="${valignVal}"]`).forEach(b => b.classList.add('active'));
+                if (valignSelect) valignSelect.value = valignVal;
+                updateActiveElemAndSave({ verticalAlign: valignVal });
+                if (typeof window.updateFloatingMiniInspector === 'function') {
+                    window.updateFloatingMiniInspector();
+                }
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
+                canvas.drawSelectionUI();
+            });
+        });
+
+        valignSelect?.addEventListener('change', () => {
+            const val = valignSelect.value;
+            valignBtns.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-valign') === val);
             });
         });
 
@@ -5562,11 +5667,23 @@ function initEditorUI() {
             const elem = state.getActiveElement();
             if (!elem) return;
             elem.text = val;
+            const subVal = cardSubtextInput?.value || elem.subtext || '';
+            const updates = { text: val };
+            if (subVal) {
+                elem.subtext = subVal;
+                elem.hasSubtext = true;
+                updates.subtext = subVal;
+                updates.hasSubtext = true;
+                if (!elem.subtextAlign) {
+                    elem.subtextAlign = 'left';
+                    updates.subtextAlign = 'left';
+                }
+            }
             if (textInput) {
-                textInput.value = (elem.hasSubtext && elem.subtext) ? `${val}\n\n${elem.subtext}` : val;
+                textInput.value = (elem.hasSubtext && subVal) ? `${val}\n\n${subVal}` : val;
                 updateCharCount();
             }
-            updateActiveElem({ text: val });
+            updateActiveElem(updates);
             const slide = state.getActiveSlide();
             if (slide) canvas.renderSlide(slide);
         });
@@ -5574,7 +5691,13 @@ function initEditorUI() {
         cardHeadingInput?.addEventListener('change', (e) => {
             state.pushHistory();
             const val = e.target.value;
-            updateActiveElemAndSave({ text: val });
+            const subVal = cardSubtextInput?.value || '';
+            const updates = { text: val };
+            if (subVal) {
+                updates.subtext = subVal;
+                updates.hasSubtext = true;
+            }
+            updateActiveElemAndSave(updates);
         });
 
         // Subtext Input Listener
@@ -5584,12 +5707,13 @@ function initEditorUI() {
             if (!elem) return;
             elem.subtext = val;
             elem.hasSubtext = true;
+            if (!elem.subtextAlign) elem.subtextAlign = 'left';
             if (elemHasSubtext) elemHasSubtext.checked = true;
             if (textInput) {
                 textInput.value = (elem.text || '') + (val ? `\n\n${val}` : '');
                 updateCharCount();
             }
-            updateActiveElem({ subtext: val, hasSubtext: true });
+            updateActiveElem({ subtext: val, hasSubtext: true, subtextAlign: elem.subtextAlign });
             const slide = state.getActiveSlide();
             if (slide) canvas.renderSlide(slide);
         });
@@ -5625,9 +5749,9 @@ function initEditorUI() {
                 };
 
                 const resp = await api.executeCardAction(payload);
-                if (resp && resp.success && resp.data) {
+                const data = resp ? (resp.data || resp.result) : null;
+                if (resp && resp.success && data) {
                     state.pushHistory();
-                    const data = resp.data;
                     const updates = {};
                     if (data.heading !== undefined) {
                         updates.text = data.heading;
@@ -5638,17 +5762,32 @@ function initEditorUI() {
                         updates.hasSubtext = true;
                         if (cardSubtextInput) cardSubtextInput.value = data.subtext;
                     }
-                    if (data.fontSize) {
-                        updates.fontSize = data.fontSize;
-                        if (sizeInput) sizeInput.value = data.fontSize;
+                    const hSize = data.suggestedHeadingSize || data.fontSize;
+                    if (hSize) {
+                        updates.fontSize = hSize;
+                        if (sizeInput) sizeInput.value = hSize;
                     }
-                    if (data.subtextSize) {
-                        updates.subtextSize = data.subtextSize;
-                        if (subtextSizeInput) subtextSizeInput.value = data.subtextSize;
+                    const sSize = data.suggestedSubtextSize || data.subtextSize;
+                    if (sSize) {
+                        updates.subtextSize = sSize;
+                        if (subtextSizeInput) subtextSizeInput.value = sSize;
                     }
-                    if (data.gap !== undefined) {
-                        updates.subtextGap = data.gap;
-                        if (subtextGapInput) subtextGapInput.value = data.gap;
+                    const gapVal = data.suggestedGap !== undefined ? data.suggestedGap : data.gap;
+                    if (gapVal !== undefined) {
+                        updates.subtextGap = gapVal;
+                        if (subtextGapInput) subtextGapInput.value = gapVal;
+                    }
+                    const hColor = data.headingColor || data.textColor;
+                    if (hColor) {
+                        updates.textColor = hColor;
+                        if (colorHex) colorHex.value = hColor;
+                        if (colorPreview) colorPreview.style.backgroundColor = hColor;
+                    }
+                    const sColor = data.subtextColor;
+                    if (sColor) {
+                        updates.subtextColor = sColor;
+                        if (subtextColorHex) subtextColorHex.value = sColor;
+                        if (subtextColorPreview) subtextColorPreview.style.backgroundColor = sColor;
                     }
                     if (data.fontWeight) {
                         updates.fontWeight = data.fontWeight;
@@ -5669,7 +5808,7 @@ function initEditorUI() {
                     }
                 } else {
                     if (window.showToast) {
-                        showToast(resp?.error || 'AI card action failed', 'error');
+                        showToast(resp?.error || resp?.message || 'AI card action failed', 'error');
                     }
                 }
             } catch (err) {
@@ -5789,7 +5928,17 @@ function initEditorUI() {
                 subtextAlignBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 if (subtextAlignSelect) subtextAlignSelect.value = alignVal;
-                updateActiveElemAndSave({ subtextAlign: alignVal });
+                
+                const elem = state.getActiveElement();
+                const subVal = cardSubtextInput?.value || elem?.subtext || '';
+                const headVal = cardHeadingInput?.value || elem?.text || '';
+                const updates = { 
+                    subtextAlign: alignVal,
+                    hasSubtext: true
+                };
+                if (subVal) updates.subtext = subVal;
+                if (headVal && (!elem?.text || elem?.text.includes('\n'))) updates.text = headVal;
+                updateActiveElemAndSave(updates);
                 const slide = state.getActiveSlide();
                 if (slide) canvas.renderSlide(slide);
             });
@@ -5848,6 +5997,59 @@ function initEditorUI() {
             if (slide) canvas.renderSlide(slide);
         });
 
+        // Interactive Scrubber on .card-subtext-gap-chip
+        const gapChip = document.querySelector('.card-subtext-gap-chip');
+        if (gapChip && subtextGapInput) {
+            let startX = 0;
+            let startVal = 16;
+            let isScrubbing = false;
+
+            gapChip.addEventListener('pointerdown', (e) => {
+                if (e.target === subtextGapInput) return;
+                e.preventDefault();
+                startX = e.clientX;
+                startVal = parseInt(subtextGapInput.value) || 16;
+                isScrubbing = false;
+                gapChip.setPointerCapture(e.pointerId);
+
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    if (Math.abs(dx) > 2) {
+                        if (!isScrubbing) {
+                            isScrubbing = true;
+                            state.pushHistory();
+                        }
+                        const multiplier = ev.shiftKey ? 4 : (ev.altKey ? 0.5 : 1);
+                        const delta = Math.round(dx / 3) * multiplier;
+                        const newVal = Math.max(0, Math.min(120, Math.round(startVal + delta)));
+                        subtextGapInput.value = newVal;
+                        updateActiveElem({ subtextGap: newVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    }
+                };
+
+                const onUp = (ev) => {
+                    gapChip.removeEventListener('pointermove', onMove);
+                    gapChip.removeEventListener('pointerup', onUp);
+                    gapChip.removeEventListener('pointercancel', onUp);
+                    if (isScrubbing) {
+                        const finalVal = parseInt(subtextGapInput.value) || 16;
+                        updateActiveElemAndSave({ subtextGap: finalVal });
+                        const slide = state.getActiveSlide();
+                        if (slide) canvas.renderSlide(slide);
+                    } else {
+                        subtextGapInput.focus();
+                        subtextGapInput.select();
+                    }
+                };
+
+                gapChip.addEventListener('pointermove', onMove);
+                gapChip.addEventListener('pointerup', onUp);
+                gapChip.addEventListener('pointercancel', onUp);
+            });
+        }
+
         // Subtext Line Height & Letter Spacing
         subtextLineHeightInput?.addEventListener('input', (e) => {
             const raw = parseFloat(e.target.value);
@@ -5903,6 +6105,13 @@ function initEditorUI() {
                 b.classList.toggle('active', b.getAttribute('data-align') === currentAlign);
             });
 
+            // Vertical Alignment buttons
+            const currentVAlign = element.verticalAlign || 'middle';
+            if (valignSelect) valignSelect.value = currentVAlign;
+            valignBtns.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-valign') === currentVAlign);
+            });
+
             // Format toggles
             if (boldBtn) boldBtn.classList.toggle('active', !!(element.isBold || (element.fontWeight && parseInt(element.fontWeight) >= 700)));
             if (italicBtn) italicBtn.classList.toggle('active', !!element.isItalic);
@@ -5947,7 +6156,7 @@ function initEditorUI() {
             const subSize = element.subtextSize || Math.max(12, Math.round((element.fontSize || 24) * 0.65));
             if (subtextSizeInput) subtextSizeInput.value = subSize;
 
-            const subAlign = element.subtextAlign || element.align || 'left';
+            const subAlign = element.subtextAlign || 'left';
             if (subtextAlignSelect) subtextAlignSelect.value = subAlign;
             subtextAlignBtns.forEach(b => {
                 b.classList.toggle('active', b.getAttribute('data-align') === subAlign);
@@ -5968,21 +6177,31 @@ function initEditorUI() {
             if (subtextLineHeightInput) subtextLineHeightInput.value = element.subtextLineHeight !== undefined ? element.subtextLineHeight : 1.4;
             if (subtextLetterSpacingInput) subtextLetterSpacingInput.value = element.subtextLetterSpacing !== undefined ? element.subtextLetterSpacing : 0;
 
-            // Sync Card Architect Inputs
+            // Sync Card Architect Inputs & Normalize State
             if (element.hasSubtext || element.subtext) {
                 if (cardHeadingInput) cardHeadingInput.value = element.text || '';
                 if (cardSubtextInput) cardSubtextInput.value = element.subtext || '';
-            } else if (element.text && element.text.includes('\n')) {
+            } else if (element.text && element.text.includes('\n') && element.hasSubtext !== false) {
                 const raw = element.text;
                 const dIdx = raw.indexOf('\n\n');
+                let h = raw, s = '';
                 if (dIdx !== -1) {
-                    if (cardHeadingInput) cardHeadingInput.value = raw.substring(0, dIdx).trim();
-                    if (cardSubtextInput) cardSubtextInput.value = raw.substring(dIdx + 2).trim();
+                    h = raw.substring(0, dIdx).trim();
+                    s = raw.substring(dIdx + 2).trim();
                 } else {
                     const sIdx = raw.indexOf('\n');
-                    if (cardHeadingInput) cardHeadingInput.value = raw.substring(0, sIdx).trim();
-                    if (cardSubtextInput) cardSubtextInput.value = raw.substring(sIdx + 1).trim();
+                    h = raw.substring(0, sIdx).trim();
+                    s = raw.substring(sIdx + 1).trim();
                 }
+                if (cardHeadingInput) cardHeadingInput.value = h;
+                if (cardSubtextInput) cardSubtextInput.value = s;
+                element.text = h;
+                element.subtext = s;
+                element.hasSubtext = true;
+                if (!element.subtextAlign) element.subtextAlign = 'left';
+                updateActiveElemAndSave({ text: h, subtext: s, hasSubtext: true, subtextAlign: element.subtextAlign });
+                const slide = state.getActiveSlide();
+                if (slide) canvas.renderSlide(slide);
             } else {
                 if (cardHeadingInput) cardHeadingInput.value = element.text || '';
                 if (cardSubtextInput) cardSubtextInput.value = element.subtext || '';

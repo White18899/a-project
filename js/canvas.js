@@ -501,19 +501,11 @@ class SlideCanvas {
             });
             
             const rawText = elem.text || '';
-            const hasSubtextStyling = Boolean(
-                elem.hasSubtext || 
-                elem.subtext || 
-                (elem.subtextSize && elem.subtextSize !== elem.fontSize) || 
-                (elem.subtextColor && elem.subtextColor !== elem.textColor) ||
-                elem.subtextFontWeight
-            );
-
             let headingText = rawText;
             let subtextContent = elem.subtext || '';
 
-            if (hasSubtextStyling && !subtextContent && headingText.includes('\n')) {
-                // Auto-split first line/paragraph as heading, and remainder as subtext
+            // If subtext is not explicitly set, auto-split first line/paragraph as heading and remainder as subtext
+            if (elem.hasSubtext !== false && !subtextContent && headingText.includes('\n')) {
                 const doubleNewlineIdx = headingText.indexOf('\n\n');
                 if (doubleNewlineIdx !== -1) {
                     subtextContent = headingText.substring(doubleNewlineIdx + 2).trim();
@@ -525,6 +517,15 @@ class SlideCanvas {
                 }
             }
 
+            const hasSubtextStyling = elem.hasSubtext !== false && Boolean(
+                elem.hasSubtext || 
+                subtextContent || 
+                elem.subtextAlign || 
+                (elem.subtextSize && elem.subtextSize !== elem.fontSize) || 
+                (elem.subtextColor && elem.subtextColor !== elem.textColor) ||
+                elem.subtextFontWeight
+            );
+
             if (hasSubtextStyling && subtextContent) {
                 // Dual-node rendering: Heading + Subtext
                 const displayHeading = elem.isUppercase ? headingText.toUpperCase() : headingText;
@@ -532,7 +533,7 @@ class SlideCanvas {
 
                 // Subtext style
                 const subtextSizeVal = typeof elem.subtextSize === 'number' ? elem.subtextSize : (parseFloat(elem.subtextSize) || Math.max(12, Math.round((elem.fontSize || 24) * 0.65)));
-                const subtextWeightVal = elem.subtextFontWeight ? String(elem.subtextFontWeight) : (elem.subtextBold ? 'bold' : 'normal');
+                const subtextWeightVal = elem.subtextFontWeight ? String(elem.subtextFontWeight) : (elem.subtextIsBold || elem.subtextBold ? 'bold' : 'normal');
                 const subtextStyleVal = elem.subtextItalic ? 'italic' : 'normal';
                 const subtextLetterSpacingVal = typeof elem.subtextLetterSpacing === 'number' ? elem.subtextLetterSpacing : (parseFloat(elem.subtextLetterSpacing) || 0);
                 const rawSubLh = typeof elem.subtextLineHeight === 'number' ? elem.subtextLineHeight : parseFloat(elem.subtextLineHeight);
@@ -540,7 +541,7 @@ class SlideCanvas {
                     ? (rawSubLh < 5 ? Math.round(subtextSizeVal * rawSubLh) : Math.round(rawSubLh))
                     : Math.round(subtextSizeVal * 1.35);
 
-                const subtextResolvedAlign = elem.subtextAlign || resolvedAlign;
+                const subtextResolvedAlign = elem.subtextAlign || 'left';
 
                 const subtextTextStyle = new PIXI.TextStyle({
                     fontFamily: elem.subtextFontFamily || (isRpg ? 'Press Start 2P' : (elem.fontFamily || 'Outfit')),
@@ -560,6 +561,7 @@ class SlideCanvas {
 
                 // Heading Horizontal alignment
                 headingPixiText.x = padding;
+                headingPixiText.anchor.x = 0;
                 if (resolvedAlign === 'center') {
                     headingPixiText.x = contentWidth / 2;
                     headingPixiText.anchor.x = 0.5;
@@ -570,6 +572,7 @@ class SlideCanvas {
 
                 // Subtext Horizontal alignment
                 subtextPixiText.x = padding;
+                subtextPixiText.anchor.x = 0;
                 if (subtextResolvedAlign === 'center') {
                     subtextPixiText.x = contentWidth / 2;
                     subtextPixiText.anchor.x = 0.5;
@@ -578,12 +581,22 @@ class SlideCanvas {
                     subtextPixiText.anchor.x = 1;
                 }
 
-                // Vertical positioning with subtextGap
+                // Vertical positioning with subtextGap and verticalAlign
                 const gap = typeof elem.subtextGap === 'number' ? elem.subtextGap : (parseFloat(elem.subtextGap) || 16);
                 const totalTextHeight = headingPixiText.height + gap + subtextPixiText.height;
 
-                let startY = (contentHeight - totalTextHeight) / 2;
-                if (startY < padding) startY = padding;
+                const vAlign = elem.verticalAlign || 'middle';
+                const vPad = padding > 0 ? padding : ((elem.bgColor && elem.bgColor !== 'transparent' && elem.bgAlpha !== 0) || elem.borderRadius > 0 ? 16 : 0);
+                let startY;
+                if (vAlign === 'top') {
+                    startY = vPad;
+                } else if (vAlign === 'bottom' || vAlign === 'down') {
+                    startY = contentHeight - vPad - totalTextHeight;
+                    if (startY < vPad) startY = vPad;
+                } else { // 'middle' or 'center' (default)
+                    startY = (contentHeight - totalTextHeight) / 2;
+                    if (startY < vPad) startY = vPad;
+                }
 
                 headingPixiText.y = startY;
                 subtextPixiText.y = headingPixiText.y + headingPixiText.height + gap;
@@ -664,9 +677,18 @@ class SlideCanvas {
                     pixiText.anchor.x = 1;
                 }
                 
-                // Center text vertically
-                pixiText.y = (contentHeight - pixiText.height) / 2;
-                if (pixiText.y < padding) pixiText.y = padding;
+                // Vertical alignment
+                const vAlign = elem.verticalAlign || 'middle';
+                const vPad = padding > 0 ? padding : ((elem.bgColor && elem.bgColor !== 'transparent' && elem.bgAlpha !== 0) || elem.borderRadius > 0 ? 16 : 0);
+                if (vAlign === 'top') {
+                    pixiText.y = vPad;
+                } else if (vAlign === 'bottom' || vAlign === 'down') {
+                    pixiText.y = contentHeight - vPad - pixiText.height;
+                    if (pixiText.y < vPad) pixiText.y = vPad;
+                } else { // 'middle' or 'center' (default)
+                    pixiText.y = (contentHeight - pixiText.height) / 2;
+                    if (pixiText.y < vPad) pixiText.y = vPad;
+                }
                 
                 container.addChild(pixiText);
                 container.textNode = pixiText; // Ref for runtime update

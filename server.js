@@ -1223,7 +1223,15 @@ Return your output STRICTLY as a JSON object matching this schema:
                         const bullets = lines.map(l => l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`).join('\n');
                         return { subtext: bullets || `• ${s}` };
                     } else if (targetAction === 'polish') {
-                        return { subtext: currentSubtext || combined };
+                        let textToPolish = (currentSubtext || combined || '').trim();
+                        if (textToPolish) {
+                            textToPolish = textToPolish.replace(/\s+/g, ' ');
+                            textToPolish = textToPolish.replace(/(^\w|[.!?]\s+\w)/g, c => c.toUpperCase());
+                            if (!/[.!?]$/.test(textToPolish) && !textToPolish.includes('\n')) {
+                                textToPolish += '.';
+                            }
+                        }
+                        return { subtext: textToPolish || currentSubtext || combined };
                     } else if (targetAction === 'auto-balance') {
                         const w = parseInt(cardWidth) || 450;
                         const subLen = (currentSubtext || '').length;
@@ -1242,7 +1250,7 @@ Return your output STRICTLY as a JSON object matching this schema:
                 const apiKey = resolveApiKey(req, body);
                 if (!apiKey) {
                     const fallbackResult = executeLocalHeuristic();
-                    return sendJson(res, 200, { success: true, result: fallbackResult, fallback: true });
+                    return sendJson(res, 200, { success: true, result: fallbackResult, data: fallbackResult, fallback: true });
                 }
 
                 const systemInstruction = `You are an elite UX & Typography Designer for presentations.

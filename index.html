@@ -48,7 +48,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- PixiJS WebGL Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=202609122300">
+    <link rel="stylesheet" href="styles.css?v=202609122340">
     <!-- Google Identity Services for Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Favicon -->
@@ -470,6 +470,10 @@
                                 <button type="button" class="hud-btn" id="hud-align-left" title="Align Left"><i data-lucide="align-left"></i></button>
                                 <button type="button" class="hud-btn" id="hud-align-center" title="Align Center"><i data-lucide="align-center"></i></button>
                                 <button type="button" class="hud-btn" id="hud-align-right" title="Align Right"><i data-lucide="align-right"></i></button>
+                                <div class="hud-divider"></div>
+                                <button type="button" class="hud-btn" id="hud-valign-top" title="Align Top"><i data-lucide="arrow-up-to-line"></i></button>
+                                <button type="button" class="hud-btn active" id="hud-valign-middle" title="Align Middle"><i data-lucide="align-center-vertical"></i></button>
+                                <button type="button" class="hud-btn" id="hud-valign-bottom" title="Align Down (Bottom)"><i data-lucide="arrow-down-to-line"></i></button>
                             </div>
 
                             <!-- Shape Controls (shown when shape/box element is selected) -->
@@ -514,7 +518,7 @@
                         <button class="tab-btn" data-tab="properties-tab"><i data-lucide="sliders"></i>
                             Inspector</button>
                         <button class="tab-btn" data-tab="ai-tab"><i data-lucide="sparkles"></i>
-                            AI Creator</button>
+                            Magic AI Studio</button>
                     </div>
 
                     <div class="tabs-content">
@@ -966,17 +970,17 @@
                                                             </div>
                                                         </div>
 
-                                                        <!-- Heading Toolstrip Row 2: Alignment & Formatting Buttons -->
+                                                        <!-- Heading Toolstrip Row 2: Alignment (Horizontal & Vertical) -->
                                                         <div class="card-inline-toolstrip card-toolstrip-row-secondary">
-                                                            <!-- Alignment -->
-                                                            <div class="typo-segmented-control mini" id="typo-align-segmented">
-                                                                <button type="button" class="btn-typo-align" id="btn-text-align-left" data-align="left" title="Align Left">
+                                                            <!-- Horizontal Alignment -->
+                                                            <div class="typo-segmented-control mini" id="typo-align-segmented" title="Horizontal Alignment">
+                                                                <button type="button" class="btn-typo-align btn-heading-align" id="btn-text-align-left" data-align="left" title="Align Left">
                                                                     <i data-lucide="align-left"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align active" id="btn-text-align-center" data-align="center" title="Align Center">
+                                                                <button type="button" class="btn-typo-align btn-heading-align active" id="btn-text-align-center" data-align="center" title="Align Center">
                                                                     <i data-lucide="align-center"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align" id="btn-text-align-right" data-align="right" title="Align Right">
+                                                                <button type="button" class="btn-typo-align btn-heading-align" id="btn-text-align-right" data-align="right" title="Align Right">
                                                                     <i data-lucide="align-right"></i>
                                                                 </button>
                                                             </div>
@@ -986,7 +990,27 @@
                                                                 <option value="right">Right</option>
                                                             </select>
 
-                                                            <!-- Formatting Buttons -->
+                                                            <!-- Vertical Alignment (Top, Middle, Down) -->
+                                                            <div class="typo-segmented-control mini" id="typo-valign-segmented" title="Vertical Alignment">
+                                                                <button type="button" class="btn-typo-align btn-valign" id="btn-valign-top" data-valign="top" title="Align Top">
+                                                                    <i data-lucide="arrow-up-to-line"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-valign active" id="btn-valign-middle" data-valign="middle" title="Align Middle">
+                                                                    <i data-lucide="align-center-vertical"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-valign" id="btn-valign-bottom" data-valign="bottom" title="Align Down (Bottom)">
+                                                                    <i data-lucide="arrow-down-to-line"></i>
+                                                                </button>
+                                                            </div>
+                                                            <select id="elem-valign" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                                                <option value="top">Top</option>
+                                                                <option value="middle" selected>Middle</option>
+                                                                <option value="bottom">Bottom</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <!-- Heading Toolstrip Row 2B: Formatting Buttons -->
+                                                        <div class="card-inline-toolstrip card-toolstrip-row-formatting">
                                                             <div class="typo-format-toolbar mini">
                                                                 <button type="button" class="btn-typo-format" id="btn-text-format-bold" title="Bold">
                                                                     <i data-lucide="bold"></i>
@@ -1050,7 +1074,7 @@
                                                             <textarea id="card-subtext-input" class="card-architect-textarea" rows="3" placeholder="Enter supporting body text, bullet points, or description..."></textarea>
                                                         </div>
 
-                                                        <!-- Subtext Toolstrip Row 1: Size, Weight, Color -->
+                                                        <!-- Subtext Toolstrip Row 1: Size & Color (Symmetrical to Heading Row 1) -->
                                                         <div class="card-inline-toolstrip card-subtext-row-primary">
                                                             <!-- Subtext Size Stepper -->
                                                             <div class="typo-size-stepper mini" title="Subtext Font Size">
@@ -1066,6 +1090,18 @@
                                                                 </button>
                                                             </div>
 
+                                                            <!-- Subtext Color Swatch -->
+                                                            <div class="typo-color-card mini" id="subtext-color-wrapper" title="Subtext Color">
+                                                                <button type="button" class="typo-color-swatch-btn" id="btn-subtext-color-trigger">
+                                                                    <span class="typo-color-swatch-preview" id="subtext-color-swatch-preview"></span>
+                                                                </button>
+                                                                <input type="text" id="elem-subtext-color-hex" value="#94a3b8" spellcheck="false">
+                                                                <input type="color" id="elem-subtext-color" value="#94a3b8" class="sr-only" style="display:none;" aria-hidden="true" tabindex="-1">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Subtext Toolstrip Row 2: Weight & Alignment -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-secondary">
                                                             <!-- Subtext Weight Select -->
                                                             <div class="card-subtext-weight-wrap">
                                                                 <select id="elem-subtext-weight" class="typo-select-weight-pro mini" title="Subtext Font Weight">
@@ -1077,37 +1113,27 @@
                                                                 </select>
                                                             </div>
 
-                                                            <!-- Subtext Color Swatch -->
-                                                            <div class="typo-color-card mini" id="subtext-color-wrapper" title="Subtext Color">
-                                                                <button type="button" class="typo-color-swatch-btn" id="btn-subtext-color-trigger">
-                                                                    <span class="typo-color-swatch-preview" id="subtext-color-swatch-preview"></span>
-                                                                </button>
-                                                                <input type="text" id="elem-subtext-color-hex" value="#94a3b8" spellcheck="false">
-                                                                <input type="color" id="elem-subtext-color" value="#94a3b8" class="sr-only" style="display:none;" aria-hidden="true" tabindex="-1">
-                                                            </div>
-                                                        </div>
-
-                                                        <!-- Subtext Toolstrip Row 2: Alignment & Formatting Buttons -->
-                                                        <div class="card-inline-toolstrip card-subtext-row-secondary">
                                                             <!-- Subtext Alignment -->
                                                             <div class="typo-segmented-control mini" id="typo-subtext-align-segmented">
-                                                                <button type="button" class="btn-typo-align" id="btn-subtext-align-left" data-align="left" title="Align Left">
+                                                                <button type="button" class="btn-typo-align btn-subtext-align active" id="btn-subtext-align-left" data-align="left" title="Align Left">
                                                                     <i data-lucide="align-left"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align active" id="btn-subtext-align-center" data-align="center" title="Align Center">
+                                                                <button type="button" class="btn-typo-align btn-subtext-align" id="btn-subtext-align-center" data-align="center" title="Align Center">
                                                                     <i data-lucide="align-center"></i>
                                                                 </button>
-                                                                <button type="button" class="btn-typo-align" id="btn-subtext-align-right" data-align="right" title="Align Right">
+                                                                <button type="button" class="btn-typo-align btn-subtext-align" id="btn-subtext-align-right" data-align="right" title="Align Right">
                                                                     <i data-lucide="align-right"></i>
                                                                 </button>
                                                             </div>
                                                             <select id="elem-subtext-align" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
-                                                                <option value="left">Left</option>
-                                                                <option value="center" selected>Center</option>
+                                                                <option value="left" selected>Left</option>
+                                                                <option value="center">Center</option>
                                                                 <option value="right">Right</option>
                                                             </select>
+                                                        </div>
 
-                                                            <!-- Subtext Formatting Toolbar (mini) -->
+                                                        <!-- Subtext Toolstrip Row 2B: Formatting Buttons (Symmetrical to Heading Row 2B) -->
+                                                        <div class="card-inline-toolstrip card-subtext-row-formatting">
                                                             <div class="typo-format-toolbar mini">
                                                                 <button type="button" class="btn-typo-format" id="btn-subtext-format-bold" title="Subtext Bold">
                                                                     <i data-lucide="bold"></i>
@@ -1176,6 +1202,35 @@
                                                         </div>
                                                         <div class="typo-textarea-wrapper">
                                                             <textarea id="elem-text" rows="4" placeholder="Enter text content..." spellcheck="false"></textarea>
+                                                        </div>
+
+                                                        <!-- Alignment Row for Plain Text Mode -->
+                                                        <div class="card-inline-toolstrip card-toolstrip-row-secondary" style="margin-top: 10px;">
+                                                            <!-- Horizontal Alignment -->
+                                                            <div class="typo-segmented-control mini" title="Horizontal Alignment">
+                                                                <button type="button" class="btn-typo-align btn-heading-align" data-align="left" title="Align Left">
+                                                                    <i data-lucide="align-left"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-heading-align" data-align="center" title="Align Center">
+                                                                    <i data-lucide="align-center"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-heading-align" data-align="right" title="Align Right">
+                                                                    <i data-lucide="align-right"></i>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Vertical Alignment (Top, Middle, Down) -->
+                                                            <div class="typo-segmented-control mini" title="Vertical Alignment">
+                                                                <button type="button" class="btn-typo-align btn-valign" data-valign="top" title="Align Top">
+                                                                    <i data-lucide="arrow-up-to-line"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-valign active" data-valign="middle" title="Align Middle">
+                                                                    <i data-lucide="align-center-vertical"></i>
+                                                                </button>
+                                                                <button type="button" class="btn-typo-align btn-valign" data-valign="bottom" title="Align Down (Bottom)">
+                                                                    <i data-lucide="arrow-down-to-line"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1764,71 +1819,258 @@
                             </div>
                         </div>
 
-                        <!-- AI TAB -->
+                        <!-- AI TAB (MAGIC AI STUDIO HUB) -->
                         <div id="ai-tab" class="tab-panel">
-                            <!-- API KEY SECTION -->
-                            <div class="inspector-section">
-                                <h4>Gemini API Configuration</h4>
-                                <div class="ai-key-status-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                    <span class="status-label" style="font-size: 0.85rem; color: var(--text-muted);">Key Status:</span>
-                                    <span id="ai-key-status-badge" class="badge badge-error" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; background-color: #ef4444; color: #ffffff;">Not Configured</span>
+                            <!-- Magic AI Studio Header with Compact Key Status Pill -->
+                            <div class="ai-studio-header">
+                                <div class="ai-studio-title-group">
+                                    <div class="ai-studio-title-icon">
+                                        <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #ffffff;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="ai-studio-title">Magic AI Studio</h3>
+                                        <span class="ai-studio-subtitle">Decks, Quizzes & Visual Assets</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="ai-key-status-pill" id="ai-key-status-pill" title="Configure Gemini API Key">
+                                    <span class="ai-key-pill-dot" id="ai-key-pill-dot"></span>
+                                    <span id="ai-key-pill-label">API Key</span>
+                                </button>
+                            </div>
+
+                            <!-- Collapsible API Key Drawer -->
+                            <div id="ai-key-drawer" class="ai-key-drawer hidden">
+                                <div class="ai-key-status-group">
+                                    <span class="status-label">Google Gemini API</span>
+                                    <span id="ai-key-status-badge" class="badge badge-error" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background-color: #ef4444; color: #ffffff;">Not Configured</span>
                                 </div>
                                 <div class="form-group" id="ai-key-input-wrapper">
-                                    <label for="ai-gemini-key-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Enter Gemini API Key</label>
-                                    <input type="password" id="ai-gemini-key-input" placeholder="AIzaSy..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
-                                    <button id="btn-ai-save-key" class="btn btn-accent btn-sm" style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Key
-                                    </button>
+                                    <label for="ai-gemini-key-input" style="display: block; font-size: 0.75rem; margin-bottom: 4px; color: rgba(255, 255, 255, 0.65);">Enter Gemini API Key</label>
+                                    <div class="ai-key-input-row">
+                                        <input type="password" id="ai-gemini-key-input" placeholder="AIzaSy...">
+                                        <button type="button" id="btn-ai-save-key" class="btn btn-accent btn-sm" style="display: flex; align-items: center; gap: 4px; padding: 6px 12px;">
+                                            <i data-lucide="save" style="width: 13px; height: 13px;"></i> Save
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="ai-key-configured-wrapper" class="hidden">
-                                    <p class="status-msg" style="font-size: 0.78rem; color: #10b981; margin-bottom: 10px; line-height: 1.4;">
+                                    <p class="status-msg" style="font-size: 0.74rem; color: #10b981; margin-bottom: 8px; line-height: 1.4;">
                                         ✓ Your API key is securely saved in your account.
                                     </p>
-                                    <button id="btn-ai-change-key" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <button type="button" id="btn-ai-change-key" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.75rem; padding: 5px 8px;">
                                         Change API Key
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- SLIDE GENERATOR SECTION -->
-                            <div class="inspector-section" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                                <h4>Generate with AI</h4>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-prompt-input" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Topic or Prompt</label>
-                                    <textarea id="ai-prompt-input" rows="3" placeholder="e.g. History of Space Travel, Quantum Computing for Beginners, Ancient Rome Quiz..." style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff; resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem;"></textarea>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-mode-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Generation Mode</label>
-                                    <select id="ai-mode-select" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
-                                        <option value="quiz">AI Quiz Slide (Single MCQ)</option>
-                                        <option value="presentation">AI Presentation (Multi-slide Deck)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" id="ai-slide-count-group" style="display: none; margin-bottom: 12px;">
-                                    <label for="ai-slide-count" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Number of Slides</label>
-                                    <input type="number" id="ai-slide-count" min="1" max="10" value="3" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="ai-theme-select" style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Design Theme</label>
-                                    <select id="ai-theme-select" style="width: 100%; padding: 8px; border-radius: 6px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: #ffffff;">
-                                        <option value="Obsidian Dark">Obsidian Dark (Sleek Dark Slate)</option>
-                                        <option value="Neon Cyberpunk">Neon Cyberpunk (Futuristic Purple/Pink)</option>
-                                        <option value="Classic Serif">Classic Serif (Warm Cream & Garamond)</option>
-                                        <option value="Minimalist Light">Minimalist Light (Clean White & Inter)</option>
-                                        <option value="Retro Game">Retro Game (Arcade Pixel Vibe)</option>
-                                    </select>
-                                </div>
-                                <button id="btn-ai-generate" class="btn btn-accent btn-glow" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Generate Slides
+                            <!-- Segmented Mode Switcher (Deck / Quiz / Assets) -->
+                            <div class="ai-segmented-control">
+                                <button type="button" class="ai-segment-btn active" data-mode="presentation">
+                                    <i data-lucide="presentation" style="width: 13px; height: 13px;"></i>
+                                    <span>Deck</span>
                                 </button>
+                                <button type="button" class="ai-segment-btn" data-mode="quiz">
+                                    <i data-lucide="help-circle" style="width: 13px; height: 13px;"></i>
+                                    <span>Quiz</span>
+                                </button>
+                                <button type="button" class="ai-segment-btn" data-mode="asset">
+                                    <i data-lucide="image" style="width: 13px; height: 13px;"></i>
+                                    <span>Assets</span>
+                                </button>
+                            </div>
 
-                                <div id="ai-progress-container" class="ai-progress-panel hidden" style="display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px; border-radius: 6px; background-color: rgba(255,255,255,0.05); font-size: 0.8rem;">
-                                    <div class="spinner-small" style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                    <span id="ai-progress-text">Contacting Gemini...</span>
+                            <!-- Presentation & Quiz Generator Section -->
+                            <div id="ai-deck-quiz-section">
+                                <!-- Prompt input block -->
+                                <div class="ai-input-block">
+                                    <div class="ai-input-header">
+                                        <label for="ai-prompt-input" class="ai-field-label">Topic or Outline Prompt</label>
+                                        <button type="button" id="btn-ai-clear-prompt" class="ai-clear-link">Clear</button>
+                                    </div>
+                                    <div class="ai-textarea-wrapper">
+                                        <textarea id="ai-prompt-input" rows="3" placeholder="e.g. History of Space Travel, Quantum Computing for Beginners, Ancient Rome Quiz..."></textarea>
+                                    </div>
+                                    <!-- Inspiration Chips Tray -->
+                                    <div class="ai-inspiration-tray">
+                                        <span class="ai-inspiration-title"><i data-lucide="sparkles" style="width: 11px; height: 11px;"></i> Try:</span>
+                                        <span class="ai-prompt-chip" data-prompt="AI Startup Pitch Deck: Revolutionizing Enterprise Search with Autonomous Agents">AI Pitch Deck</span>
+                                        <span class="ai-prompt-chip" data-prompt="History of Space Exploration: From Apollo 11 to Mars Rovers">Space History</span>
+                                        <span class="ai-prompt-chip" data-prompt="Cybersecurity Fundamentals: Zero Trust, Encryption & Phishing Defense">Cybersecurity</span>
+                                        <span class="ai-prompt-chip" data-prompt="Interactive Trivia: World Wonders & Architecture">Trivia Quiz</span>
+                                    </div>
                                 </div>
-                                <div id="ai-error-banner" class="ai-error-panel hidden" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px; border-radius: 6px; background-color: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); font-size: 0.8rem; color: #f87171;">
-                                    <i data-lucide="alert-circle" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+
+                                <!-- Compatibility select for generation mode -->
+                                <select id="ai-mode-select" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                    <option value="presentation" selected>AI Presentation (Multi-slide Deck)</option>
+                                    <option value="quiz">AI Quiz Slide (Single MCQ)</option>
+                                </select>
+
+                                <!-- Slide Count Stepper (Active in Presentation Deck Mode) -->
+                                <div class="ai-input-block" id="ai-slide-count-group">
+                                    <div class="ai-input-header">
+                                        <label class="ai-field-label">Number of Slides</label>
+                                        <div class="ai-preset-pills">
+                                            <span class="ai-preset-pill" data-count="3">3</span>
+                                            <span class="ai-preset-pill active" data-count="4">4</span>
+                                            <span class="ai-preset-pill" data-count="6">6</span>
+                                            <span class="ai-preset-pill" data-count="8">8</span>
+                                        </div>
+                                    </div>
+                                    <div class="ai-stepper-row">
+                                        <div class="ai-stepper-control">
+                                            <button type="button" class="ai-stepper-btn" id="btn-ai-count-minus" title="Decrease slides"><i data-lucide="minus" style="width: 12px; height: 12px;"></i></button>
+                                            <span class="ai-stepper-value" id="ai-slide-count-display">4 Slides</span>
+                                            <button type="button" class="ai-stepper-btn" id="btn-ai-count-plus" title="Increase slides"><i data-lucide="plus" style="width: 12px; height: 12px;"></i></button>
+                                        </div>
+                                        <input type="number" id="ai-slide-count" min="1" max="10" value="4" class="sr-only" style="display: none;">
+                                    </div>
+                                </div>
+
+                                <!-- Visual Design Theme Grid -->
+                                <div class="ai-input-block">
+                                    <div class="ai-input-header">
+                                        <label class="ai-field-label">Visual Design Theme</label>
+                                    </div>
+                                    <select id="ai-theme-select" class="sr-only" style="display: none;" aria-hidden="true" tabindex="-1">
+                                        <option value="Obsidian Dark" selected>Obsidian Dark</option>
+                                        <option value="Neon Cyberpunk">Neon Cyberpunk</option>
+                                        <option value="Classic Serif">Classic Serif</option>
+                                        <option value="Minimalist Light">Minimalist Light</option>
+                                        <option value="Retro Game">Retro Game</option>
+                                    </select>
+                                    <div class="ai-theme-grid">
+                                        <div class="ai-theme-card active" data-theme="Obsidian Dark">
+                                            <div class="ai-theme-swatch" style="background: #0f172a;">
+                                                <div class="ai-theme-dot" style="background: #38bdf8;"></div>
+                                            </div>
+                                            <div class="ai-theme-info">
+                                                <span class="ai-theme-name">Obsidian Dark</span>
+                                                <span class="ai-theme-tag">Sleek Dark Slate</span>
+                                            </div>
+                                            <i data-lucide="check" class="ai-theme-check"></i>
+                                        </div>
+                                        <div class="ai-theme-card" data-theme="Neon Cyberpunk">
+                                            <div class="ai-theme-swatch" style="background: #180828;">
+                                                <div class="ai-theme-dot" style="background: #ec4899;"></div>
+                                            </div>
+                                            <div class="ai-theme-info">
+                                                <span class="ai-theme-name">Neon Cyberpunk</span>
+                                                <span class="ai-theme-tag">Purple & Pink</span>
+                                            </div>
+                                            <i data-lucide="check" class="ai-theme-check"></i>
+                                        </div>
+                                        <div class="ai-theme-card" data-theme="Classic Serif">
+                                            <div class="ai-theme-swatch" style="background: #fdfbf7; border-color: #d6d3d1;">
+                                                <div class="ai-theme-dot" style="background: #78350f;"></div>
+                                            </div>
+                                            <div class="ai-theme-info">
+                                                <span class="ai-theme-name" style="color: #ffffff;">Classic Serif</span>
+                                                <span class="ai-theme-tag">Warm Cream</span>
+                                            </div>
+                                            <i data-lucide="check" class="ai-theme-check"></i>
+                                        </div>
+                                        <div class="ai-theme-card" data-theme="Minimalist Light">
+                                            <div class="ai-theme-swatch" style="background: #f8fafc; border-color: #cbd5e1;">
+                                                <div class="ai-theme-dot" style="background: #0284c7;"></div>
+                                            </div>
+                                            <div class="ai-theme-info">
+                                                <span class="ai-theme-name" style="color: #ffffff;">Minimalist Light</span>
+                                                <span class="ai-theme-tag">Clean Modern</span>
+                                            </div>
+                                            <i data-lucide="check" class="ai-theme-check"></i>
+                                        </div>
+                                        <div class="ai-theme-card" data-theme="Retro Game">
+                                            <div class="ai-theme-swatch" style="background: #050510;">
+                                                <div class="ai-theme-dot" style="background: #22c55e;"></div>
+                                            </div>
+                                            <div class="ai-theme-info">
+                                                <span class="ai-theme-name">Retro Game</span>
+                                                <span class="ai-theme-tag">Arcade Pixel</span>
+                                            </div>
+                                            <i data-lucide="check" class="ai-theme-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Dual Generation Actions -->
+                                <div class="ai-actions-row">
+                                    <button type="button" class="ai-btn-primary" id="btn-ai-preview-outline" title="Synthesize slide outline for interactive preview">
+                                        <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i>
+                                        <span>Generate with Outline</span>
+                                    </button>
+                                    <button type="button" class="ai-btn-instant" id="btn-ai-generate" title="Direct generation straight into project">
+                                        <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                                        <span>Quick Deck</span>
+                                    </button>
+                                </div>
+
+                                <!-- Progress & Error Panels -->
+                                <div id="ai-progress-container" class="ai-progress-panel hidden" style="display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; border-radius: 6px; background-color: rgba(255,255,255,0.06); font-size: 0.78rem; border: 1px solid rgba(255,255,255,0.1);">
+                                    <div class="spinner-small" style="width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.15); border-top-color: #ffffff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <span id="ai-progress-text" style="color: rgba(255,255,255,0.9);">Contacting Gemini...</span>
+                                </div>
+                                <div id="ai-error-banner" class="ai-error-panel hidden" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px 12px; border-radius: 6px; background-color: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); font-size: 0.78rem; color: #f87171;">
+                                    <i data-lucide="alert-circle" style="width: 15px; height: 15px; flex-shrink: 0;"></i>
                                     <span id="ai-error-text">Failed to generate.</span>
+                                </div>
+
+                                <!-- Interactive Outline Preview Panel (Gamma Style) -->
+                                <div id="ai-outline-container" class="ai-outline-container hidden">
+                                    <div class="ai-outline-header">
+                                        <div class="ai-outline-header-left">
+                                            <span class="ai-outline-title">Outline Preview</span>
+                                            <span class="ai-outline-badge" id="ai-outline-count-badge">4 Slides</span>
+                                        </div>
+                                        <button type="button" class="ai-outline-add-btn" id="btn-ai-outline-add">
+                                            <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Slide
+                                        </button>
+                                    </div>
+                                    <p class="ai-outline-hint">Review, rename, or delete slides before generating full layout:</p>
+                                    <div id="ai-outline-list" class="ai-outline-list">
+                                        <!-- Dynamically populated outline cards -->
+                                    </div>
+                                    <div class="ai-outline-footer">
+                                        <button type="button" class="btn btn-sm btn-secondary" id="btn-ai-outline-redraft" style="font-size: 0.72rem; padding: 6px 10px;">
+                                            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Re-draft
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-accent" id="btn-ai-outline-generate-all" style="font-size: 0.75rem; padding: 6px 14px; font-weight: 600;">
+                                            <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> Generate Full Deck
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Visual Asset Studio Section (Active in Assets Mode) -->
+                            <div id="ai-asset-section" class="ai-input-block hidden">
+                                <div class="ai-input-header">
+                                    <label for="ai-asset-prompt" class="ai-field-label">AI Visual Prompt</label>
+                                </div>
+                                <div class="ai-textarea-wrapper">
+                                    <textarea id="ai-asset-prompt" rows="3" placeholder="Describe the image, illustration, 3D icon, or photo to generate..."></textarea>
+                                </div>
+                                <div class="ai-inspiration-tray">
+                                    <span class="ai-inspiration-title"><i data-lucide="sparkles" style="width: 11px; height: 11px;"></i> Presets:</span>
+                                    <span class="ai-prompt-chip" data-prompt="3D glassmorphic chart showing growth and metrics, dark background, neon glow">3D Glass Chart</span>
+                                    <span class="ai-prompt-chip" data-prompt="Futuristic brain neural network floating in space, holographic blue light">AI Brain Network</span>
+                                    <span class="ai-prompt-chip" data-prompt="Modern minimalist isometric laptop workspace, soft clay style, vibrant colors">Clay Workspace</span>
+                                </div>
+                                <button type="button" class="ai-btn-primary" id="btn-ai-generate-asset" style="width: 100%; margin-top: 12px;">
+                                    <i data-lucide="wand-2" style="width: 15px; height: 15px;"></i>
+                                    <span>Synthesize Image Asset</span>
+                                </button>
+                                <div id="ai-asset-result-card" class="ai-asset-result-card hidden">
+                                    <div class="ai-asset-image-wrap">
+                                        <img id="ai-asset-preview-img" src="" alt="Synthesized Asset">
+                                    </div>
+                                    <div class="ai-asset-action-row">
+                                        <button type="button" class="btn btn-sm btn-accent" id="btn-ai-asset-add-canvas" style="flex: 1; font-size: 0.75rem;">
+                                            <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add to Slide
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary" id="btn-ai-asset-set-bg" style="flex: 1; font-size: 0.75rem;">
+                                            <i data-lucide="image" style="width: 12px; height: 12px;"></i> Set as BG
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2215,14 +2457,14 @@
     </div>
 
     <!-- Application scripts -->
-    <script src="js/api.js"></script>
-    <script src="js/state.js"></script>
-    <script src="js/canvas.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/editor.js"></script>
-    <script src="js/landing.js"></script>
-    <script type="module" src="js/landing-webgl.js"></script>
-    <script src="js/cursor.js"></script>
+    <script src="js/api.js?v=202609122340"></script>
+    <script src="js/state.js?v=202609122340"></script>
+    <script src="js/canvas.js?v=202609122340"></script>
+    <script src="js/player.js?v=202609122340"></script>
+    <script src="js/editor.js?v=202609122340"></script>
+    <script src="js/landing.js?v=202609122340"></script>
+    <script type="module" src="js/landing-webgl.js?v=202609122340"></script>
+    <script src="js/cursor.js?v=202609122340"></script>
     <script>
         // Initialize Lucide icons on page load
         document.addEventListener("DOMContentLoaded", () => {

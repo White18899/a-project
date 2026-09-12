@@ -5983,7 +5983,12 @@ body.custom-cursor-active * {
     gap: 2px;
 }
 
-.btn-typo-align {
+.btn-typo-align,
+.btn-subtext-align,
+.btn-typo-align,
+.btn-subtext-align,
+.btn-heading-align,
+.btn-valign {
     flex: 1;
     height: 100%;
     background: transparent;
@@ -5997,22 +6002,34 @@ body.custom-cursor-active * {
     transition: all var(--transition-fast);
 }
 
-.btn-typo-align:hover {
+.btn-typo-align:hover,
+.btn-subtext-align:hover,
+.btn-heading-align:hover,
+.btn-valign:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
 }
 
-.btn-typo-align:active {
+.btn-typo-align:active,
+.btn-subtext-align:active,
+.btn-heading-align:active,
+.btn-valign:active {
     transform: scale(0.92);
 }
 
-.btn-typo-align.active {
+.btn-typo-align.active,
+.btn-subtext-align.active,
+.btn-heading-align.active,
+.btn-valign.active {
     background: rgba(255, 255, 255, 0.18);
     color: #ffffff;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
 }
 
-.btn-typo-align svg {
+.btn-typo-align svg,
+.btn-subtext-align svg,
+.btn-heading-align svg,
+.btn-valign svg {
     width: 14px;
     height: 14px;
 }
@@ -6527,8 +6544,11 @@ body.custom-cursor-active * {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: 4px;
+    row-gap: 5px;
+    flex-wrap: wrap;
     min-width: 0;
+    width: 100%;
 }
 
 .card-block-title {
@@ -6554,16 +6574,17 @@ body.custom-cursor-active * {
 .card-block-ai-chips {
     display: flex;
     align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .card-ai-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 2px 6px;
-    height: 22px;
+    gap: 2.5px;
+    padding: 2px 5px;
+    height: 21px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 4px;
@@ -6573,6 +6594,7 @@ body.custom-cursor-active * {
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .card-ai-chip svg {
@@ -6654,7 +6676,7 @@ body.custom-cursor-active * {
     width: 100%;
 }
 
-/* Heading Row 2: Alignment (78px) + Format toolbar (remaining space) */
+/* Heading Row 2: Alignment (Horizontal 78px + Vertical 78px) */
 .card-toolstrip-row-secondary {
     display: flex;
     align-items: center;
@@ -6672,6 +6694,18 @@ body.custom-cursor-active * {
     flex-shrink: 0;
 }
 
+/* Heading Row 2B: Dedicated formatting toolbar */
+.card-toolstrip-row-formatting {
+    width: 100%;
+    margin-top: 2px;
+}
+
+.card-toolstrip-row-formatting .typo-format-toolbar.mini {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
 /* Heading Row 3: Dedicated Spacing Grid (Lead & Track 50%/50%) */
 .card-toolstrip-row-tertiary {
     width: 100%;
@@ -6684,10 +6718,10 @@ body.custom-cursor-active * {
     width: 100%;
 }
 
-/* Subtext Row 1: Size stepper (78px), Weight (flexible), Color swatch (74px) */
+/* Subtext Row 1: Size stepper (84px) & Color swatch (remaining space) - matches Heading Row 1 */
 .card-subtext-row-primary {
     display: grid;
-    grid-template-columns: 78px minmax(0, 1fr) 74px;
+    grid-template-columns: 84px minmax(0, 1fr);
     gap: 6px;
     align-items: center;
     width: 100%;
@@ -6698,12 +6732,12 @@ body.custom-cursor-active * {
     min-width: 0;
 }
 
-/* Subtext Row 2: Alignment (78px) + Format toolbar (remaining space) */
+/* Subtext Row 2: Weight select (flexible) & Alignment (78px) */
 .card-subtext-row-secondary {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 78px;
+    gap: 6px;
     align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
     width: 100%;
 }
 
@@ -6712,8 +6746,16 @@ body.custom-cursor-active * {
     flex-shrink: 0;
 }
 
-.card-subtext-row-secondary .typo-format-toolbar.mini {
-    flex-shrink: 0;
+/* Subtext Row 2B: Dedicated formatting toolbar - matches Heading Row 2B */
+.card-subtext-row-formatting {
+    width: 100%;
+    margin-top: 2px;
+}
+
+.card-subtext-row-formatting .typo-format-toolbar.mini {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
 }
 
 /* Subtext Row 3: Subtext Spacing Grid (Lead & Track 50%/50%) */
@@ -6745,6 +6787,8 @@ body.custom-cursor-active * {
     border-radius: 6px;
     color: #ffffff;
     box-sizing: border-box;
+    cursor: ew-resize;
+    user-select: none;
     transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 

@@ -90,6 +90,8 @@ const ElementTemplates = {
         fontFamily: 'Outfit',
         fontSize: 28,
         align: 'left',
+        subtextAlign: 'left',
+        verticalAlign: 'middle',
         textColor: '#ffffff',
         bgColor: '#16161a',
         bgAlpha: 0,
