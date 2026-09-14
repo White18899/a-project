@@ -1,0 +1,16 @@
+node_modules
+.git
+.vscode
+.wrangler
+db_data
+uploads
+scratch
+*.log
+server_debug.log
+.env*
+server.js
+worker.js
+wrangler.toml
+package.json
+package-lock.json
+README.md

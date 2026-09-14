@@ -1151,11 +1151,6 @@ Card Dimensions: ${cardWidth || 450}x${cardHeight || 300}`;
             }
 
             if (pathname === '/api/ai/refine-layout' && request.method === 'POST') {
-                const currentUser = getAuthenticatedUser(request);
-                if (!currentUser) {
-                    return sendJson(401, { success: false, message: 'Unauthorized. Please log in first.' });
-                }
-
                 const body = await parseBody(request);
                 const { elements, prompt } = body;
 
@@ -1227,11 +1222,6 @@ ${JSON.stringify(elements, null, 2)}`
             }
 
             if (pathname === '/api/ai/generate-asset' && request.method === 'POST') {
-                const currentUser = getAuthenticatedUser(request);
-                if (!currentUser) {
-                    return sendJson(401, { success: false, message: 'Unauthorized. Please log in first.' });
-                }
-
                 const body = await parseBody(request);
                 const { prompt } = body;
 
